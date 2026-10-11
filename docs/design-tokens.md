@@ -34,7 +34,7 @@ non-text UI**.
 | `--color-surface` | `#112240` | Cards, panels, code blocks | base |
 | `--color-surface-raised` | `#1D3254` | Hovered cards, popovers | base |
 | `--color-text` | `#E6F1FF` | Primary body + headings | 15.42:1 on `bg` ✅ AAA |
-| `--color-text-muted` | `#8892B0` | Secondary copy, metadata | 5.69:1 on `bg` ✅ AA body |
+| `--color-text-muted` | `#98A2C2` | Secondary copy, metadata | 6.94:1 on `bg`, 5.06:1 on `surface-raised` ✅ AA |
 | `--color-border` | `#233554` | Hairlines, dividers, chip borders | 1.43:1 on `bg` — decorative only; any *interactive* border must use `accent` (3:1+) |
 | `--color-accent` | `#64FFDA` | Links, active nav, focus ring, chips | 14.13:1 on `bg` ✅ AAA |
 | `--color-accent-ink` | `#0A192F` | Text on accent-filled buttons | 14.13:1 ✅ AAA |
@@ -51,12 +51,12 @@ non-text UI**.
 | `--color-text` | `#1A202C` | Primary body + headings | 15.57:1 on `bg` ✅ AAA |
 | `--color-text-muted` | `#4A5568` | Secondary copy, metadata | 7.18:1 on `bg` ✅ AA |
 | `--color-border` | `#E2E8F0` | Hairlines, dividers | decorative; interactive borders use `accent-ink` |
-| `--color-accent` | `#007A6A` | Links, active nav, focus ring (light needs a darker accent than `#64FFDA`) | 5.02:1 on `bg` ✅ AA body |
-| `--color-accent-ink` | `#FFFFFF` | Text on accent-filled buttons (white on `#007A6A`) | 5.26:1 ✅ AA |
+| `--color-accent` | `#006557` | Links, active nav, focus ring (light needs a darker accent than `#64FFDA`) | 6.68:1 on `bg`, 5.50:1 on the 14 % accent chip ✅ AA |
+| `--color-accent-ink` | `#FFFFFF` | Text on accent-filled buttons (white on `#006557`) | 7.00:1 ✅ AA |
 | `--color-success` | `#276749` | Verified status | 6.42:1 on `bg` ✅ AA |
-| `--color-warn` | `#97570F` | Draft status | 5.44:1 on `bg` ✅ AA |
+| `--color-warn` | `#8A4F0B` | Draft status | 6.25:1 on `bg`, 5.15:1 on the 14 % warn chip ✅ AA |
 
-Verified with WCAG 2.1 relative-luminance formula on 2026-10-09.
+Verified with WCAG 2.1 relative-luminance formula, most recently on 2026-10-11 (re-synced to `web/src/styles/tokens.css` after the UI audit: dark `--color-text-muted` `#8892B0` → `#98A2C2`, light `--color-accent` `#007A6A` → `#006557`, light `--color-warn` `#97570F` → `#8A4F0B`).
 
 Rules:
 - Body copy never uses `text-muted` below 16px on `surface` without re-checking contrast.
