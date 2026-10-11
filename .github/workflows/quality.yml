@@ -34,6 +34,21 @@ jobs:
       - name: Accessibility (axe-core WCAG 2.2 AA)
         run: node --test web/tests/a11y.test.mjs
 
+      - name: Install Playwright Chromium
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Accessibility in a real browser (axe-core WCAG 2.2 AA, dark + light)
+        # Runs the DOM-based axe spec against the production build, which the
+        # harness serves through `astro preview` (port 4322) so the GitHub Pages
+        # base path resolves — a bare static server at the root would 404 every
+        # asset. The screenshot baselines in tests/visual/visual.spec.mjs are
+        # machine-dependent (system fonts, GPU) and are deliberately NOT run in
+        # CI: they are a local regression tool. axe is DOM-based, not pixel-based,
+        # so this gate is deterministic across runners.
+        working-directory: web
+        run: npx playwright test tests/visual/axe.spec.mjs
+
       - name: Start static server
         run: |
           npx --yes serve web/dist -l 4173 --no-clipboard &
@@ -43,27 +58,35 @@ jobs:
             sleep 1
           done
 
-      - name: Lighthouse CI
+      - name: Lighthouse CI (5 primary pages)
         run: |
-          npx --yes lighthouse@12 http://localhost:4173/ \
-            --output=json \
-            --output-path=/tmp/lighthouse-report.json \
-            --chrome-flags="--headless --no-sandbox --disable-gpu" \
-            --only-categories=performance,accessibility,best-practices,seo \
-            --budget-path=lighthouse-budget.json || true
+          set -u
+          urls=("/" "/work/" "/career/" "/evolution/" "/es/")
+          for i in "${!urls[@]}"; do
+            echo "Auditing http://localhost:4173${urls[$i]}"
+            npx --yes lighthouse@12 "http://localhost:4173${urls[$i]}" \
+              --output=json \
+              --output-path="/tmp/lighthouse-$i.json" \
+              --chrome-flags="--headless --no-sandbox --disable-gpu" \
+              --only-categories=performance,accessibility,best-practices,seo \
+              --budget-path=lighthouse-budget.json || true
+          done
           node -e "
             const fs=require('fs');
-            const r=JSON.parse(fs.readFileSync('/tmp/lighthouse-report.json','utf8'));
-            const cats=r.categories;
+            const urls=['/','/work/','/career/','/evolution/','/es/'];
             const thresholds={performance:0.9,accessibility:0.95,'best-practices':0.9,seo:0.95};
             let fail=false;
-            for(const[k,v] of Object.entries(thresholds)){
-              const score=cats[k]?.score||0;
-              console.log(k+': '+Math.round(score*100)+'% (min '+Math.round(v*100)+'%)');
-              if(score<v){fail=true;}
-            }
+            urls.forEach((url,i)=>{
+              const report=JSON.parse(fs.readFileSync('/tmp/lighthouse-'+i+'.json','utf8'));
+              const cats=report.categories;
+              for(const[k,v] of Object.entries(thresholds)){
+                const score=cats[k]?.score||0;
+                console.log(url+' '+k+': '+Math.round(score*100)+'% (min '+Math.round(v*100)+'%)');
+                if(score<v){fail=true;}
+              }
+            });
             if(fail){process.exit(1);}
-            console.log('Lighthouse thresholds passed.');
+            console.log('Lighthouse thresholds passed for all 5 URLs.');
           "
 
       - name: Stop static server
