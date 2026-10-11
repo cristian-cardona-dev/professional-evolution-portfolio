@@ -17,7 +17,7 @@
   --color-surface: #112240;
   --color-surface-raised: #1d3254;
   --color-text: #e6f1ff; /* 15.42:1 on bg */
-  --color-text-muted: #8892b0; /* 5.69:1 on bg */
+  --color-text-muted: #98a2c2; /* 6.94:1 on bg, 5.06:1 on surface-raised, 4.91:1 on the neutral chip */
   --color-border: #233554; /* decorative only — interactive borders use accent */
   --color-accent: #64ffda; /* 14.13:1 on bg */
   --color-accent-ink: #0a192f; /* text on accent-filled surfaces */

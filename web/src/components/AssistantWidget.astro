@@ -333,6 +333,33 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
         run(query);
       });
     }
+
+    // Guarded regions: at narrow widths the FAB's corner overlaps the home
+    // hero's action row at the top and the footer notes at the bottom, so the
+    // CSS hides the FAB (mobile only) while either is in view. Mark the widget
+    // when one is visible; the FAB returns in the long middle of the page. No
+    // guarded region on the page means no marker and no change, and without
+    // IntersectionObserver the fallback is today's always-visible button. The
+    // marker is never toggled while the panel is open, so an open dialog is
+    // not affected by scrolling.
+    const guarded = [document.querySelector('.hero'), document.querySelector('.site-footer')].filter(
+      (el): el is HTMLElement => el !== null,
+    );
+    if (guarded.length > 0 && 'IntersectionObserver' in window) {
+      const visible = new Set<Element>();
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) visible.add(entry.target);
+            else visible.delete(entry.target);
+          }
+          if (!panel.hidden) return;
+          root.toggleAttribute('data-fab-guard', visible.size > 0);
+        },
+        { threshold: 0 },
+      );
+      guarded.forEach((region) => observer.observe(region));
+    }
   })();
 </script>
 
@@ -363,6 +390,43 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
     border-radius: var(--radius-full);
     box-shadow: var(--shadow-md);
     cursor: pointer;
+    transition:
+      opacity var(--duration-base) var(--ease-standard),
+      visibility var(--duration-base) var(--ease-standard),
+      transform var(--duration-base) var(--ease-standard);
+  }
+
+  /* --- Guarded regions (mobile only) --------------------------------------
+   * At narrow widths the FAB's bottom-right corner is exactly where two
+   * full-width regions put their content: the home hero's action row at the
+   * top (it would cover the "Inspect the evidence" CTA) and the footer notes
+   * at the bottom (it would cover the last line of the build/theme notes).
+   * While either guarded region is in view on a small screen the FAB is
+   * therefore hidden; it reappears in the long middle of the page, where
+   * search is actually useful. Desktop keeps the button at all times: neither
+   * region reaches that corner there. The `data-fab-guard` marker is set by
+   * the observer below and stays absent on any page without a guarded region,
+   * so those pages are unchanged.
+   * ---------------------------------------------------------------------- */
+  @media (max-width: 767.98px) {
+    .assistant[data-fab-guard] .assistant__fab {
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(calc(var(--space-3) + 8px)) scale(0.9);
+      pointer-events: none;
+    }
+  }
+
+  /* Show/hide is a state change, not decoration: keep it, but drop the
+     transition so nothing moves when the visitor asked for reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    .assistant__fab {
+      transition: none;
+    }
+
+    .assistant[data-fab-guard] .assistant__fab {
+      transform: none;
+    }
   }
 
   .assistant__fab:hover {
