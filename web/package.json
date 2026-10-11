@@ -8,7 +8,7 @@
     "dev": "astro dev",
     "build": "astro build && node ../scripts/sitemap-generate.mjs",
     "preview": "astro preview",
-    "test:quality": "node --test tests/"
+    "test:quality": "node --test \"tests/**/*.test.mjs\""
   },
   "dependencies": {
     "astro": "^5"
