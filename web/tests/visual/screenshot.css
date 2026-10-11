@@ -1,0 +1,23 @@
+/*
+ * Determinism overrides injected by Playwright only while a screenshot is
+ * captured (`stylePath` in `visual.spec.mjs`). Nothing here ships to users.
+ *
+ * - The assistant FAB is `position: fixed` and its visibility is toggled by an
+ *   IntersectionObserver on `.hero` / `.site-footer`; a full-page capture walks
+ *   the document, so the FAB would appear or disappear depending on scroll.
+ * - Reveal-on-scroll elements start at `opacity: 0` and only reach their final
+ *   state once observed. A full-page capture does not scroll the way a visitor
+ *   does, so pin every reveal target to its final state.
+ * - The evolution timeline rail is drawn by a transformed pseudo-element with
+ *   the same scroll dependency.
+ */
+.assistant__fab {
+  display: none !important;
+}
+
+.reveal,
+.timeline__node,
+.timeline__track::before {
+  opacity: 1 !important;
+  transform: none !important;
+}
