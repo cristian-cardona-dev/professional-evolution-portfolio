@@ -3,7 +3,12 @@
  *
  * Do not invent tokens here. Every value below is transcribed from the token
  * document, including the post-fix light-theme contrast values
- * (accent #007A6A 5.02:1, success #276749 6.42:1, warn #97570F 5.44:1).
+ * (accent #006557 6.68:1, success #276749 6.42:1, warn #8A4F0B 6.25:1 on bg).
+ *
+ * The light-theme accent and warn were darkened again in the UI audit
+ * (2026-10-11) so the 14 % tinted chip surfaces they sit on also clear 4.5:1
+ * in a real browser (accent chip 5.50:1, warn chip 5.15:1), not just the flat
+ * page background. See .superpowers/sdd/2026-10-11-ui-audit/w2-report.md.
  *
  * Dark theme is the default and lives on :root. The light theme is an
  * explicit override on [data-theme="light"], applied by ThemeToggle and by the
@@ -114,15 +119,15 @@
   --color-text: #1a202c; /* 15.57:1 on bg */
   --color-text-muted: #4a5568; /* 7.18:1 on bg */
   --color-border: #e2e8f0; /* decorative; interactive borders use accent */
-  --color-accent: #007a6a; /* 5.02:1 on bg — darker than the dark-theme accent */
-  --color-accent-ink: #ffffff; /* text on accent-filled surfaces */
+  --color-accent: #006557; /* 6.68:1 on bg, 5.50:1 on the 14 % accent chip — darker than the dark-theme accent */
+  --color-accent-ink: #ffffff; /* text on accent-filled surfaces; 7.00:1 on accent */
   --color-success: #276749; /* 6.42:1 on bg */
-  --color-warn: #97570f; /* 5.44:1 on bg */
+  --color-warn: #8a4f0b; /* 6.25:1 on bg, 5.15:1 on the 14 % warn chip */
 
   --shadow-sm: 0 1px 2px rgba(10, 25, 47, 0.08);
   --shadow-md: 0 4px 12px rgba(10, 25, 47, 0.12);
   --shadow-lg: 0 16px 40px rgba(10, 25, 47, 0.16);
-  --ring-focus: 0 0 0 3px rgba(0, 122, 106, 0.35);
+  --ring-focus: 0 0 0 3px rgba(0, 101, 87, 0.35);
 }
 
 /* =============================================================================
