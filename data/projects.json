@@ -9,7 +9,7 @@
     "caseStudy": null,
     "tags": ["astro", "bilingual", "evidence-first", "accessibility"],
     "related": ["ai-chat-app", "cloud-dashboard", "saas-mvp", "ai-automation-workflow-lab"],
-    "screenshots": ["images/site-career.png", "images/site-work.png"]
+    "screenshots": ["images/site-career.png"]
   },
   {
     "slug": "ai-chat-app",

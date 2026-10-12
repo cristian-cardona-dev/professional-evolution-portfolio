@@ -93,8 +93,7 @@ const initials = project.name
 const BASE: string = import.meta.env.BASE_URL;
 
 const SCREENSHOT_SIZES: Record<string, { width: number; height: number }> = {
-  'site-career.png': { width: 1887, height: 2044 },
-  'site-work.png': { width: 1887, height: 2044 },
+  'site-career.png': { width: 324, height: 183 },
 };
 
 const firstScreenshot = project.screenshots[0];
@@ -290,9 +289,10 @@ const screenshotAlt = screenshotName
     height: auto;
     aspect-ratio: 16 / 9;
     object-fit: cover;
-    /* The screenshots are full-page portrait captures (1887×2044) cropped to a
-       16:9 box, so anchoring at the top shows the page header instead of an
-       arbitrary middle band. Only cards with a screenshot are affected. */
+    /* The capture is already a 16:9 crop of the page top, so `cover` fits it
+       exactly; `object-position: top` is kept so a future taller screenshot
+       still shows its header instead of an arbitrary middle band. Only cards
+       with a screenshot are affected. */
     object-position: top;
     border-radius: var(--radius-md);
   }
