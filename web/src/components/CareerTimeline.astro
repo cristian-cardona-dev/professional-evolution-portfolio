@@ -31,24 +31,8 @@
  * as `h1` with an `h2` timeline heading above this component.
  */
 import type { Copy, Locale } from '../i18n/copy';
-import { profile } from '../lib/data';
+import { experienceCompanies, profile, type ExperienceCompany } from '../lib/data';
 import { route } from '../lib/urls';
-/* Imported directly rather than through `lib/data.ts`: the career data layer is
-   re-exported from there in a later task, and duplicating one JSON import here
-   keeps the component consumable today without editing a shared module. */
-import experienceJson from '../../../data/experience.json';
-
-interface Company {
-  id: string;
-  company: string;
-  role: string;
-  /** ISO month (`YYYY-MM`) the role started. */
-  start: string;
-  /** ISO month the role ended, or `null` while it is ongoing. */
-  end: string | null;
-  stack: string[];
-  source: string;
-}
 
 interface Props {
   copy: Copy;
@@ -67,7 +51,7 @@ const { copy, locale, compact = false } = Astro.props;
 /** Entries the compact preview keeps. */
 const COMPACT_LIMIT = 3;
 
-const companies = experienceJson.companies as Company[];
+const companies = experienceCompanies;
 
 /**
  * Locale-aware short month names. Spanish follows the usual no-period, lowercase
@@ -95,7 +79,7 @@ function monthIndex(isoMonth: string): number {
  * pretend the role ended. It therefore grows as the site is rebuilt, which is
  * the honest reading rather than a frozen number.
  */
-function durationMonths(company: Company, present: string): number {
+function durationMonths(company: ExperienceCompany, present: string): number {
   const end = company.end ?? present;
   return monthIndex(end) - monthIndex(company.start) + 1;
 }

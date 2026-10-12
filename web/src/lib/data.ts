@@ -12,6 +12,9 @@ import projectsJson from '../../../data/projects.json';
 import evolutionJson from '../../../data/evolution.json';
 import evidenceJson from '../../../data/evidence.json';
 import caseStudiesJson from '../../../data/case-studies.json';
+import experienceJson from '../../../data/experience.json';
+import skillsJson from '../../../data/skills.json';
+import roadmapJson from '../../../data/roadmap.json';
 import { fold, words, type AssistantEntry, type AssistantKind } from './assistant-search';
 import { route } from './urls';
 import type { ClaimStatus, Copy, Locale } from '../i18n/copy';
@@ -106,6 +109,52 @@ export interface CaseStudy {
   sections: CaseStudySection[];
 }
 
+/** One declared employer entry of `data/experience.json`. */
+export interface ExperienceCompany {
+  id: string;
+  company: string;
+  role: string;
+  /** ISO month (`YYYY-MM`) the role started. */
+  start: string;
+  /** ISO month the role ended, or `null` while it is ongoing. */
+  end: string | null;
+  stack: string[];
+  source: string;
+}
+
+/**
+ * One entry of `data/skills.json`. `category` stays a plain `string` here
+ * rather than the copy catalog's `SkillCategory`: the validator owns that enum,
+ * and a consumer narrows through `copy.skills.categoryLabel` when it needs a
+ * label, exactly as `RoadmapTable` does.
+ */
+export interface Skill {
+  name: string;
+  category: string;
+  aliases: string[];
+  /** `experience.json` ids that declared the skill. */
+  employedAt: string[];
+  /** `projects.json` slugs the skill is exercised in. */
+  projects: string[];
+  /** Optional human-declared provenance marker; absent for most skills. */
+  facts?: string;
+}
+
+/** One proof a roadmap milestone points at, in `data/roadmap.json`. */
+export interface RoadmapProof {
+  type: 'project' | 'evolution';
+  id: string;
+}
+
+/** One entry of `data/roadmap.json`, in declared (narrative) order. */
+export interface RoadmapMilestone {
+  id: string;
+  goal: string;
+  status: MilestoneStatus;
+  skills: string[];
+  proofs: RoadmapProof[];
+}
+
 /**
  * JSON imports widen string literals to `string`, so the canonical unions are
  * re-narrowed here. `npm run data:validate` is the gate that keeps the JSON
@@ -120,6 +169,17 @@ export const projects: Project[] = narrow(projectsJson);
 export const milestones: Milestone[] = narrow(evolutionJson.milestones);
 export const evidence: Evidence = narrow(evidenceJson);
 export const caseStudies: CaseStudy[] = narrow(caseStudiesJson.caseStudies);
+
+/**
+ * Career data layer. `experience.json`, `skills.json` and `roadmap.json` are
+ * canonical like the datasets above and are re-exported from this module so no
+ * component has to reach into `data/` itself: one import path, one place that
+ * documents the shape. `data-validate.mjs` gates the cross-file references
+ * (`employedAt` ⊆ company ids, `skills` ⊆ skill names, `proofs` resolving).
+ */
+export const experienceCompanies: ExperienceCompany[] = narrow(experienceJson.companies);
+export const skills: Skill[] = narrow(skillsJson.skills);
+export const roadmapMilestones: RoadmapMilestone[] = narrow(roadmapJson.milestones);
 
 /** Newest milestone first; curated and git-derived entries share one ordering. */
 export const milestonesByDateDesc: Milestone[] = [...milestones].sort((a, b) =>

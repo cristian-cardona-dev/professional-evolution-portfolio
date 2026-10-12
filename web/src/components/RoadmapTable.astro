@@ -3,9 +3,9 @@
  * Roadmap table — one row per declared roadmap milestone: goal, skills, proof.
  *
  * The dataset is `data/roadmap.json` (canonical, gated by
- * `scripts/data-validate.mjs`), imported directly exactly as `SkillMatrix`
- * imports `skills.json`: re-exporting it from `lib/data.ts` would be the tidier
- * home, and that module is outside this task's file scope. The component never
+ * `scripts/data-validate.mjs`), reached through `lib/data.ts` like every other
+ * dataset: one import path for all of them, so a component never has to know
+ * where the JSON lives. The component never
  * re-orders the data — a roadmap's order *is* its narrative, so sorting it here
  * would be a data edit disguised as a view edit. The status chip on every row is
  * what keeps a planned intention from reading as a result.
@@ -48,27 +48,9 @@
  * "promised, not drawn" dashed treatment the frontier rows use.
  */
 import type { Copy, Locale, SkillCategory } from '../i18n/copy';
-import type { MilestoneStatus } from '../lib/data';
-import { milestones, projects } from '../lib/data';
+import type { MilestoneStatus, RoadmapMilestone, RoadmapProof } from '../lib/data';
+import { milestones, projects, roadmapMilestones, skills } from '../lib/data';
 import { route } from '../lib/urls';
-/* Imported directly rather than through `lib/data.ts`, matching
-   `SkillMatrix.astro`: the roadmap dataset has no data-layer export yet, and
-   `lib/data.ts` is outside this task's file scope. */
-import roadmapJson from '../../../data/roadmap.json';
-import skillsJson from '../../../data/skills.json';
-
-interface RoadmapProof {
-  type: 'project' | 'evolution';
-  id: string;
-}
-
-interface RoadmapMilestone {
-  id: string;
-  goal: string;
-  status: MilestoneStatus;
-  skills: string[];
-  proofs: RoadmapProof[];
-}
 
 /** One proof, resolved to the artifact it points at. */
 interface ResolvedProof {
@@ -86,8 +68,8 @@ interface Props {
 
 const { copy, locale } = Astro.props;
 
-/** Bridge between the widened JSON strings and the canonical unions. */
-const entries = roadmapJson.milestones as RoadmapMilestone[];
+/** Roadmap milestones in declared (narrative) order — the order *is* the plan. */
+const entries: RoadmapMilestone[] = roadmapMilestones;
 
 /** Project slug → published project, so a removed project cannot leave a dead link. */
 const projectBySlug = new Map(projects.map((project) => [project.slug, project]));
@@ -101,7 +83,7 @@ const milestoneById = new Map(milestones.map((milestone) => [milestone.id, miles
  * produce an undefined label.
  */
 const categoryByName = new Map<string, SkillCategory>(
-  (skillsJson.skills as { name: string; category: string }[])
+  skills
     .filter((skill) => skill.category in copy.skills.categoryLabel)
     .map((skill) => [skill.name, skill.category as SkillCategory]),
 );

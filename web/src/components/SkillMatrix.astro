@@ -44,27 +44,8 @@
  * of the page outline, exactly like `EvolutionTimeline`'s year labels.
  */
 import type { Copy, Locale, SkillCategory } from '../i18n/copy';
-import { projects } from '../lib/data';
+import { experienceCompanies, projects, skills, type Skill } from '../lib/data';
 import { route } from '../lib/urls';
-/* Imported directly rather than through `lib/data.ts`, matching
-   `CareerTimeline.astro`: the career data layer is re-exported from there in a
-   later task, and `lib/data.ts` is outside this task's file scope. */
-import skillsJson from '../../../data/skills.json';
-import experienceJson from '../../../data/experience.json';
-
-interface Skill {
-  name: string;
-  category: SkillCategory;
-  aliases: string[];
-  employedAt: string[];
-  projects: string[];
-  facts?: string;
-}
-
-interface Company {
-  id: string;
-  company: string;
-}
 
 interface Props {
   copy: Copy;
@@ -97,11 +78,8 @@ const CATEGORY_ORDER: readonly SkillCategory[] = [
 /** Skills a compact category line shows before the `+N more` note. */
 const COMPACT_PER_CATEGORY = 4;
 
-const skills = skillsJson.skills as Skill[];
-const companies = experienceJson.companies as Company[];
-
 /** Company id → name, for the employer badge tooltip. */
-const companyById = new Map(companies.map((entry) => [entry.id, entry.company]));
+const companyById = new Map(experienceCompanies.map((entry) => [entry.id, entry.company]));
 
 /** Declared project slugs, so a removed project cannot leave a dead link. */
 const projectSlugs = new Set(projects.map((project) => project.slug));

@@ -27,11 +27,11 @@ import type { Milestone, Project } from '../lib/data';
 import {
   curatedMilestonesByDateDesc,
   evidence,
+  experienceCompanies,
   getProjectBySlug,
   milestones,
   projects,
 } from '../lib/data';
-import experienceJson from '../../../data/experience.json';
 import { route } from '../lib/urls';
 import Hero from '../components/Hero.astro';
 import ProjectCard from '../components/ProjectCard.astro';
@@ -88,16 +88,16 @@ const evolutionPreview = [...curatedMilestonesByDateDesc]
 
 /**
  * Verified metrics — counted from the canonical data at build time, never
- * hardcoded. `experience.json` is read directly because `lib/data.ts` does not
- * re-export it; these four figures are all the home page needs from it. The
- * "public" project count covers the statuses that name an inspectable artifact
- * (`live`, `prototype`, `lab`), matching the site's own claim vocabulary.
+ * hardcoded. The company figures come from the career dataset through
+ * `lib/data.ts`, the same source `CareerTimeline` renders. The "public" project
+ * count covers the statuses that name an inspectable artifact (`live`,
+ * `prototype`, `lab`), matching the site's own claim vocabulary.
  */
 const PUBLIC_PROJECT_STATUSES: Project['status'][] = ['live', 'prototype', 'lab'];
 
-const companyCount = experienceJson.companies.length;
+const companyCount = experienceCompanies.length;
 const sinceYear = Math.min(
-  ...experienceJson.companies.map((company) => Number(company.start.slice(0, 4))),
+  ...experienceCompanies.map((company) => Number(company.start.slice(0, 4))),
 );
 const publicProjectCount = projects.filter((entry) =>
   PUBLIC_PROJECT_STATUSES.includes(entry.status),
