@@ -17,6 +17,22 @@ export const PAGES = [
   ['es', 'es/'],
 ];
 
+/**
+ * Extra pages scanned by axe only, NOT by the screenshot baselines.
+ *
+ * The two static resume pages are plain HTML served straight out of
+ * `web/public/` at the base path (`resume-en.html`, `resume-es.html`); they
+ * are not Astro routes and carry their own hardcoded palette. Auditing them
+ * for accessibility is worthwhile, but adding them to `PAGES` would also force
+ * two new screenshot baselines that would churn on every resume content edit,
+ * so they live in this separate list instead.
+ */
+export const AXE_PAGES = [
+  ...PAGES,
+  ['resume-en', 'resume-en.html'],
+  ['resume-es', 'resume-es.html'],
+];
+
 export async function gotoPage(page, path) {
   const response = await page.goto(path, { waitUntil: 'networkidle' });
   if (!response || !response.ok()) {

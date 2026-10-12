@@ -19,7 +19,7 @@
  *     enough for the two strings the assets actually draw.
  *
  * The palette matches the site tokens: dark background #0a192f, accent #64ffda,
- * with #112240 for the card border and #ccd6f6 / #8892b0 for the type ramp.
+ * with #112240 for the card border and #ccd6f6 / #98a2c2 for the type ramp.
  */
 import { deflateSync } from 'node:zlib';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -242,7 +242,7 @@ const DARK = [0x0a, 0x19, 0x2f, 255]; // #0a192f
 const BORDER = [0x11, 0x22, 0x40, 255]; // #112240
 const ACCENT = [0x64, 0xff, 0xda, 255]; // #64ffda
 const LIGHT = [0xcc, 0xd6, 0xf6, 255]; // #ccd6f6
-const SLATE = [0x88, 0x92, 0xb0, 255]; // #8892b0
+const SLATE = [0x98, 0xa2, 0xc2, 255]; // #98a2c2
 
 /** Dark tile with the "CC" monogram centred, at the requested square size. */
 function monogram(size) {

@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { createRequire } from 'node:module';
-import { PAGES, gotoPage } from './pages.mjs';
+import { AXE_PAGES, gotoPage } from './pages.mjs';
 
 /**
- * Real-browser axe-core scan (WCAG 2.2 AA) of the six primary pages in BOTH
- * colour schemes. Unlike the jsdom gate in `tests/a11y.test.mjs`, this runs in
+ * Real-browser axe-core scan (WCAG 2.2 AA) of the six primary pages plus the
+ * two static resume pages, in BOTH colour schemes. Unlike the jsdom gate in
+ * `tests/a11y.test.mjs`, this runs in
  * a real engine, so it evaluates *computed* colours and therefore catches the
  * `color-contrast` rule that jsdom cannot judge.
  *
@@ -22,7 +23,7 @@ const SCHEMES = ['dark', 'light'];
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 for (const scheme of SCHEMES) {
-  for (const [name, path] of PAGES) {
+  for (const [name, path] of AXE_PAGES) {
     test(`${name} has no axe violations (${scheme})`, async ({ page }) => {
       // Drive the site's pre-paint theme script via prefers-color-scheme.
       await page.emulateMedia({ colorScheme: scheme });

@@ -124,7 +124,7 @@ function buildHtml(locale) {
     --bg: #0a192f;
     --surface: #112240;
     --text: #e6f1ff;
-    --muted: #8892b0;
+    --muted: #98a2c2;
     --accent: #64ffda;
     --border: #233554;
   }
