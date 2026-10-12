@@ -504,6 +504,8 @@ export interface Copy {
     deployHeading: string;
     /** One line under `deployHeading`. */
     deployNote: string;
+    /** Second line under `deployHeading`: the mirror's security-header boundary. */
+    deployHeadersNote: string;
     /** Heading of the assistant honesty section. */
     assistantHeading: string;
     /** One line under `assistantHeading`. */
@@ -905,6 +907,8 @@ export const en: Copy = {
     deployHeading: 'Deployment',
     deployNote:
       'Every push to main is built and published automatically by GitHub Actions. GitHub Pages is the canonical host; a Cloudflare Workers mirror serves the same static build.',
+    deployHeadersNote:
+      'As of 2026-10-12 the Workers mirror also serves security headers — X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, X-Frame-Options: DENY, Permissions-Policy: camera=(), microphone=(), geolocation=() and Strict-Transport-Security — and Cache-Control: public, max-age=31536000, immutable for the hashed assets under /_astro/. The mechanism is a _headers file in the build output. The canonical GitHub Pages host is a project site and cannot set response headers, so it serves the same pages without them.',
     assistantHeading: 'The assistant is a search, not an AI',
     assistantNote:
       'The floating assistant is a keyword search over the public data published on this site. It is not an AI model and makes no API call: it can only point at what is already published here, and it says so when it finds nothing.',
@@ -1302,6 +1306,8 @@ export const es: Copy = {
     deployHeading: 'Despliegue',
     deployNote:
       'Cada push a main se compila y publica automáticamente mediante GitHub Actions. GitHub Pages es el host canónico; un espejo en Cloudflare Workers sirve la misma compilación estática.',
+    deployHeadersNote:
+      'Desde el 2026-10-12 el espejo en Workers también sirve cabeceras de seguridad — X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, X-Frame-Options: DENY, Permissions-Policy: camera=(), microphone=(), geolocation=() y Strict-Transport-Security — y Cache-Control: public, max-age=31536000, immutable para los recursos con hash en /_astro/. El mecanismo es un archivo _headers en la salida de compilación. El host canónico de GitHub Pages es un sitio de proyecto y no puede establecer cabeceras de respuesta, así que sirve las mismas páginas sin ellas.',
     assistantHeading: 'El asistente es una búsqueda, no una IA',
     assistantNote:
       'El asistente flotante es una búsqueda por palabras clave sobre los datos públicos publicados en este sitio. No es un modelo de IA y no realiza ninguna llamada a una API: solo puede señalar lo que ya está publicado aquí, y lo dice cuando no encuentra nada.',
