@@ -441,15 +441,21 @@ export function assistantIndex(copy: Copy, locale: Locale): AssistantEntry[] {
   }
 
   for (const milestone of milestones) {
+    // `assistantIndex` is built per locale, so the result row carries the same
+    // title the page shows: the reviewed Spanish `titleEs` on es, the English
+    // title otherwise. The English title words stay in the strong-token list
+    // too, so an English query still matches on the es index.
+    const title = milestoneTitle(milestone, locale);
     entries.push({
       ty: 'evolution',
       lo: uniqueTerms([
         ...words(milestone.title),
+        ...(title === milestone.title ? [] : words(title)),
         ...KIND_TERMS.evolution,
         ...(STATUS_TERMS[milestone.status] ?? []),
       ]),
       we: fold(milestone.narrative),
-      ti: milestone.title,
+      ti: title,
       sn: clip(milestone.narrative),
       hr: route(locale, 'evolution/'),
       ba: copy.evolution[MILESTONE_LABEL_KEY[milestone.status]],

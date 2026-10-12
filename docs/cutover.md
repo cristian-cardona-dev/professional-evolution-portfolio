@@ -170,6 +170,17 @@ revert PR; never force-push or `git reset --hard`).
 - **Scroll-spy** — active-section highlighting in the numbered side nav is
   implemented with `IntersectionObserver` in `web/src/components/Header.astro`
   (the reveal observer in `BaseLayout.astro` uses the same API).
+- **Spanish case-study bodies** — `case-studies/*.es.md` (three files) carry
+  faithful Spanish translations of the English bodies;
+  `scripts/case-studies-sync.mjs` attaches them as `sections_es` in
+  `data/case-studies.json` (mirrored 1:1 with `sections`, enforced by
+  `scripts/data-validate.mjs`), and `web/src/views/CaseStudy.astro` renders
+  them on `/es/work/<slug>/` with the English sections as the fallback.
+  Section anchors stay position-derived, so they are identical across locales.
+- **Localized print and assistant milestone titles** — `/es/print/` and the es
+  assistant index now use the reviewed `titleEs` through the same
+  `milestoneTitle` helper as the timeline, instead of leaking the English
+  curated title.
 
 ## Deferred (explicitly out of scope)
 
@@ -177,8 +188,5 @@ revert PR; never force-push or `git reset --hard`).
   canonical GitHub Pages `SITE`/`BASE`, so the Worker mirror's
   `sitemap.xml` lists Pages URLs even though the Worker is served at `/`.
   Harmless for a non-indexable mirror (`indexable: false`), tracked here.
-- **Spanish case-study bodies remain English** — the site's translation
-  contract keeps canonical data English-only; `/es/` case-study bodies are the
-  English text with localized chrome.
 - **Worker `/api/assistant` v2** — blocked on a model API key and Worker deploy
   authorization; see [assistant.md](assistant.md).

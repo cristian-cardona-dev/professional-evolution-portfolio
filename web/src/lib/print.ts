@@ -6,12 +6,14 @@
  * catalog differ, so the shaping lives here once instead of twice. Nothing is
  * invented: every field comes from `data/*.json` through the canonical exports
  * in `lib/data.ts`, and every label comes from the locale catalog. A project
- * with a reviewed Spanish summary uses it on the `es` route, exactly like the
- * assistant index and the work cards.
+ * with a reviewed Spanish summary uses it on the `es` route, and a milestone
+ * with a reviewed Spanish title uses that too (`milestoneTitle`), exactly like
+ * the assistant index and the work cards.
  */
 import type { Copy, Locale } from '../i18n/copy';
 import {
   evidence,
+  milestoneTitle,
   milestonesByDateDesc,
   profile,
   projects,
@@ -68,7 +70,10 @@ export function printModel(copy: Copy, locale: Locale): PrintModel {
 
   const toRow = (milestone: Milestone): PrintMilestone => ({
     date: milestone.date,
-    title: milestone.title,
+    // `milestoneTitle` is the one place that decides English vs reviewed
+    // Spanish, so the es print profile reads like the es timeline instead of
+    // leaking the canonical English title (same rule as the work cards below).
+    title: milestoneTitle(milestone, locale),
     statusLabel: statusLabel[milestone.status],
   });
 

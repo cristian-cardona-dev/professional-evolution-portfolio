@@ -600,7 +600,6 @@ export const en: Copy = {
     screenshotPlaceholder: 'No screenshot published for this project yet.',
     screenshotAlt: {
       'site-career.png': 'Screenshot of the career and skills page',
-      'site-work.png': 'Screenshot of the work overview page',
     },
     screenshotAltFallback: (name) => `Screenshot of ${name}`,
     filterLabel: 'Filter projects by tag',
@@ -992,7 +991,6 @@ export const es: Copy = {
     screenshotPlaceholder: 'Todavía no hay capturas publicadas para este proyecto.',
     screenshotAlt: {
       'site-career.png': 'Captura de pantalla de la página de trayectoria y habilidades',
-      'site-work.png': 'Captura de pantalla de la página de resumen de proyectos',
     },
     screenshotAltFallback: (name) => `Captura de pantalla de ${name}`,
     filterLabel: 'Filtrar proyectos por etiqueta',
