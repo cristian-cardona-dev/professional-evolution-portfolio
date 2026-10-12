@@ -514,6 +514,14 @@ export interface Copy {
     assistantHeading: string;
     /** One line under `assistantHeading`. */
     assistantNote: string;
+    /**
+     * Honest statement of the live search mode when the build shipped semantic
+     * vectors. `BuildNotes` picks this or `searchModeKeyword` from the generated
+     * build metadata, so the page can never claim the wrong mode.
+     */
+    searchModeSemantic: string;
+    /** Honest statement of the live search mode when the build is keyword-only. */
+    searchModeKeyword: string;
     /** Heading of the agent-readiness section. */
     agentHeading: string;
     /** One line under `agentHeading` (claims cross-checked against the E3/C4 audits). */
@@ -981,10 +989,14 @@ export const en: Copy = {
       'As of 2026-10-12 the Workers mirror also serves security headers — X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, X-Frame-Options: DENY, Permissions-Policy: camera=(), microphone=(), geolocation=() and Strict-Transport-Security — and Cache-Control: public, max-age=31536000, immutable for the hashed assets under /_astro/. The mechanism is a _headers file in the build output. The canonical GitHub Pages host is a project site and cannot set response headers, so it serves the same pages without them.',
     assistantHeading: 'The assistant is a search, not an AI',
     assistantNote:
-      'The floating assistant is a keyword search over the public data published on this site. It is not an AI model and makes no API call: it can only point at what is already published here, and it says so when it finds nothing.',
+      'The floating assistant searches only the public data published on this site. It is not an AI model and makes no API call: it can only point at what is already published here, and it says so when it finds nothing.',
+    searchModeSemantic:
+      'This build shipped a semantic search index: the assistant’s own index was embedded at build time with the Workers AI model @cf/baai/bge-m3, and a search ranks the published entries by similarity in your browser. No AI model is called when you search.',
+    searchModeKeyword:
+      'This build shipped no search vectors, so the assistant runs its keyword search only. Embedding the index needs a Cloudflare token at build time; this page reports the mode the build actually has instead of claiming the other one.',
     agentHeading: 'Readable by AI agents',
     agentNote:
-      'As of 2026-10-12 the site publishes an llms.txt file and annotates two forms with WebMCP: its contact form (contact_message) and the assistant’s search box (site_search), so an agent can find the site and identify both actions as tools. The search tool is honest about what it is: a client-side keyword search of the index already embedded in the page — no network request, no backend and no AI model. A Lighthouse 13.5.0 run of the agentic-browsing category in Chrome 154 registered both tools with valid schemas, passed the accessibility-tree audit, reported no form missing annotations and measured a cumulative layout shift of 0. The llms.txt audit checks the domain root: it passes on the Cloudflare mirror, which serves the build at /, and is not applicable to the GitHub Pages path, which serves it under /professional-evolution-portfolio/.',
+      'As of 2026-10-12 the site publishes an llms.txt file and annotates two forms with WebMCP: its contact form (contact_message) and the assistant’s search box (site_search), so an agent can find the site and identify both actions as tools. The search tool is honest about what it is: a client-side search of the index already embedded in the page and, when the build shipped semantic vectors, one same-origin static JSON file — no backend and no AI model or API call at query time. A Lighthouse 13.5.0 run of the agentic-browsing category in Chrome 154 registered both tools with valid schemas, passed the accessibility-tree audit, reported no form missing annotations and measured a cumulative layout shift of 0. The llms.txt audit checks the domain root: it passes on the Cloudflare mirror, which serves the build at /, and is not applicable to the GitHub Pages path, which serves it under /professional-evolution-portfolio/.',
     sourceHeading: 'Source',
     sourceNote:
       'The site and its data layer are public. The repository below is the artifact you can inspect; nothing is published from a private source.',
@@ -1439,10 +1451,14 @@ export const es: Copy = {
       'Desde el 2026-10-12 el espejo en Workers también sirve cabeceras de seguridad — X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, X-Frame-Options: DENY, Permissions-Policy: camera=(), microphone=(), geolocation=() y Strict-Transport-Security — y Cache-Control: public, max-age=31536000, immutable para los recursos con hash en /_astro/. El mecanismo es un archivo _headers en la salida de compilación. El host canónico de GitHub Pages es un sitio de proyecto y no puede establecer cabeceras de respuesta, así que sirve las mismas páginas sin ellas.',
     assistantHeading: 'El asistente es una búsqueda, no una IA',
     assistantNote:
-      'El asistente flotante es una búsqueda por palabras clave sobre los datos públicos publicados en este sitio. No es un modelo de IA y no realiza ninguna llamada a una API: solo puede señalar lo que ya está publicado aquí, y lo dice cuando no encuentra nada.',
+      'El asistente flotante busca solo en los datos públicos publicados en este sitio. No es un modelo de IA y no realiza ninguna llamada a una API: solo puede señalar lo que ya está publicado aquí, y lo dice cuando no encuentra nada.',
+    searchModeSemantic:
+      'Esta compilación incluyó un índice de búsqueda semántica: el índice del propio asistente se incrustó al compilar con el modelo de Workers AI @cf/baai/bge-m3, y una búsqueda ordena las entradas publicadas por similitud en tu navegador. No se llama a ningún modelo de IA al buscar.',
+    searchModeKeyword:
+      'Esta compilación no incluyó vectores de búsqueda, así que el asistente usa solo su búsqueda por palabras clave. Incrustar el índice requiere un token de Cloudflare al compilar; esta página informa del modo que la compilación tiene en realidad en lugar de afirmar el otro.',
     agentHeading: 'Legible por agentes de IA',
     agentNote:
-      'Desde el 2026-10-12 el sitio publica un archivo llms.txt y anota dos formularios con WebMCP: su formulario de contacto (contact_message) y el buscador del asistente (site_search), de modo que un agente puede encontrar el sitio e identificar ambas acciones como herramientas. La herramienta de búsqueda es honesta sobre lo que es: una búsqueda por palabras clave en el cliente sobre el índice ya incrustado en la página — sin petición de red, sin backend y sin modelo de IA. Una ejecución de la categoría agentic-browsing de Lighthouse 13.5.0 en Chrome 154 registró ambas herramientas con esquemas válidos, superó la auditoría del árbol de accesibilidad, no informó de ningún formulario sin anotaciones y midió un desplazamiento de diseño acumulado de 0. La auditoría de llms.txt comprueba la raíz del dominio: pasa en el espejo de Cloudflare, que sirve la compilación en /, y no aplica a la ruta de GitHub Pages, que la sirve en /professional-evolution-portfolio/.',
+      'Desde el 2026-10-12 el sitio publica un archivo llms.txt y anota dos formularios con WebMCP: su formulario de contacto (contact_message) y el buscador del asistente (site_search), de modo que un agente puede encontrar el sitio e identificar ambas acciones como herramientas. La herramienta de búsqueda es honesta sobre lo que es: una búsqueda en el cliente sobre el índice ya incrustado en la página y, cuando la compilación incluyó vectores semánticos, un archivo JSON estático del mismo origen — sin backend y sin modelo de IA ni llamada a una API al buscar. Una ejecución de la categoría agentic-browsing de Lighthouse 13.5.0 en Chrome 154 registró ambas herramientas con esquemas válidos, superó la auditoría del árbol de accesibilidad, no informó de ningún formulario sin anotaciones y midió un desplazamiento de diseño acumulado de 0. La auditoría de llms.txt comprueba la raíz del dominio: pasa en el espejo de Cloudflare, que sirve la compilación en /, y no aplica a la ruta de GitHub Pages, que la sirve en /professional-evolution-portfolio/.',
     sourceHeading: 'Código fuente',
     sourceNote:
       'El sitio y su capa de datos son públicos. El repositorio de abajo es el artefacto que puedes inspeccionar; nada se publica desde una fuente privada.',

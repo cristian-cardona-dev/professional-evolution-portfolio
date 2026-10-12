@@ -7,7 +7,9 @@
  * reader's language, what the site is built with, how it deploys, what the
  * assistant actually is and what data is deliberately not published — all from
  * `copy.build`, so no sentence about the build can drift from what the build
- * does.
+ * does. The one build-specific choice is the live search-mode line: it is
+ * picked from the generated `build-metadata.json` (`readBuildMetadata`), so the
+ * page reports keyword-only vs semantic exactly as the build produced it.
  *
  * The only non-copy values are URLs: the public repository (from
  * `data/profile.json`) and the three official references the brief names
@@ -20,6 +22,7 @@
  */
 import type { Copy, Locale } from '../i18n/copy';
 import { profile } from '../lib/data';
+import { readBuildMetadata } from '../lib/build-metadata';
 import Comments from '../components/Comments.astro';
 
 interface Props {
@@ -28,6 +31,15 @@ interface Props {
 }
 
 const { locale, copy } = Astro.props;
+
+/* Which search this build actually ships — read from the generated build
+   metadata (`scripts/build-semantic-index.mjs`), so the page can never claim
+   the semantic mode when the build only had the keyword one, or vice versa. */
+const buildMetadata = readBuildMetadata();
+const searchModeNote =
+  buildMetadata.semantic_index === 'semantic'
+    ? copy.build.searchModeSemantic
+    : copy.build.searchModeKeyword;
 
 const SOURCE_REPO = `https://github.com/${profile.reposOwner}/professional-evolution-portfolio`;
 const ASTRO_URL = 'https://astro.build';
@@ -63,6 +75,10 @@ const rssHref = `${import.meta.env.BASE_URL}rss.xml`;
     <section class="build-block reveal" aria-labelledby="build-assistant-heading">
       <h2 id="build-assistant-heading">{copy.build.assistantHeading}</h2>
       <p class="build-note">{copy.build.assistantNote}</p>
+      {/* The live search mode, stated as a fact about this build. Keyword-only
+          is the CI build (no Cloudflare token); semantic means the build
+          embedded the corpus. Either way there is no AI call at query time. */}
+      <p class="build-note build-note--mode" data-build-search-mode>{searchModeNote}</p>
     </section>
 
     <section class="build-block reveal" aria-labelledby="build-agent-heading">
@@ -183,6 +199,14 @@ const rssHref = `${import.meta.env.BASE_URL}rss.xml`;
     color: var(--color-text-muted);
     font-size: var(--text-sm);
     line-height: var(--leading-sm);
+  }
+
+  /* The live search-mode line: a fact about this build, so it is marked like
+     the assistant's own honesty banner rather than buried in the prose. */
+  .build-note--mode {
+    margin-top: var(--space-3);
+    padding-left: var(--space-4);
+    border-left: 3px solid var(--color-accent);
   }
 
   .build-links {

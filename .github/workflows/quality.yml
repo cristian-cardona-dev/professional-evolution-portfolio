@@ -34,6 +34,13 @@ jobs:
       - name: Accessibility (axe-core WCAG 2.2 AA)
         run: node --test web/tests/a11y.test.mjs
 
+      - name: Semantic search index (build-time embeddings, both modes)
+        # Honest degradation (no token → keyword-only, zero vectors), the
+        # env-gated stub seam (deterministic ranking on a fixed fixture) and the
+        # 1.5 MB size budget. The stub is honoured by the build script only;
+        # production never sets it and the client bundle has no reference to it.
+        run: node --test web/tests/semantic-index.test.mjs
+
       - name: Install Playwright Chromium
         working-directory: web
         run: npx playwright install --with-deps chromium
