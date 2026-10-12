@@ -2,3 +2,6 @@ dist/
 .lighthouseci/
 web/test-results/
 web/playwright-report/
+
+# SDD scratch; the two tracked evidence reports under .superpowers/ predate this rule and stay tracked
+.superpowers/
