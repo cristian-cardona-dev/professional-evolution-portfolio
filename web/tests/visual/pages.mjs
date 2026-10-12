@@ -54,6 +54,8 @@ export const AXE_PAGES = [
   ['es-evidence', 'es/evidence/'],
   ['es-print', 'es/print/'],
   ['print', 'print/'],
+  ['evidence', 'evidence/'],
+  ['es-build', 'es/build/'],
   ['resume-en', 'resume-en.html'],
   ['resume-es', 'resume-es.html'],
 ];
