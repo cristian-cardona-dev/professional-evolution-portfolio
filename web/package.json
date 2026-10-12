@@ -6,6 +6,7 @@
   "description": "Astro front end for the evidence-first professional evolution portfolio",
   "scripts": {
     "dev": "astro dev",
+    "prebuild": "node ../scripts/build-semantic-index.mjs",
     "build": "astro build && node ../scripts/sitemap-generate.mjs",
     "preview": "astro preview",
     "test:quality": "node --test \"tests/**/*.test.mjs\"",

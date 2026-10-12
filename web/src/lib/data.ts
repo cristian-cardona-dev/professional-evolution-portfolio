@@ -15,9 +15,10 @@ import caseStudiesJson from '../../../data/case-studies.json';
 import experienceJson from '../../../data/experience.json';
 import skillsJson from '../../../data/skills.json';
 import roadmapJson from '../../../data/roadmap.json';
-import { fold, words, type AssistantEntry, type AssistantKind } from './assistant-search';
+import type { AssistantEntry } from './assistant-search';
+import { buildAssistantEntries, resolveMilestoneTitle } from './assistant-corpus.ts';
 import { route } from './urls';
-import type { ClaimStatus, Copy, Locale } from '../i18n/copy';
+import type { Copy, Locale } from '../i18n/copy';
 
 export const PROJECT_STATUSES = ['prototype', 'demo', 'mvp', 'lab', 'live'] as const;
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
@@ -215,13 +216,12 @@ export const curatedMilestonesByDateDesc: Milestone[] = milestonesByDateDesc.fil
 /**
  * Title of a milestone in the requested locale.
  *
- * `title` is the canonical English title. `titleEs`, when present, is the
- * reviewed Spanish translation rendered on the es locale; a milestone without
- * one — every git-derived candidate, which is raw machine output rather than
- * human content — falls back to the English title instead of an empty heading.
+ * Thin wrapper over `resolveMilestoneTitle` (`lib/assistant-corpus.ts`), which
+ * owns the English-vs-reviewed-Spanish rule so the page components, the print
+ * view and the build-time embedding corpus all resolve a title the same way.
  */
 export function milestoneTitle(milestone: Milestone, lang: Locale): string {
-  return lang === 'es' && milestone.titleEs ? milestone.titleEs : milestone.title;
+  return resolveMilestoneTitle(milestone, lang);
 }
 
 /** Projects a milestone links to, in `projects.json` order, unknown slugs dropped. */
@@ -293,196 +293,26 @@ export function relatedProjects(slug: string): Project[] {
 /* ---------------------------------------------------------------------- */
 
 /**
- * Everything below only ever *reads* the canonical exports above; the
- * assistant has no data of its own. The two additions to the raw fields are
- * documented keyword affordances, not claims:
- *
- *   - `KIND_TERMS` — the words visitors use for the artifact type itself
- *     ("project", "evidence", "contact"). A project is a project; adding
- *     that word to its strong-token list invents nothing.
- *   - `STATUS_TERMS` — the site's own claim vocabulary (`docs/
- *     evidence-boundary.md`, `EvidenceBadge`): `live`/`demonstrated` support
- *     "demonstrated", `lab`/`planned` support "aspirational", and so on.
- *     Every entry still renders the status it actually has.
- *
- * Badge labels resolve through the locale copy and hrefs through `route`, so
- * the index carries exactly what the page around it already says, in the
- * page's language, under the deployment's base path.
+ * The corpus builder itself lives in `lib/assistant-corpus.ts`: it is shared
+ * with the build-time embedding generator, which cannot import this module
+ * (it loads `data/*.json` through Vite-style imports and reads
+ * `import.meta.env` in `lib/urls.ts`). `assistantIndex` below stays the single
+ * public entry point every component imports, and injects the two data-layer
+ * values the shared builder needs — `route` and `milestoneTitle`.
  */
-
-/** Badge chip variant per project status — mirrors `ProjectCard.astro`. */
-const PROJECT_BADGE: Record<ProjectStatus, string> = {
-  live: 'success',
-  mvp: 'accent',
-  demo: 'accent',
-  prototype: 'warn',
-  lab: 'neutral',
-};
-
-/** Badge chip variant per claim status — mirrors `EvidenceBadge.astro`. */
-const CLAIM_BADGE: Record<ClaimStatus, string> = {
-  demonstrated: 'success',
-  developing: 'accent',
-  aspirational: 'warn',
-  insufficient: 'neutral',
-};
-
-/** Badge chip variant per milestone status — mirrors `EvolutionTimeline.astro`. */
-const MILESTONE_BADGE: Record<MilestoneStatus, string> = {
-  shipped: 'success',
-  'in-progress': 'warn',
-  planned: 'neutral',
-};
-
-/** Copy key holding the localized badge label of each milestone status. */
-const MILESTONE_LABEL_KEY: Record<MilestoneStatus, 'shipped' | 'inProgress' | 'planned'> = {
-  shipped: 'shipped',
-  'in-progress': 'inProgress',
-  planned: 'planned',
-};
-
-const KIND_TERMS: Record<AssistantKind, string[]> = {
-  work: ['project', 'projects', 'built', 'software', 'code', 'repo'],
-  evidence: ['evidence', 'proof', 'artifact'],
-  evolution: ['evolution', 'milestone', 'milestones', 'timeline', 'roadmap'],
-  profile: ['contact', 'email', 'person', 'about'],
-};
-
-/**
- * Status word → the claim words it honestly supports. Covers all three
- * status vocabularies (project, claim, milestone) in one table; the values
- * are word lists fed into strong tokens, never user-visible copy.
- */
-const STATUS_TERMS: Record<string, string[]> = {
-  live: ['demonstrated', 'published', 'available'],
-  mvp: ['demonstrated', 'usable'],
-  demo: ['demonstrated', 'shown'],
-  prototype: ['developing', 'reproduction'],
-  lab: ['planned', 'aspirational', 'direction'],
-  demonstrated: ['demonstrated', 'verified', 'public'],
-  developing: ['developing', 'partial'],
-  aspirational: ['aspirational', 'direction', 'intent'],
-  insufficient: ['insufficient', 'gap'],
-  shipped: ['shipped', 'delivered', 'done', 'demonstrated'],
-  'in-progress': ['ongoing', 'current', 'developing'],
-  planned: ['planned', 'aspirational', 'direction', 'intent'],
-};
-
-/** Runtime guard for the widened `string` status of an evidence item. */
-function isClaimStatus(value: string): value is ClaimStatus {
-  return (
-    value === 'demonstrated' ||
-    value === 'developing' ||
-    value === 'aspirational' ||
-    value === 'insufficient'
-  );
-}
-
-/** Deduplicate a token list, keeping first-appearance order. */
-function uniqueTerms(terms: string[]): string[] {
-  return [...new Set(terms)];
-}
-
-/** Clip to roughly `max` characters at a word boundary, with an ellipsis. */
-function clip(text: string, max = 150): string {
-  if (text.length <= max) return text;
-  const head = text.slice(0, max);
-  const lastSpace = head.lastIndexOf(' ');
-  return `${(lastSpace > 60 ? head.slice(0, lastSpace) : head).trimEnd()}…`;
-}
 
 /**
  * Build the compact search index the floating assistant embeds per page.
  *
- * Coverage (from the brief): projects (name, summary, tags, slug, repo-
- * derived link, status), evidence (label, url, status), milestones (title,
- * status, year) and the profile (name, headline, email → a `mailto:`
- * compose). Links are locale- and base-aware through `route`; the profile
- * entry is the contact affordance the "How can I contact Cristian?" chip
- * needs, so it composes an email to the published address.
+ * Thin wrapper over `buildAssistantEntries` (`lib/assistant-corpus.ts`) with
+ * this module's real `route` and `milestoneTitle`. Coverage (from the brief):
+ * projects (name, summary, tags, slug, repo-derived link, status), evidence
+ * (label, url, status), milestones (title, status, year) and the profile
+ * (name, headline, email → a `mailto:` compose).
  */
 export function assistantIndex(copy: Copy, locale: Locale): AssistantEntry[] {
-  const entries: AssistantEntry[] = [];
-
-  for (const project of projects) {
-    // On the es locale, prefer the reviewed Spanish summary so the assistant
-    // snippet and its weak-text matching read in the page's language; the
-    // English summary stays the fallback when no translation is published.
-    const projectSummary =
-      locale === 'es' && project.summary_es ? project.summary_es : project.summary;
-    entries.push({
-      ty: 'work',
-      lo: uniqueTerms([
-        ...words(project.name),
-        ...project.tags.flatMap(words),
-        ...words(project.slug),
-        ...KIND_TERMS.work,
-        ...(STATUS_TERMS[project.status] ?? []),
-      ]),
-      we: fold(projectSummary),
-      ti: project.name,
-      sn: clip(projectSummary),
-      hr: route(locale, `work/${project.slug}/`),
-      ba: copy.projectStatus.label[project.status],
-      bv: PROJECT_BADGE[project.status],
-      yr: null,
-    });
-  }
-
-  for (const item of evidence.items) {
-    const claim = isClaimStatus(item.status) ? item.status : null;
-    entries.push({
-      ty: 'evidence',
-      lo: uniqueTerms([
-        ...words(item.label),
-        ...KIND_TERMS.evidence,
-        ...(claim ? STATUS_TERMS[claim] ?? [] : []),
-      ]),
-      we: fold(`${item.label} ${item.url}`),
-      ti: item.label,
-      sn: item.url,
-      hr: route(locale, 'evidence/'),
-      ba: claim ? copy.evidence.statusLabel[claim] : null,
-      bv: claim ? CLAIM_BADGE[claim] : null,
-      yr: null,
-    });
-  }
-
-  for (const milestone of milestones) {
-    // `assistantIndex` is built per locale, so the result row carries the same
-    // title the page shows: the reviewed Spanish `titleEs` on es, the English
-    // title otherwise. The English title words stay in the strong-token list
-    // too, so an English query still matches on the es index.
-    const title = milestoneTitle(milestone, locale);
-    entries.push({
-      ty: 'evolution',
-      lo: uniqueTerms([
-        ...words(milestone.title),
-        ...(title === milestone.title ? [] : words(title)),
-        ...KIND_TERMS.evolution,
-        ...(STATUS_TERMS[milestone.status] ?? []),
-      ]),
-      we: fold(milestone.narrative),
-      ti: title,
-      sn: clip(milestone.narrative),
-      hr: route(locale, 'evolution/'),
-      ba: copy.evolution[MILESTONE_LABEL_KEY[milestone.status]],
-      bv: MILESTONE_BADGE[milestone.status],
-      yr: milestone.date.slice(0, 4),
-    });
-  }
-
-  entries.push({
-    ty: 'profile',
-    lo: uniqueTerms([...words(profile.name), ...KIND_TERMS.profile]),
-    we: fold(`${profile.headline} ${profile.email}`),
-    ti: profile.name,
-    sn: profile.headline,
-    hr: `mailto:${profile.email}?subject=${encodeURIComponent(copy.assistant.emailSubject)}`,
-    ba: copy.nav.contact,
-    bv: 'accent',
-    yr: null,
+  return buildAssistantEntries({ profile, projects, milestones, evidence }, copy, locale, {
+    route,
+    milestoneTitle,
   });
-
-  return entries;
 }

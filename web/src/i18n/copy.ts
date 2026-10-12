@@ -379,6 +379,10 @@ export interface Copy {
     close: string;
     /** Honesty banner: what the assistant is, and what it is not. */
     banner: string;
+    /** Live search mode, read from the generated build metadata (semantic). */
+    modeSemantic: string;
+    /** Live search mode, read from the generated build metadata (keyword-only). */
+    modeKeyword: string;
     /** Search input placeholder. */
     placeholder: string;
     /** Submit button label. */
@@ -879,7 +883,11 @@ export const en: Copy = {
     title: 'Portfolio assistant',
     close: 'Close the assistant',
     banner:
-      'This is a keyword search over the public data published on this site — not an AI model. It can only point at what is already published here, and it says so when it finds nothing.',
+      'This searches only what is published on this site — it is not an AI model, and it never sends your question anywhere. It can only point at what is already published here, and it says so when it finds nothing.',
+    modeSemantic:
+      'Live search: semantic. The site embedded its own index at build time and ranks results by similarity in your browser. Searching still makes no AI model call.',
+    modeKeyword:
+      'Live search: keyword-only. A plain keyword match over the published index; the build had no Cloudflare token to embed it, so it says so instead of pretending.',
     placeholder: 'Projects, evidence, milestones…',
     submit: 'Search',
     suggestedHeading: 'Suggested questions',
@@ -1333,7 +1341,11 @@ export const es: Copy = {
     title: 'Asistente del portafolio',
     close: 'Cerrar el asistente',
     banner:
-      'Esto es una búsqueda por palabras clave sobre los datos públicos publicados en este sitio, no un modelo de IA. Solo puede señalar lo que ya está publicado aquí, y lo dice cuando no encuentra nada.',
+      'Esto busca solo lo que está publicado en este sitio: no es un modelo de IA y nunca envía tu pregunta a ningún sitio. Solo puede señalar lo que ya está publicado aquí, y lo dice cuando no encuentra nada.',
+    modeSemantic:
+      'Búsqueda activa: semántica. El sitio incrustó su propio índice al compilar y ordena los resultados por similitud en tu navegador. Al buscar sigue sin haber ninguna llamada a un modelo de IA.',
+    modeKeyword:
+      'Búsqueda activa: solo palabras clave. Una coincidencia simple sobre el índice publicado; la compilación no tenía token de Cloudflare para incrustarlo, así que lo dice en lugar de fingirlo.',
     placeholder: 'Proyectos, evidencia, hitos…',
     submit: 'Buscar',
     suggestedHeading: 'Preguntas sugeridas',

@@ -4,3 +4,9 @@ dist/
 node_modules/
 # generated Astro artifacts
 .astro/
+
+# Generated at build time by scripts/build-semantic-index.mjs (prebuild step).
+# Never committed: a keyword-only file would advertise a capability the repo
+# does not have, and real vectors would bake build-environment state into git.
+public/semantic-index.json
+public/build-metadata.json

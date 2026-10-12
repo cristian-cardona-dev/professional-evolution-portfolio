@@ -1,25 +1,38 @@
 ---
 /**
- * Portfolio assistant — honest, keyword-based search (v1).
+ * Portfolio assistant — honest search with two modes (v1 keyword, F-C semantic).
  *
  * A floating button opens an accessible dialog (role=dialog, aria-modal, Esc
  * and click-outside close, focus moves in on open and back to the trigger on
  * close) and searches a compact index that is serialized into the page at
- * build time from the canonical `data/*.json` — no runtime fetch, no API key,
- * no backend, and, above all, no simulated intelligence: there is no typing
- * animation, no canned prose and no model call anywhere in this component.
- * The honesty banner at the top of the panel says what this is in plain
- * words, and an unmatched query renders the honest fallback (links to the
- * full work and evidence listings plus a prefilled `mailto:` carrying the
- * question) instead of an invented answer.
+ * build time from the canonical `data/*.json` — no API key, no backend and no
+ * simulated intelligence: there is no typing animation, no canned prose and no
+ * model call anywhere in this component. The honesty banner at the top of the
+ * panel says what this is in plain words, a mode line states which search this
+ * build actually ships, and an unmatched query renders the honest fallback
+ * (links to the full work and evidence listings plus a prefilled `mailto:`
+ * carrying the question) instead of an invented answer.
  *
- * The index is built by `assistantIndex` in `lib/data.ts`; all matching and
- * ranking lives in `lib/assistant-search.ts`, which is pure enough to run in
+ * Two modes, both honest (spec section 10):
+ *
+ *   - **keyword-only** — the v1 behaviour: `searchEntries` over the embedded
+ *     index. This is what CI builds, because it has no Cloudflare token.
+ *   - **semantic** — the build embedded the corpus with `@cf/baai/bge-m3` and
+ *     shipped `semantic-index.json`; the client fetches that one static,
+ *     same-origin file and ranks with `hybridSearch` (`lib/semantic-search.ts`),
+ *     falling back to the keyword search when it is absent or scores low.
+ *     There is still **no AI call at query time** — the model ran at build time
+ *     only. Which mode is live is read from `build-metadata.json`
+ *     (`lib/build-metadata.ts`) and stated in the panel and on `/build/`.
+ *
+ * The index is built by `assistantIndex` in `lib/data.ts` (delegating to
+ * `lib/assistant-corpus.ts`); all matching and ranking lives in
+ * `lib/assistant-search.ts` and `lib/semantic-search.ts`, pure enough to run in
  * a browser, in the Astro build and in a plain `node` verification script.
  * Result rows are rendered server-side (in the page locale, with localized
- * status chips mirroring `EvidenceBadge`/`ProjectCard`); the client script
- * only scores queries and moves pre-rendered rows into the results list, so
- * no copy ever has to be shipped to the browser as strings.
+ * status chips mirroring `EvidenceBadge`/`ProjectCard`); the client script only
+ * scores queries and moves pre-rendered rows into the results list, so no copy
+ * ever has to be shipped to the browser as strings.
  *
  * Suggested-question chips display the visitor's language but carry fixed
  * English keyword queries, because the published data they search is
@@ -32,6 +45,7 @@
  */
 import type { Copy, Locale } from '../i18n/copy';
 import { assistantIndex, profile } from '../lib/data';
+import { readBuildMetadata } from '../lib/build-metadata';
 import { route } from '../lib/urls';
 
 interface Props {
@@ -40,6 +54,13 @@ interface Props {
 }
 
 const { copy, locale } = Astro.props;
+
+/** Which search this build ships; stated in the panel, never implied. */
+const buildMetadata = readBuildMetadata();
+const modeNote =
+  buildMetadata.semantic_index === 'semantic'
+    ? copy.assistant.modeSemantic
+    : copy.assistant.modeKeyword;
 
 /** The widget is useful only with an index; the canonical data is always
  *  non-empty, but the guard keeps the promise explicit. */
@@ -124,16 +145,23 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
 
         <p class="assistant__banner" id="pep-assistant-banner">{copy.assistant.banner}</p>
 
+        {/* Which search this build actually ships, read from the generated
+            build metadata. Keyword-only is the CI build (no Cloudflare token);
+            semantic means the build embedded the corpus at build time. Either
+            way there is no AI call at query time. */}
+        <p class="assistant__mode" data-a-mode>{modeNote}</p>
+
         {/* WebMCP annotation (agent-facing, English on both locales, like the
-            contact form). It describes what this form really does — a keyword
-            search of the index already embedded in this page — so an agent is
-            not sold a capability the site does not have: no network request,
-            no backend, no model call, and an honest empty result. */}
+            contact form). It describes what this form really does — a search of
+            the index already embedded in this page, plus (when the build
+            shipped vectors) one same-origin static JSON file — so an agent is
+            not sold a capability the site does not have: no backend, no model
+            call at query time, and an honest empty result. */}
         <form
           class="assistant__form"
           data-a-form
           toolname="site_search"
-          tooldescription="Searches this site's own published index with client-side keyword matching and returns links to the pages that match. It runs entirely in the visitor's browser against an index embedded in the page: no network request, no backend and no AI model or API call. A query that matches nothing returns an honest fallback with the site's own listings instead of an invented answer."
+          tooldescription="Searches this site's own published index and returns links to the pages that match. It runs entirely in the visitor's browser against an index embedded in the page and, when the build shipped semantic vectors, a same-origin static JSON file: no backend and no AI model or API call at query time. A query that matches nothing returns an honest fallback with the site's own listings instead of an invented answer."
         >
           <label class="visually-hidden" for="pep-assistant-input">{copy.assistant.open}</label>
           <input
@@ -208,7 +236,13 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
 }
 
 <script>
-  import { searchEntries, type AssistantEntry } from '../lib/assistant-search';
+  import type { AssistantEntry } from '../lib/assistant-search';
+  import {
+    SEMANTIC_INDEX_FILE,
+    hybridSearch,
+    parseSemanticIndex,
+    type SemanticIndex,
+  } from '../lib/semantic-search';
 
   (() => {
     const root = document.querySelector<HTMLElement>('[data-assistant]');
@@ -247,12 +281,38 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
     const chips = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-a-chip]'));
     let opener: HTMLElement | null = null;
 
+    /**
+     * The semantic asset, fetched at most once per page visit. It is a static,
+     * same-origin JSON file the build wrote; there is no AI call here. Absent,
+     * keyword-only or malformed → `null` → `hybridSearch` behaves exactly like
+     * the v1 keyword search. `parseSemanticIndex` enforces the alignment (one
+     * vector per entry) so a stale file can never mis-rank a result.
+     */
+    let semanticIndex: SemanticIndex | null = null;
+    let semanticLoaded = false;
+    const loadSemantic = async (): Promise<SemanticIndex | null> => {
+      if (semanticLoaded) return semanticIndex;
+      semanticLoaded = true;
+      try {
+        const url = `${import.meta.env.BASE_URL}${SEMANTIC_INDEX_FILE}`;
+        const response = await fetch(url, { credentials: 'omit' });
+        if (!response.ok) return null;
+        semanticIndex = parseSemanticIndex(await response.json(), entries.length);
+      } catch {
+        semanticIndex = null;
+      }
+      return semanticIndex;
+    };
+
     const openPanel = () => {
       if (!panel.hidden) return;
       opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       panel.hidden = false;
       fab.setAttribute('aria-expanded', 'true');
       input.focus();
+      // Warm the semantic asset while the visitor types, so the first search
+      // is not delayed by the fetch. Failures are silent by design.
+      void loadSemantic();
     };
 
     const closePanel = () => {
@@ -301,7 +361,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
       }
     });
 
-    const run = (query: string) => {
+    const run = async (query: string) => {
       const trimmed = query.trim();
       if (trimmed === '') {
         out.hidden = true;
@@ -311,7 +371,10 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
       // Reset row positions, then append the winners in ranked order; moving
       // a node into `results` empties the previous listing by itself.
       rows.forEach((row) => source.append(row));
-      const hits = searchEntries(entries, trimmed, 3);
+      // Semantic when the build shipped vectors and the query clears the
+      // threshold; otherwise exactly the v1 keyword ranking (see
+      // `lib/semantic-search.ts`).
+      const hits = hybridSearch(entries, await loadSemantic(), trimmed, 3);
       if (hits.length > 0) {
         label.hidden = false;
         fallback.hidden = true;
@@ -333,7 +396,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
 
     form.addEventListener('submit', (event) => {
       event.preventDefault();
-      run(input.value);
+      void run(input.value);
     });
 
     for (const chip of chips) {
@@ -341,7 +404,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
         const query = chip.dataset.query ?? chip.textContent ?? '';
         // Show the query that actually ran — transparency over theatre.
         input.value = query;
-        run(query);
+        void run(query);
       });
     }
 
@@ -526,6 +589,16 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
     color: var(--color-text-muted);
     font-size: var(--text-xs);
     line-height: var(--leading-xs);
+  }
+
+  /* The live search mode, stated from the generated build metadata — a fact
+     about this build, not decoration, so it reads as a plain line. */
+  .assistant__mode {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    line-height: var(--leading-xs);
+    font-family: var(--font-mono);
   }
 
   .assistant__form {
