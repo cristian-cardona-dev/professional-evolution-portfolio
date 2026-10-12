@@ -69,6 +69,8 @@ export interface Milestone {
   id: string;
   date: string;
   title: string;
+  /** Optional reviewed Spanish translation of `title`, used on the es locale. */
+  titleEs?: string;
   narrative: string;
   evidence: string[];
   status: MilestoneStatus;
@@ -194,6 +196,18 @@ export const milestonesByDateDesc: Milestone[] = [...milestones].sort((a, b) =>
 export const curatedMilestonesByDateDesc: Milestone[] = milestonesByDateDesc.filter(
   (milestone) => milestone.source === 'curated',
 );
+
+/**
+ * Title of a milestone in the requested locale.
+ *
+ * `title` is the canonical English title. `titleEs`, when present, is the
+ * reviewed Spanish translation rendered on the es locale; a milestone without
+ * one — every git-derived candidate, which is raw machine output rather than
+ * human content — falls back to the English title instead of an empty heading.
+ */
+export function milestoneTitle(milestone: Milestone, lang: Locale): string {
+  return lang === 'es' && milestone.titleEs ? milestone.titleEs : milestone.title;
+}
 
 /** Projects a milestone links to, in `projects.json` order, unknown slugs dropped. */
 export function milestoneProjects(milestone: Milestone): Project[] {

@@ -4,6 +4,7 @@
       "id": "2026-10-03-initial-portfolio-build",
       "date": "2026-10-03",
       "title": "Evidence-first portfolio published",
+      "titleEs": "Portfolio centrado en evidencia publicado",
       "narrative": "First public version of the portfolio, built as a static site from a public snapshot contract: claims are stored separately from evidence, and every capability statement points at something a reader can inspect.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/631cf84",
@@ -20,6 +21,7 @@
       "id": "2026-10-03-evidence-boundary-contract",
       "date": "2026-10-03",
       "title": "Evidence boundaries written down",
+      "titleEs": "Límites de evidencia documentados",
       "narrative": "Each public reproduction gained an explicit boundary: what it demonstrates and, in the same list, what it does not. Documented for the cloud dashboard reproduction, the AI reliability lab and the automation workflow lab, together with deployment ownership notes and a documented products quickstart.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/120f3bf",
@@ -42,6 +44,7 @@
       "id": "2026-10-07-dark-first-theme-foundation",
       "date": "2026-10-07",
       "title": "Dark-first theme foundation",
+      "titleEs": "Base del tema dark-first",
       "narrative": "Theme assets were split out of the pages into a shared foundation and the homepage was recomposed around evidence rather than marketing copy, keeping the dark-first default.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/6f40b2d",
@@ -58,6 +61,7 @@
       "id": "2026-10-08-bilingual-accessibility-release",
       "date": "2026-10-08",
       "title": "Bilingual EN/ES release and accessibility parity",
+      "titleEs": "Release bilingüe EN/ES y paridad de accesibilidad",
       "narrative": "Reviewed English and Spanish locales shipped across the site, followed by homepage parity and accessibility polish so both languages expose the same content and the same interactive affordances.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/6d445ef",
@@ -74,6 +78,7 @@
       "id": "2026-10-09-portfolio-10x-rebuild",
       "date": "2026-10-09",
       "title": "Portfolio 10x rebuild starts",
+      "titleEs": "Comienza la reconstrucción del Portfolio 10x",
       "narrative": "The Astro redesign shipped: a research artifact covering dark-first dual-theme tokens, type scale, motion rules and an accessibility checklist replaced the previous text-heavy layout, and the rebuild was merged to main and released through the dual-host deployment pipeline (GitHub Pages plus the Cloudflare Worker mirror). The legacy static site is no longer what the deployment serves.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/7a60cce",
@@ -97,6 +102,7 @@
       "id": "2026-10-09-portfolio-10x-launch",
       "date": "2026-10-09",
       "title": "Portfolio 10x launch",
+      "titleEs": "Lanzamiento del Portfolio 10x",
       "narrative": "Stated goal recorded on 2026-10-09, not a delivery date. Launch means the rebuilt site replaces the legacy static site once the validation battery and the review gate pass; until then the legacy build is still what the deployment serves. The links below point at the in-progress branch, not at a released site.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio",
@@ -113,6 +119,7 @@
       "id": "2026-10-09-ai-engineering-evidence-build-out",
       "date": "2026-10-09",
       "title": "AI engineering evidence build-out",
+      "titleEs": "Ampliación de la evidencia de ingeniería de IA",
       "narrative": "Direction recorded on 2026-10-09, with no delivery date implied. The intent is to widen the public AI engineering evidence: a fixed evaluation set for the reliability contract, a provider-neutral adapter seam, and reproducible run artifacts. None of it exists yet — the links below are the reproductions it would extend, not proof that it was built.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/ai-chat-app",
@@ -130,6 +137,7 @@
       "id": "2026-10-09-agentic-workflow-lab-public-iterations",
       "date": "2026-10-09",
       "title": "Agentic workflow lab public iterations",
+      "titleEs": "Iteraciones públicas del laboratorio de workflows agénticos",
       "narrative": "Direction recorded on 2026-10-09, with no delivery date implied. The next iterations would exercise the approval-gated workflow under replay and adversarial conditions while keeping the boundary explicit: still no autonomous actions and no external service integration. The repository below is today's bounded reproduction, not the future one.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/ai-automation-workflow-lab"

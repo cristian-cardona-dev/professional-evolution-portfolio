@@ -23,7 +23,7 @@
  */
 import type { Copy, Locale } from '../i18n/copy';
 import type { Milestone } from '../lib/data';
-import { milestoneProjects, milestonesByDateDesc } from '../lib/data';
+import { milestoneProjects, milestonesByDateDesc, milestoneTitle } from '../lib/data';
 import { route } from '../lib/urls';
 
 interface Props {
@@ -152,7 +152,7 @@ function evidenceLabel(url: string): string {
                         </div>
 
                         <h4 class="timeline__title" id={`${milestone.id}-title`}>
-                          {milestone.title}
+                          {milestoneTitle(milestone, locale)}
                         </h4>
 
                         <p class="timeline__narrative">{milestone.narrative}</p>

@@ -8,6 +8,7 @@
  *   - required fields and types for profile, projects, evolution, evidence,
  *     case-studies
  *   - optional project `summary_es`, when present, is a non-empty string
+ *   - optional milestone `titleEs`, when present, is a non-empty string
  *   - project status and milestone status/source/phase enums
  *   - unique project slugs and unique milestone ids
  *   - every project `repo` URL lives under github.com/cristian-cardona-dev/
@@ -283,6 +284,12 @@ function validateEvolution(data, projectSlugs) {
     }
     for (const field of ['id', 'date', 'title', 'narrative']) {
       if (!isNonEmptyString(milestone[field])) fail(`${label}: "${field}" must be a non-empty string`);
+    }
+    // Optional reviewed Spanish translation of `title`; when present it must be
+    // a non-empty string so the es locale never renders an empty heading. An
+    // absent `titleEs` is valid — the renderer falls back to the English title.
+    if (milestone.titleEs !== undefined && !isNonEmptyString(milestone.titleEs)) {
+      fail(`${label}: "titleEs" must be a non-empty string when present`);
     }
     if (isNonEmptyString(milestone.id)) {
       if (!SLUG.test(milestone.id)) fail(`${label}: "id" must be lowercase kebab-case: ${milestone.id}`);
