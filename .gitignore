@@ -3,5 +3,8 @@ dist/
 web/test-results/
 web/playwright-report/
 
+# Local `wrangler dev` state (created by the worker test harness / manual runs)
+.wrangler/
+
 # SDD scratch; the two tracked evidence reports under .superpowers/ predate this rule and stay tracked
 .superpowers/

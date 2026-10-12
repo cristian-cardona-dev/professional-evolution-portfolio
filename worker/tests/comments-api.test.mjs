@@ -330,10 +330,13 @@ test('the admin remove action is the GDPR delete path', async () => {
   assert.deepEqual(list.body.comments, []);
 });
 
-test('the realtime socket endpoint is an honest F-B seam, not a fake', async () => {
+test('the realtime socket endpoint refuses an upgrade without an allowed Origin', async () => {
+  // F-B implemented the socket: the DO now answers 403 to a client that does
+  // not present one of the two allowlisted site origins (Node's fetch sends no
+  // Origin). The real socket behaviour lives in comments-ws.test.mjs.
   const { status, body } = await api('/api/comments/work%2Fsafe%2F/ws');
-  assert.equal(status, 501);
-  assert.equal(body.error, 'ws_not_implemented');
+  assert.equal(status, 403);
+  assert.equal(body.error, 'origin_not_allowed');
 });
 
 test('unknown API routes and methods fail honestly', async () => {

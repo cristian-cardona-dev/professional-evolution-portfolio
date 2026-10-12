@@ -19,21 +19,24 @@
  *
  * SQLite (`new_sqlite_classes`) is required: it is the only storage backend
  * available on Workers Free. Presence is NOT persisted — it is the count of
- * open WebSockets in this room (`ctx.getWebSockets()`), which is 0 in F-A
- * because the realtime socket is F-B.
+ * open WebSockets in this room (`ctx.getWebSockets()`), maintained through the
+ * hibernation WebSocket API (spec 7).
  *
  * Fail-closed moderation: every branch that cannot prove a comment safe
  * (model error, unparseable verdict, disagreeing gates, missing translation
  * for a cross-locale or unmapped-language comment) writes `pending`.
  *
  * No `setTimeout` / `setInterval` anywhere: timers block hibernation and
- * accrue duration charges (spec 7). Nothing here needs one.
+ * accrue duration charges (spec 7). Nothing here needs one — heartbeats are
+ * the runtime's automatic ping/pong, and the browser client owns all backoff
+ * and polling.
  */
 import { DurableObject } from 'cloudflare:workers';
 import { moderate, translate, NEURONS_PER_GUARD, NEURONS_PER_TRANSLATION } from './ai';
 import type { Verdict } from './ai';
-import { normalizeSourceLang, pageLocale, utcDay } from './language';
+import { normalizePage, normalizeSourceLang, pageLocale, utcDay } from './language';
 import type { PageLocale, SourceLang } from './language';
+import { isAllowedOrigin } from './origins';
 
 export const MAX_BODY_LENGTH = 2000;
 export const MAX_NAME_LENGTH = 80;
@@ -141,6 +144,28 @@ function toPublicComment(row: CommentRow): PublicComment {
   };
 }
 
+/** A minimal JSON error response for the WebSocket upgrade handler. */
+function wsError(code: string, status: number): Response {
+  return new Response(JSON.stringify({ error: code }), {
+    status,
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+  });
+}
+
+/**
+ * Fallback page extraction for the upgrade handler when `ctx.id.name` is not
+ * available: the Worker forwards `/api/comments/:page/ws` unchanged.
+ */
+function pageFromUrl(rawUrl: string): string {
+  try {
+    const { pathname } = new URL(rawUrl);
+    const rest = pathname.slice('/api/comments/'.length);
+    return normalizePage(decodeURIComponent(rest.split('/')[0] ?? '')) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -171,6 +196,129 @@ export class CommentsRoom extends DurableObject<Env> {
       `CREATE INDEX IF NOT EXISTS idx_comments_page_status
          ON comments(page, status, created_at DESC)`,
     );
+  }
+
+  // --- Realtime: WebSocket upgrade, presence, fan-out (spec 7) ---------------
+
+  /**
+   * WebSocket upgrade handler. The Worker forwards `/api/comments/:page/ws`
+   * here unchanged and this method answers the 101.
+   *
+   * Browsers do NOT apply CORS to WebSockets, so the server must validate the
+   * Origin itself: only the two real site origins may open a socket, and a
+   * missing Origin (a non-browser client) is rejected too — the comment UI is
+   * the only intended caller. `*` is never accepted.
+   */
+  async fetch(request: Request): Promise<Response> {
+    if (!isAllowedOrigin(request.headers.get('origin'))) {
+      return wsError('origin_not_allowed', 403);
+    }
+    if ((request.headers.get('upgrade') ?? '').toLowerCase() !== 'websocket') {
+      return wsError('upgrade_required', 426);
+    }
+
+    const page = this.pageFromId() ?? pageFromUrl(request.url);
+    const pair = new WebSocketPair();
+    const client = pair[0];
+    // The server end is the hibernatable one: it carries the attachment.
+    const server = pair[1] as HibernatableWebSocket;
+
+    // Hibernation API: the DO may be evicted while the socket stays open, so
+    // every per-connection fact lives in the attachment, never in a field.
+    this.ctx.acceptWebSocket(server);
+    server.serializeAttachment({ page, joinedAt: Date.now() });
+
+    // One presence event per open (spec 7), sent to everyone including the
+    // socket that just arrived.
+    this.broadcastPresence();
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  /**
+   * Server -> client only: comments arrive through the REST API. The single
+   * exception is the TEST-ONLY attachment probe (`ENVIRONMENT === 'test'`),
+   * which lets the harness prove `serializeAttachment`/`deserializeAttachment`
+   * round-trips through the hibernation API — `wrangler dev` exposes no way to
+   * force a DO eviction, so that is the strongest assertion available locally
+   * (see f-b-report.md). Production ignores every client message.
+   */
+  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    if (this.env.ENVIRONMENT !== 'test' || typeof message !== 'string') return;
+    try {
+      const parsed: unknown = JSON.parse(message);
+      if (
+        parsed !== null &&
+        typeof parsed === 'object' &&
+        (parsed as { type?: unknown }).type === '__attachment__'
+      ) {
+        ws.send(
+          JSON.stringify({
+            type: '__attachment__',
+            attachment: (ws as HibernatableWebSocket).deserializeAttachment() ?? null,
+            presence: this.presence(),
+          }),
+        );
+      }
+    } catch {
+      /* a malformed client message is ignored, never fatal */
+    }
+  }
+
+  /** One presence event per close (spec 7), to the remaining viewers. */
+  async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
+    try {
+      // Complete the close handshake the client started.
+      ws.close(code, reason);
+    } catch {
+      /* already closed */
+    }
+    this.broadcastPresence(ws);
+  }
+
+  async webSocketError(ws: WebSocket): Promise<void> {
+    this.broadcastPresence(ws);
+  }
+
+  /** The DO instance id is `comments:<page>`; that is where the page comes from. */
+  private pageFromId(): string | null {
+    const name = this.ctx.id?.name;
+    if (typeof name === 'string' && name.startsWith('comments:')) {
+      return name.slice('comments:'.length);
+    }
+    return null;
+  }
+
+  /**
+   * Send one frame to every open socket of this room. A dead socket is skipped
+   * so one broken connection can never break the fan-out to the live ones.
+   */
+  private broadcast(frame: unknown): void {
+    const payload = JSON.stringify(frame);
+    for (const socket of this.ctx.getWebSockets()) {
+      try {
+        socket.send(payload);
+      } catch {
+        /* the socket is gone; presence will be recomputed on its close */
+      }
+    }
+  }
+
+  /**
+   * Presence events `{type:'presence', count}`. `count` is the number of open
+   * sockets, excluding `exclude` when the caller is closing. This is
+   * best-effort by design: the UI labels it `~N`.
+   */
+  private broadcastPresence(exclude?: WebSocket): void {
+    const sockets = this.ctx.getWebSockets();
+    const recipients = exclude ? sockets.filter((socket) => socket !== exclude) : sockets;
+    const payload = JSON.stringify({ type: 'presence', count: recipients.length });
+    for (const socket of recipients) {
+      try {
+        socket.send(payload);
+      } catch {
+        /* ignore: a dead socket must not break the fan-out */
+      }
+    }
   }
 
   // --- Page room: reads ------------------------------------------------------
@@ -211,7 +359,7 @@ export class CommentsRoom extends DurableObject<Env> {
     };
   }
 
-  /** Presence = open WebSockets in this room. Always 0 until F-B. */
+  /** Presence = open WebSockets in this room (spec 7). Best-effort by design. */
   presence(): number {
     return this.ctx.getWebSockets().length;
   }
@@ -336,6 +484,12 @@ export class CommentsRoom extends DurableObject<Env> {
       created_at: createdAt,
     });
 
+    // Broadcast on publish (spec 7): one batched frame carrying the comment and
+    // the current presence, so a viewer gets both facts in a single message.
+    if (status === 'published') {
+      this.broadcast({ type: 'comment', comment, presence: this.presence() });
+    }
+
     return { status: status === 'published' ? 'published' : 'pending', comment, reason };
   }
 
@@ -372,6 +526,10 @@ export class CommentsRoom extends DurableObject<Env> {
     if (!row) return { ok: false, status: null };
     const status: CommentStatus = action === 'approve' ? 'published' : 'removed';
     this.sql.exec(`UPDATE comments SET status = ? WHERE id = ?`, status, id);
+    // `approve` runs the publish path (spec 5), so it broadcasts like any publish.
+    if (status === 'published') {
+      this.broadcast({ type: 'comment', comment: toPublicComment(row), presence: this.presence() });
+    }
     return { ok: true, status };
   }
 

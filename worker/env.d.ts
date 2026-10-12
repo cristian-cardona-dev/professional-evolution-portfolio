@@ -9,6 +9,8 @@
  */
 
 interface DurableObjectId {
+  /** Set when the id came from `idFromName` — the per-page room reads its page from here. */
+  readonly name?: string;
   toString(): string;
 }
 
@@ -43,10 +45,38 @@ interface DurableObjectStorage {
 }
 
 interface DurableObjectState {
+  readonly id: DurableObjectId;
   readonly storage: DurableObjectStorage;
-  /** Open WebSockets — the F-B presence source. Empty in F-A. */
-  getWebSockets(): WebSocket[];
+  /** Open WebSockets — the presence source (spec 7). */
+  getWebSockets(): HibernatableWebSocket[];
+  /**
+   * Hibernation WebSocket API: accept a socket so the Durable Object can be
+   * evicted while the socket stays open (spec 7).
+   */
+  acceptWebSocket(socket: WebSocket, tags?: string[]): void;
 }
+
+/**
+ * A socket accepted through `ctx.acceptWebSocket`. On top of the DOM WebSocket
+ * it carries the per-connection attachment used to survive hibernation.
+ */
+interface HibernatableWebSocket extends WebSocket {
+  /** Persist a small JSON value with the connection; read back after a wake. */
+  serializeAttachment(value: unknown): void;
+  deserializeAttachment(): unknown;
+}
+
+/** The runtime constructor that yields the client/server socket pair. */
+declare class WebSocketPair {
+  0: WebSocket;
+  1: WebSocket;
+}
+
+/** Workers allow a `webSocket` in the response init for a 101 upgrade. */
+interface ResponseInit {
+  webSocket?: WebSocket;
+}
+
 
 interface AiBinding {
   run(model: string, input: unknown, options?: unknown): Promise<unknown>;

@@ -575,6 +575,12 @@ export interface Copy {
     noJsHeading: string;
     noJsNote: string;
     noJsCta: string;
+    /** Presence, best-effort: `~{n} viewing now`. The `{n}` token is filled client-side. */
+    presenceTemplate: string;
+    /** Shown while the realtime socket is reconnecting after a drop or a deploy. */
+    reconnecting: string;
+    /** Polite live-region announcement when a comment arrives over the socket. */
+    newComment: string;
     statusPosted: string;
     statusQueued: string;
     statusRateLimited: string;
@@ -1023,6 +1029,9 @@ export const en: Copy = {
     noJsNote:
       'The comment form needs JavaScript for spam verification. You can still write to me directly:',
     noJsCta: 'Send an email instead',
+    presenceTemplate: '~{n} viewing now',
+    reconnecting: 'Reconnecting…',
+    newComment: 'A new comment arrived.',
     statusPosted: 'Comment published.',
     statusQueued: 'Thanks — your comment was received and is waiting for review.',
     statusRateLimited: 'Too many comments in a short time. Please try again in an hour.',
@@ -1474,6 +1483,9 @@ export const es: Copy = {
     noJsNote:
       'El formulario de comentarios necesita JavaScript para la verificación antispam. Aun así puedes escribirme directamente:',
     noJsCta: 'Enviar un correo',
+    presenceTemplate: '~{n} viendo ahora',
+    reconnecting: 'Reconectando…',
+    newComment: 'Ha llegado un comentario nuevo.',
     statusPosted: 'Comentario publicado.',
     statusQueued: 'Gracias: tu comentario se ha recibido y está pendiente de revisión.',
     statusRateLimited: 'Demasiados comentarios en poco tiempo. Inténtalo de nuevo en una hora.',

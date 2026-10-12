@@ -9,9 +9,14 @@
  *   GET  /api/comments/:page            published comments, newest first, + presence
  *   POST /api/comments/:page            Turnstile + honeypot -> rate limit -> AI -> publish|queue
  *   POST /api/comments/:page/:id/report +1 report; 3 reports auto-flag
- *   GET  /api/comments/:page/ws         F-B seam: realtime socket, not implemented here
+ *   GET  /api/comments/:page/ws         realtime socket upgrade (the DO accepts it)
  *   GET  /api/moderation/queue          admin (Bearer COMMENTS_ADMIN_TOKEN)
  *   POST /api/moderation/:id            admin { approve | remove } — also the GDPR delete path
+ *
+ * `/api/comments/*` responses carry CORS headers for exactly the two real site
+ * origins (`worker/origins.ts`), never `*`, so the canonical GitHub Pages host
+ * can reach the Worker mirror. The WebSocket upgrade validates Origin in the
+ * Durable Object (browsers do not enforce CORS on WebSockets).
  *
  * `:page` is a single URL-encoded path segment (e.g. `es%2Fwork%2Fcloud-dashboard%2F`)
  * so the spec's `/api/comments/:page` shape holds even though page ids contain
@@ -31,6 +36,7 @@ import {
 } from './comments-room';
 import type { CommentStatus, ModerationAction } from './comments-room';
 import { normalizePage } from './language';
+import { corsHeaders } from './origins';
 import { verifyTurnstile } from './turnstile';
 
 export { CommentsRoom };
@@ -50,6 +56,18 @@ function json(data: unknown, status = 200): Response {
 
 function fail(code: string, status: number): Response {
   return json({ error: code }, status);
+}
+
+/**
+ * Add the CORS headers for the request's Origin to a Worker response. A 101
+ * upgrade is returned untouched: it carries the socket, and CORS does not
+ * apply to WebSockets anyway.
+ */
+function withCors(response: Response, origin: string | null): Response {
+  if (response.status === 101) return response;
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(corsHeaders(origin))) headers.set(key, value);
+  return new Response(response.body, { status: response.status, headers });
 }
 
 /** Constant-time-ish compare so the admin token is not guessable by timing. */
@@ -119,14 +137,26 @@ export default {
 };
 
 async function handleComments(request: Request, env: Env, url: URL): Promise<Response> {
+  const response = await routeComments(request, env, url);
+  return withCors(response, request.headers.get('origin'));
+}
+
+async function routeComments(request: Request, env: Env, url: URL): Promise<Response> {
   const rest = url.pathname.slice('/api/comments/'.length);
   const parts = rest.split('/');
   const page = normalizePage(decodeURIComponent(parts[0] ?? ''));
   if (!page) return fail('invalid_page', 400);
 
-  // /api/comments/:page/ws — the realtime socket is F-B. Fail honestly.
+  // CORS preflight. The client POSTs JSON cross-origin (canonical GitHub Pages
+  // -> Worker mirror), which the browser preflights; the headers are attached
+  // by `withCors`.
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204 });
+
+  // /api/comments/:page/ws — the realtime socket (spec 7). The Durable Object
+  // owns the upgrade and validates the Origin before accepting.
   if (parts.length === 2 && parts[1] === 'ws') {
-    return fail('ws_not_implemented', 501);
+    if (request.method !== 'GET') return fail('method_not_allowed', 405);
+    return pageRoom(env, page).fetch(request);
   }
 
   // /api/comments/:page/:id/report

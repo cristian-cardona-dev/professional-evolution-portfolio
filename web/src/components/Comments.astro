@@ -19,9 +19,11 @@
  * The no-JS path is the same shape as the contact form: a static note plus a
  * mailto link, never a pretend submission.
  *
- * F-B seam: realtime presence/WebSocket wiring attaches in the single marked
- * place in the inline script below. Nothing here opens a socket, and the
- * presence figure the API returns is displayed by F-B, not by this component.
+ * F-B: the realtime presence/WebSocket wiring attaches in the marked place in
+ * the inline script below. Presence is rendered best-effort (`~N viendo ahora`)
+ * and a dropped socket reconnects with exponential backoff, falling back to a
+ * 60s REST poll if it never opens (spec 7). All timers live here, never in the
+ * Durable Object.
  */
 import type { Copy, Locale } from '../i18n/copy';
 import { profile } from '../lib/data';
@@ -87,6 +89,9 @@ const translatedFrom = {
       data-status-reported={copy.comments.statusReported}
       data-status-report-error={copy.comments.statusReportError}
       data-status-unavailable={copy.comments.statusUnavailable}
+      data-presence-template={copy.comments.presenceTemplate}
+      data-reconnecting={copy.comments.reconnecting}
+      data-new-comment={copy.comments.newComment}
     >
       <div class="shell shell--narrow comments__inner">
         <header class="comments__head reveal">
@@ -100,9 +105,14 @@ const translatedFrom = {
         <div class="comments__list-block">
           <h3 id="comments-list-heading">{copy.comments.listHeading}</h3>
           <p class="comments__status" role="status" aria-live="polite" data-comments-status />
-          {/* F-B seam: arriving comments are announced through this polite live
-              region; nothing writes to it in F-A. */}
+          {/* F-B: arriving comments are announced through this polite live
+              region; the realtime client writes the announcement here. */}
           <p class="visually-hidden" role="status" aria-live="polite" data-comments-live />
+          {/* Presence is best-effort: "~N viendo ahora", never an exact count. */}
+          <p class="comments__presence" data-comments-presence hidden />
+          {/* Honest indicator while the socket is dropped (a deploy disconnects
+              every socket) and the client is backing off to reconnect. */}
+          <p class="comments__reconnect" role="status" data-comments-reconnect hidden />
           <p class="comments__empty" data-comments-empty hidden={!configured}>
             {copy.comments.empty}
           </p>
@@ -231,6 +241,9 @@ const translatedFrom = {
     const locale = root.dataset.locale === 'es' ? 'es' : 'en';
     const maxLength = Number(root.dataset.maxLength || '2000');
     const configured = root.dataset.configured === 'true';
+    const presenceTemplate = root.dataset.presenceTemplate || '';
+    const reconnectingText = root.dataset.reconnecting || '';
+    const newCommentText = root.dataset.newComment || '';
 
     const form = root.querySelector('[data-comments-form]');
     const fieldset = root.querySelector('[data-comments-fieldset]');
@@ -246,6 +259,8 @@ const translatedFrom = {
     const unavailable = root.querySelector('[data-comments-unavailable]');
     const paused = root.querySelector('[data-comments-paused]');
     const turnstileSlot = root.querySelector('[data-comments-turnstile]');
+    const presenceEl = root.querySelector('[data-comments-presence]');
+    const reconnectEl = root.querySelector('[data-comments-reconnect]');
 
     const endpoint = `${apiBase}/api/comments/${encodeURIComponent(page)}`;
     let turnstileToken = '';
@@ -267,6 +282,26 @@ const translatedFrom = {
       if (unavailable) unavailable.hidden = true;
     };
 
+    // Presence is best-effort and aggregate only: "~N viendo ahora". It is
+    // hidden when the count is unknown or zero.
+    const setPresence = (count) => {
+      if (!presenceEl) return;
+      const n = Number(count);
+      if (Number.isFinite(n) && n >= 1 && presenceTemplate) {
+        presenceEl.textContent = presenceTemplate.replace('{n}', String(n));
+        presenceEl.hidden = false;
+      } else {
+        presenceEl.textContent = '';
+        presenceEl.hidden = true;
+      }
+    };
+
+    const setReconnecting = (on) => {
+      if (!reconnectEl) return;
+      reconnectEl.textContent = on ? reconnectingText : '';
+      reconnectEl.hidden = !on;
+    };
+
     const translatedFromLabel = (lang) => {
       if (lang === 'en') return root.dataset.translatedFromEn;
       if (lang === 'es') return root.dataset.translatedFromEs;
@@ -276,6 +311,7 @@ const translatedFrom = {
     const renderComment = (comment) => {
       const item = document.createElement('li');
       item.className = 'comment';
+      item.dataset.commentId = comment.id;
 
       const head = document.createElement('div');
       head.className = 'comment__head';
@@ -356,7 +392,27 @@ const translatedFrom = {
       return item;
     };
 
-    const load = async () => {
+    /**
+     * Add one comment to the top of the list. Returns false when the comment is
+     * already rendered, so a comment that arrives both by REST and by the socket
+     * is never shown twice. `announce` writes to the polite live region.
+     */
+    const addComment = (comment, announce) => {
+      if (!list || !comment || typeof comment.id !== 'string') return false;
+      if (list.querySelector(`[data-comment-id="${comment.id}"]`)) return false;
+      list.prepend(renderComment(comment));
+      if (empty) empty.hidden = true;
+      if (announce && newCommentText) setLive(newCommentText);
+      return true;
+    };
+
+    /**
+     * Load the published list. `silent` is the background refresh (polling or
+     * post-reconnect resync): it must never disable the form or shout an error
+     * over the status line.
+     */
+    const load = async (options) => {
+      const silent = !!(options && options.silent);
       try {
         const response = await fetch(endpoint, { headers: { accept: 'application/json' } });
         if (!response.ok) throw new Error('list failed');
@@ -366,11 +422,14 @@ const translatedFrom = {
           if (empty) empty.hidden = data.comments.length > 0;
         }
         if (paused) paused.hidden = !data.translation_paused;
-        enableForm();
+        if (typeof data.presence === 'number') setPresence(data.presence);
+        if (!silent) enableForm();
         return true;
       } catch {
-        disableForm();
-        setStatus(root.dataset.statusUnavailable);
+        if (!silent) {
+          disableForm();
+          setStatus(root.dataset.statusUnavailable);
+        }
         return false;
       }
     };
@@ -455,8 +514,7 @@ const translatedFrom = {
           if (!response.ok) throw new Error('post failed');
           const data = await response.json();
           if (data.status === 'published' && data.comment) {
-            list.prepend(renderComment(data.comment));
-            if (empty) empty.hidden = true;
+            addComment(data.comment, false);
             setStatus(root.dataset.statusPosted);
             setLive(root.dataset.statusPosted);
           } else {
@@ -483,8 +541,111 @@ const translatedFrom = {
       });
     }
 
+    // --- Realtime (F-B, spec 7) --------------------------------------------
+    // The socket is server -> client only. All timers live HERE, never in the
+    // Durable Object: a deploy disconnects every socket, so the client backs
+    // off exponentially and falls back to a 60s REST poll if it never opens.
+    const BACKOFF_BASE_MS = 1000;
+    const BACKOFF_CAP_MS = 30000;
+    const POLL_INTERVAL_MS = 60000;
+    const RECONNECT_INDICATOR_ATTEMPTS = 3;
+
+    let socket = null;
+    let reconnectTimer = null;
+    let pollTimer = null;
+    let reconnectAttempts = 0;
+    let everConnected = false;
+
+    const socketUrl = () => {
+      const base = apiBase || window.location.origin;
+      const url = new URL(
+        `${base}/api/comments/${encodeURIComponent(page)}/ws`,
+        window.location.href,
+      );
+      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      return url.toString();
+    };
+
+    const startPolling = () => {
+      if (pollTimer !== null) return;
+      pollTimer = window.setInterval(() => {
+        if (!socket || socket.readyState !== 1) load({ silent: true });
+      }, POLL_INTERVAL_MS);
+    };
+
+    const stopPolling = () => {
+      if (pollTimer === null) return;
+      window.clearInterval(pollTimer);
+      pollTimer = null;
+    };
+
+    const scheduleReconnect = () => {
+      if (reconnectTimer !== null) return;
+      // A socket blocked by a proxy never connects: keep the background refresh
+      // going, but stop claiming to be "reconnecting" after a few attempts.
+      setReconnecting(everConnected || reconnectAttempts < RECONNECT_INDICATOR_ATTEMPTS);
+      startPolling();
+      const delay = Math.min(BACKOFF_CAP_MS, BACKOFF_BASE_MS * 2 ** reconnectAttempts);
+      reconnectAttempts += 1;
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, delay);
+    };
+
+    const connect = () => {
+      if (typeof window.WebSocket !== 'function') {
+        startPolling();
+        return;
+      }
+      let ws;
+      try {
+        ws = new WebSocket(socketUrl());
+      } catch {
+        startPolling();
+        return;
+      }
+      socket = ws;
+      ws.addEventListener('open', () => {
+        everConnected = true;
+        reconnectAttempts = 0;
+        stopPolling();
+        setReconnecting(false);
+        // Resync anything published while the socket was down.
+        load({ silent: true });
+      });
+      ws.addEventListener('message', (event) => {
+        let frame = null;
+        try {
+          frame = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+        if (!frame || typeof frame !== 'object') return;
+        if (frame.type === 'comment') {
+          if (frame.comment) addComment(frame.comment, true);
+          if (typeof frame.presence === 'number') setPresence(frame.presence);
+        } else if (frame.type === 'presence' && typeof frame.count === 'number') {
+          setPresence(frame.count);
+        }
+      });
+      ws.addEventListener('close', () => {
+        if (socket === ws) socket = null;
+        scheduleReconnect();
+      });
+      ws.addEventListener('error', () => {
+        // A `close` follows; the reconnect is scheduled there.
+      });
+    };
+
+    const startRealtime = () => {
+      startPolling();
+      connect();
+    };
+
     if (configured) {
       load();
+      startRealtime();
       const script = document.createElement('script');
       script.src =
         'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
@@ -546,9 +707,20 @@ const translatedFrom = {
   }
 
   .comments__empty,
-  .comments__paused {
+  .comments__paused,
+  .comments__presence,
+  .comments__reconnect {
     color: var(--color-text-muted);
     font-size: var(--text-sm);
+  }
+
+  .comments__presence {
+    margin: 0;
+  }
+
+  .comments__reconnect {
+    margin: 0;
+    color: var(--color-warn);
   }
 
   .comments__paused {
