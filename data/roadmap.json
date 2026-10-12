@@ -3,7 +3,7 @@
     {
       "id": "ai-engineering-evidence",
       "goal": "Widen the public AI engineering evidence: a fixed evaluation set for the reliability contract, a provider-neutral adapter seam and reproducible run artifacts.",
-      "status": "planned",
+      "status": "in-progress",
       "skills": ["LLM APIs", "Chat & streaming", "Contract testing", "Testing"],
       "proofs": [
         { "type": "project", "id": "ai-chat-app" },
@@ -32,7 +32,7 @@
     {
       "id": "portfolio-rebuild-launch",
       "goal": "Launch the rebuilt portfolio: replace the legacy static site once the validation battery and the review gate pass.",
-      "status": "in-progress",
+      "status": "shipped",
       "skills": ["Astro", "TypeScript", "Accessibility"],
       "proofs": [
         { "type": "project", "id": "professional-evolution-portfolio" },

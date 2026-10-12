@@ -262,6 +262,11 @@ export interface Copy {
     stackLabel: string;
     /** CTA from the compact home timeline to the full career page. */
     viewAll: string;
+    /**
+     * Label of the link to the printable HTML résumé shipped as a static file
+     * (`web/public/resume-en.html` / `resume-es.html`), rendered on `/career/`.
+     */
+    resume: string;
   };
   /**
    * Skill matrix (`data/skills.json`), rendered by
@@ -703,6 +708,7 @@ export const en: Copy = {
     sourceLabel: 'Human-declared · corroborated on LinkedIn',
     stackLabel: 'Declared stack',
     viewAll: 'View the full career',
+    resume: 'Download the résumé (HTML)',
   },
   skills: {
     heading: 'Skills, and what stands behind each one.',
@@ -1095,6 +1101,7 @@ export const es: Copy = {
     sourceLabel: 'Declarado por la persona · corroborado en LinkedIn',
     stackLabel: 'Stack declarado',
     viewAll: 'Ver la trayectoria completa',
+    resume: 'Descargar el currículum (HTML)',
   },
   skills: {
     heading: 'Habilidades, y qué respalda cada una.',

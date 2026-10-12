@@ -161,6 +161,16 @@ revert PR; never force-push or `git reset --hard`).
   `snapshot_id` as the Pages artifact. A `legacy` dispatch restores both hosts
   (see [Rollback](#rollback)).
 
+## Delivered since 2026-10-12
+
+- **`favicon.ico`** — `web/public/favicon.ico` now ships alongside `favicon.svg`.
+- **`og:image`** — `web/public/og-cover.png` (1200×630) is produced by
+  `scripts/brand-assets.mjs` and referenced as `og:image` in
+  `web/src/layouts/BaseLayout.astro`.
+- **Scroll-spy** — active-section highlighting in the numbered side nav is
+  implemented with `IntersectionObserver` in `web/src/components/Header.astro`
+  (the reveal observer in `BaseLayout.astro` uses the same API).
+
 ## Deferred (explicitly out of scope)
 
 - **Worker sitemap origin** — `scripts/sitemap-generate.mjs` still hardcodes the
@@ -170,9 +180,5 @@ revert PR; never force-push or `git reset --hard`).
 - **Spanish case-study bodies remain English** — the site's translation
   contract keeps canonical data English-only; `/es/` case-study bodies are the
   English text with localized chrome.
-- **`favicon.ico`** — only `favicon.svg` ships today.
-- **`og:image`** — no social share image is produced.
 - **Worker `/api/assistant` v2** — blocked on a model API key and Worker deploy
   authorization; see [assistant.md](assistant.md).
-- **Scroll-spy** — active-section highlighting in the numbered side nav is not
-  implemented.

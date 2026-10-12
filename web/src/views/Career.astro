@@ -29,6 +29,12 @@ interface Props {
 }
 
 const { locale, copy } = Astro.props;
+
+/* The résumé ships as a static file in `web/public/` (`resume-en.html` /
+   `resume-es.html`), not as an Astro route, so the href is the deployment base
+   plus the locale's filename: both files live at the base root, not under
+   `<base>es/`. */
+const resumeHref = `${import.meta.env.BASE_URL}resume-${locale}.html`;
 ---
 
 <section class="section" id="career" aria-labelledby="career-heading">
@@ -37,6 +43,12 @@ const { locale, copy } = Astro.props;
       <p class="eyebrow">{copy.career.eyebrow}</p>
       <h1 id="career-heading">{copy.career.heading}</h1>
       <p class="lead">{copy.career.summary}</p>
+      <p class="career__resume">
+        <a href={resumeHref} target="_blank" rel="noopener noreferrer">
+          {copy.career.resume}
+          <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
+        </a>
+      </p>
     </header>
 
     <div class="career-block">
@@ -70,6 +82,13 @@ const { locale, copy } = Astro.props;
 
   .section__head h1 {
     margin-block: var(--space-2) var(--space-3);
+  }
+
+  /* The résumé link sits with the intro, where a reader assessing the career
+     record looks for a downloadable summary. */
+  .career__resume {
+    margin-top: var(--space-4);
+    font-size: var(--text-sm);
   }
 
   .career-block > h2 {
