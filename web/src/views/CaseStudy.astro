@@ -31,6 +31,7 @@ import { caseStudyFor, relatedProjects } from '../lib/data';
 import { renderSectionBody } from '../lib/markdown';
 import { route, sectionHref, SUGGESTION_ISSUE_URL } from '../lib/urls';
 import ProjectCard from '../components/ProjectCard.astro';
+import Comments from '../components/Comments.astro';
 
 interface Props {
   locale: Locale;
@@ -254,6 +255,8 @@ const contactHref = sectionHref(locale, 'contact', Astro.url.pathname);
     </div>
   </section>
 </article>
+
+<Comments locale={locale} copy={copy} path={`work/${project.slug}/`} />
 
 <style>
   .case-study {

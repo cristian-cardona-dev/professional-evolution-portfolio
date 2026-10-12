@@ -529,6 +529,62 @@ export interface Copy {
     /** Plain credits line; the official links are rendered beside it. */
     credits: string;
   };
+  /**
+   * Comments (`components/Comments.astro`, spec 9).
+   *
+   * Enabled per route by `config/comments.json`; the copy carries the whole
+   * honesty contract — no account, no cookies, AI screening plus human review,
+   * machine translation is labelled, and the GDPR removal path. The client
+   * reads most of these through `data-*` attributes on the section, so a
+   * translated string can never drift from the rendered markup.
+   */
+  comments: {
+    eyebrow: string;
+    heading: string;
+    summary: string;
+    /** The moderation/privacy/GDPR contract, stated in full. */
+    notice: string;
+    formHeading: string;
+    nameLabel: string;
+    nameHint: string;
+    bodyLabel: string;
+    bodyHint: string;
+    langLabel: string;
+    langHint: string;
+    langEn: string;
+    langEs: string;
+    langOther: string;
+    honeypot: string;
+    submit: string;
+    submitting: string;
+    privacy: string;
+    listHeading: string;
+    empty: string;
+    anonymous: string;
+    report: string;
+    pendingBadge: string;
+    /** `Translated from {language}` — the language name is passed in. */
+    translatedFrom: (language: string) => string;
+    viewOriginal: string;
+    viewTranslation: string;
+    translationUnavailable: string;
+    translationPaused: string;
+    unavailableHeading: string;
+    unavailableNote: string;
+    turnstileBlocked: string;
+    noJsHeading: string;
+    noJsNote: string;
+    noJsCta: string;
+    statusPosted: string;
+    statusQueued: string;
+    statusRateLimited: string;
+    statusInvalidBody: string;
+    statusInvalidToken: string;
+    statusLoadError: string;
+    statusReported: string;
+    statusReportError: string;
+    statusUnavailable: string;
+  };
 }
 
 export const en: Copy = {
@@ -924,6 +980,58 @@ export const en: Copy = {
     boundaryNote:
       'Only public, human-declared career facts are published; no client names, compensation or private operational data. No private data is published on this site.',
     credits: 'Built with Astro, hosted on GitHub Pages + Cloudflare Workers.',
+  },
+  comments: {
+    eyebrow: 'Comments',
+    heading: 'Join the conversation',
+    summary:
+      'Comments are open on this page. No account, no cookies and no email address — a display name is optional.',
+    notice:
+      'How this works: an AI model screens every comment before it appears, and anything it is unsure about goes to a human review queue, so nothing is published unreviewed. Comments are anonymous — your IP address is used only for a temporary rate limit and is never stored. To have a comment removed, write to me through the contact form (GDPR).',
+    formHeading: 'Leave a comment',
+    nameLabel: 'Name (optional)',
+    nameHint: 'Shown next to your comment. Leave it empty to stay anonymous.',
+    bodyLabel: 'Comment',
+    bodyHint: 'Plain text, up to 2000 characters.',
+    langLabel: 'Comment language',
+    langHint: 'Used to translate your comment for readers of this page.',
+    langEn: 'English',
+    langEs: 'Spanish',
+    langOther: 'Another language',
+    honeypot: 'Leave this field empty',
+    submit: 'Post comment',
+    submitting: 'Posting…',
+    privacy:
+      'No account, no cookies, no email collection. Your comment is public once it passes review, and you can ask for its removal at any time.',
+    listHeading: 'Comments',
+    empty: 'No comments yet. Be the first.',
+    anonymous: 'Anonymous',
+    report: 'Report',
+    pendingBadge: 'In review',
+    translatedFrom: (language) => `Translated from ${language}`,
+    viewOriginal: 'View original',
+    viewTranslation: 'View translation',
+    translationUnavailable: 'Translation not available.',
+    translationPaused:
+      'Automatic translation is paused for today; comments in other languages are held for human review.',
+    unavailableHeading: 'Comments are temporarily unavailable.',
+    unavailableNote:
+      'The comment service is not configured on this deployment, so the form stays disabled — nothing typed here would be sent.',
+    turnstileBlocked:
+      'The verification widget could not load, so the form stays disabled. Please try again later or use the contact form.',
+    noJsHeading: 'JavaScript is off',
+    noJsNote:
+      'The comment form needs JavaScript for spam verification. You can still write to me directly:',
+    noJsCta: 'Send an email instead',
+    statusPosted: 'Comment published.',
+    statusQueued: 'Thanks — your comment was received and is waiting for review.',
+    statusRateLimited: 'Too many comments in a short time. Please try again in an hour.',
+    statusInvalidBody: 'Write between 1 and 2000 characters.',
+    statusInvalidToken: 'Verification failed. Reload the page and try again.',
+    statusLoadError: 'Something went wrong. Please try again.',
+    statusReported: 'Reported. Thank you.',
+    statusReportError: 'Could not send the report. Please try again.',
+    statusUnavailable: 'Comments are temporarily unavailable.',
   },
 };
 
@@ -1323,6 +1431,58 @@ export const es: Copy = {
     boundaryNote:
       'Solo se publican hechos profesionales públicos y declarados por la persona; no se publican nombres de clientes, compensación ni datos operativos privados. No se publica ningún dato privado en este sitio.',
     credits: 'Construido con Astro, alojado en GitHub Pages + Cloudflare Workers.',
+  },
+  comments: {
+    eyebrow: 'Comentarios',
+    heading: 'Únete a la conversación',
+    summary:
+      'Los comentarios están abiertos en esta página. Sin cuenta, sin cookies y sin correo electrónico: el nombre para mostrar es opcional.',
+    notice:
+      'Cómo funciona: un modelo de IA revisa cada comentario antes de que aparezca, y todo lo que no tiene claro pasa a una cola de revisión humana, así que nada se publica sin revisar. Los comentarios son anónimos: tu dirección IP se usa solo para un límite temporal de frecuencia y nunca se almacena. Para pedir la eliminación de un comentario, escríbeme por el formulario de contacto (RGPD).',
+    formHeading: 'Deja un comentario',
+    nameLabel: 'Nombre (opcional)',
+    nameHint: 'Se muestra junto a tu comentario. Déjalo vacío para seguir siendo anónimo.',
+    bodyLabel: 'Comentario',
+    bodyHint: 'Texto plano, hasta 2000 caracteres.',
+    langLabel: 'Idioma del comentario',
+    langHint: 'Se usa para traducir tu comentario para quienes lean esta página.',
+    langEn: 'Inglés',
+    langEs: 'Español',
+    langOther: 'Otro idioma',
+    honeypot: 'Deja este campo vacío',
+    submit: 'Publicar comentario',
+    submitting: 'Publicando…',
+    privacy:
+      'Sin cuenta, sin cookies y sin recogida de correo. Tu comentario es público cuando pasa la revisión, y puedes pedir su eliminación en cualquier momento.',
+    listHeading: 'Comentarios',
+    empty: 'Todavía no hay comentarios. Sé el primero.',
+    anonymous: 'Anónimo',
+    report: 'Denunciar',
+    pendingBadge: 'En revisión',
+    translatedFrom: (language) => `Traducido del ${language}`,
+    viewOriginal: 'Ver original',
+    viewTranslation: 'Ver traducción',
+    translationUnavailable: 'Traducción no disponible.',
+    translationPaused:
+      'La traducción automática está en pausa por hoy; los comentarios en otros idiomas quedan a la espera de revisión humana.',
+    unavailableHeading: 'Los comentarios no están disponibles temporalmente.',
+    unavailableNote:
+      'El servicio de comentarios no está configurado en este despliegue, así que el formulario permanece desactivado: nada de lo que escribas aquí se enviaría.',
+    turnstileBlocked:
+      'El widget de verificación no se ha podido cargar, así que el formulario permanece desactivado. Inténtalo más tarde o usa el formulario de contacto.',
+    noJsHeading: 'JavaScript está desactivado',
+    noJsNote:
+      'El formulario de comentarios necesita JavaScript para la verificación antispam. Aun así puedes escribirme directamente:',
+    noJsCta: 'Enviar un correo',
+    statusPosted: 'Comentario publicado.',
+    statusQueued: 'Gracias: tu comentario se ha recibido y está pendiente de revisión.',
+    statusRateLimited: 'Demasiados comentarios en poco tiempo. Inténtalo de nuevo en una hora.',
+    statusInvalidBody: 'Escribe entre 1 y 2000 caracteres.',
+    statusInvalidToken: 'La verificación ha fallado. Recarga la página e inténtalo de nuevo.',
+    statusLoadError: 'Algo ha ido mal. Inténtalo de nuevo.',
+    statusReported: 'Denunciado. Gracias.',
+    statusReportError: 'No se ha podido enviar la denuncia. Inténtalo de nuevo.',
+    statusUnavailable: 'Los comentarios no están disponibles temporalmente.',
   },
 };
 

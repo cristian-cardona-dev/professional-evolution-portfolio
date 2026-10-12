@@ -29,6 +29,7 @@
 import type { Copy, Locale } from '../i18n/copy';
 import EvolutionTimeline from '../components/EvolutionTimeline.astro';
 import RoadmapTable from '../components/RoadmapTable.astro';
+import Comments from '../components/Comments.astro';
 import { roadmapRows } from '../lib/data';
 import { route } from '../lib/urls';
 
@@ -126,6 +127,8 @@ const roadmap = roadmapRows();
     </div>
   </div>
 </section>
+
+<Comments locale={locale} copy={copy} path="evolution/" />
 
 <style>
   .section {

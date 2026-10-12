@@ -26,6 +26,7 @@ import type { Copy, Locale } from '../i18n/copy';
 import type { ProjectStatus } from '../lib/data';
 import { projects } from '../lib/data';
 import ProjectCard from '../components/ProjectCard.astro';
+import Comments from '../components/Comments.astro';
 
 interface Props {
   locale: Locale;
@@ -98,6 +99,8 @@ const allTags = [...new Set(projects.flatMap((project) => project.tags))].sort()
     }
   </div>
 </section>
+
+<Comments locale={locale} copy={copy} path="work/" />
 
 <script>
   // Tag filter for the work listing — vanilla, no dependencies.

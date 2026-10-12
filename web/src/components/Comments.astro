@@ -1,0 +1,741 @@
+---
+/**
+ * Comment UI (spec 9) — form, list, translation badge, report link, GDPR note.
+ *
+ * Rendered by the content views (`Work`, `Career`, `Evolution`, `BuildNotes`,
+ * `CaseStudy`) for the routes `config/comments.json` enables; for every other
+ * route the component renders nothing at all, so a page without comments is
+ * byte-identical to before this feature.
+ *
+ * Honest degradation, in this order:
+ *   1. `comments.json` does not list the route -> nothing is rendered.
+ *   2. Turnstile is not configured (`PUBLIC_TURNSTILE_SITEKEY` unset) -> the
+ *      form is rendered DISABLED with an explicit "temporarily unavailable"
+ *      note. It is never a form that would silently accept a submission.
+ *   3. The API probe fails (e.g. the canonical GitHub Pages host has no
+ *      `/api/comments`) -> the form is disabled with the same explicit note.
+ *   4. The Turnstile script is blocked -> the form stays disabled and the
+ *      message says why.
+ * The no-JS path is the same shape as the contact form: a static note plus a
+ * mailto link, never a pretend submission.
+ *
+ * F-B seam: realtime presence/WebSocket wiring attaches in the single marked
+ * place in the inline script below. Nothing here opens a socket, and the
+ * presence figure the API returns is displayed by F-B, not by this component.
+ */
+import type { Copy, Locale } from '../i18n/copy';
+import { profile } from '../lib/data';
+import { commentsApiBase, commentsEnabled, commentsPageId } from '../lib/comments';
+
+interface Props {
+  locale: Locale;
+  copy: Copy;
+  /** Locale-less route path, e.g. `work/cloud-dashboard/`. */
+  path: string;
+}
+
+const { locale, copy, path } = Astro.props;
+
+const enabled = commentsEnabled(path);
+const pageId = commentsPageId(locale, path);
+const apiBase = commentsApiBase();
+const sitekey = import.meta.env.PUBLIC_TURNSTILE_SITEKEY ?? '';
+const configured = sitekey.length > 0;
+const endpoint = `${apiBase}/api/comments/${encodeURIComponent(pageId)}`;
+
+const mailtoSubject = locale === 'es' ? 'Comentario sobre tu portfolio' : 'Comment on your portfolio';
+const mailto = `mailto:${profile.email}?subject=${encodeURIComponent(mailtoSubject)}`;
+
+/** The three rendered "translated from <language>" labels the client picks from. */
+const translatedFrom = {
+  en: copy.comments.translatedFrom(copy.comments.langEn),
+  es: copy.comments.translatedFrom(copy.comments.langEs),
+  other: copy.comments.translatedFrom(copy.comments.langOther),
+};
+---
+
+{
+  enabled && (
+    <section
+      class="comments"
+      id="comments"
+      aria-labelledby="comments-heading"
+      data-comments
+      data-page={pageId}
+      data-api-base={apiBase}
+      data-locale={locale}
+      data-configured={configured ? 'true' : 'false'}
+      data-max-length="2000"
+      data-anonymous={copy.comments.anonymous}
+      data-report={copy.comments.report}
+      data-view-original={copy.comments.viewOriginal}
+      data-view-translation={copy.comments.viewTranslation}
+      data-translation-unavailable={copy.comments.translationUnavailable}
+      data-translation-paused={copy.comments.translationPaused}
+      data-translated-from-en={translatedFrom.en}
+      data-translated-from-es={translatedFrom.es}
+      data-translated-from-other={translatedFrom.other}
+      data-submit={copy.comments.submit}
+      data-submitting={copy.comments.submitting}
+      data-turnstile-blocked={copy.comments.turnstileBlocked}
+      data-status-posted={copy.comments.statusPosted}
+      data-status-queued={copy.comments.statusQueued}
+      data-status-rate-limited={copy.comments.statusRateLimited}
+      data-status-invalid-body={copy.comments.statusInvalidBody}
+      data-status-invalid-token={copy.comments.statusInvalidToken}
+      data-status-load-error={copy.comments.statusLoadError}
+      data-status-reported={copy.comments.statusReported}
+      data-status-report-error={copy.comments.statusReportError}
+      data-status-unavailable={copy.comments.statusUnavailable}
+    >
+      <div class="shell shell--narrow comments__inner">
+        <header class="comments__head reveal">
+          <p class="eyebrow">{copy.comments.eyebrow}</p>
+          <h2 id="comments-heading">{copy.comments.heading}</h2>
+          <p class="lead">{copy.comments.summary}</p>
+        </header>
+
+        <p class="comments__notice">{copy.comments.notice}</p>
+
+        <div class="comments__list-block">
+          <h3 id="comments-list-heading">{copy.comments.listHeading}</h3>
+          <p class="comments__status" role="status" aria-live="polite" data-comments-status />
+          {/* F-B seam: arriving comments are announced through this polite live
+              region; nothing writes to it in F-A. */}
+          <p class="visually-hidden" role="status" aria-live="polite" data-comments-live />
+          <p class="comments__empty" data-comments-empty hidden={!configured}>
+            {copy.comments.empty}
+          </p>
+          <ul class="comments__list" data-comments-list aria-labelledby="comments-list-heading" />
+          <p class="comments__paused" data-comments-paused hidden>
+            {copy.comments.translationPaused}
+          </p>
+        </div>
+
+        <div class="comments__form-block">
+          <h3 id="comments-form-heading">{copy.comments.formHeading}</h3>
+
+          <p class="comments__unavailable" data-comments-unavailable hidden={configured}>
+            <strong>{copy.comments.unavailableHeading}</strong> {copy.comments.unavailableNote}
+          </p>
+
+          <form
+            class="comments__form"
+            method="POST"
+            action={endpoint}
+            novalidate
+            data-comments-form
+            data-endpoint={endpoint}
+          >
+            <fieldset class="comments__fieldset" data-comments-fieldset disabled>
+              {/* Honeypot: hidden from people, tempting to bots. */}
+              <div class="comments__honeypot" aria-hidden="true">
+                <label for="comments-website">{copy.comments.honeypot}</label>
+                <input
+                  type="text"
+                  id="comments-website"
+                  name="website"
+                  tabindex="-1"
+                  autocomplete="off"
+                />
+              </div>
+
+              <div class="comments__field">
+                <label class="comments__label" for="comments-name">{copy.comments.nameLabel}</label>
+                <input
+                  class="comments__input"
+                  type="text"
+                  id="comments-name"
+                  name="name"
+                  maxlength="80"
+                  autocomplete="off"
+                  aria-describedby="comments-name-hint"
+                  data-comments-name
+                />
+                <p class="comments__hint" id="comments-name-hint">{copy.comments.nameHint}</p>
+              </div>
+
+              <div class="comments__field">
+                <label class="comments__label" for="comments-body">
+                  {copy.comments.bodyLabel}
+                  <span class="comments__required">({copy.a11y.required})</span>
+                </label>
+                <textarea
+                  class="comments__input comments__input--textarea"
+                  id="comments-body"
+                  name="body"
+                  rows="5"
+                  maxlength="2000"
+                  required
+                  aria-describedby="comments-body-hint"
+                  data-comments-body
+                />
+                <p class="comments__hint" id="comments-body-hint">{copy.comments.bodyHint}</p>
+                <p class="comments__counter" aria-hidden="true" data-comments-counter>0/2000</p>
+              </div>
+
+              <div class="comments__field">
+                <label class="comments__label" for="comments-lang">{copy.comments.langLabel}</label>
+                <select
+                  class="comments__input"
+                  id="comments-lang"
+                  name="lang"
+                  aria-describedby="comments-lang-hint"
+                  data-comments-lang
+                >
+                  <option value="en" selected={locale === 'en'}>
+                    {copy.comments.langEn}
+                  </option>
+                  <option value="es" selected={locale === 'es'}>
+                    {copy.comments.langEs}
+                  </option>
+                  <option value="other">{copy.comments.langOther}</option>
+                </select>
+                <p class="comments__hint" id="comments-lang-hint">{copy.comments.langHint}</p>
+              </div>
+
+              {configured && (
+                <div class="comments__turnstile" data-comments-turnstile data-sitekey={sitekey} />
+              )}
+
+              <button class="button button--primary comments__submit" type="submit" data-comments-submit>
+                {copy.comments.submit}
+              </button>
+
+              <p class="comments__privacy">{copy.comments.privacy}</p>
+            </fieldset>
+          </form>
+
+          <noscript>
+            <div class="comments__nojs">
+              <p class="comments__nojs-heading">{copy.comments.noJsHeading}</p>
+              <p>{copy.comments.noJsNote}</p>
+              <a class="button button--ghost comments__cta" href={mailto}>
+                {copy.comments.noJsCta}
+              </a>
+            </div>
+          </noscript>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+<script is:inline>
+  (() => {
+    const root = document.querySelector('[data-comments]');
+    if (!root) return;
+
+    const apiBase = root.dataset.apiBase || '';
+    const page = root.dataset.page || '';
+    const locale = root.dataset.locale === 'es' ? 'es' : 'en';
+    const maxLength = Number(root.dataset.maxLength || '2000');
+    const configured = root.dataset.configured === 'true';
+
+    const form = root.querySelector('[data-comments-form]');
+    const fieldset = root.querySelector('[data-comments-fieldset]');
+    const list = root.querySelector('[data-comments-list]');
+    const empty = root.querySelector('[data-comments-empty]');
+    const status = root.querySelector('[data-comments-status]');
+    const live = root.querySelector('[data-comments-live]');
+    const counter = root.querySelector('[data-comments-counter]');
+    const bodyInput = root.querySelector('[data-comments-body]');
+    const nameInput = root.querySelector('[data-comments-name]');
+    const langSelect = root.querySelector('[data-comments-lang]');
+    const submit = root.querySelector('[data-comments-submit]');
+    const unavailable = root.querySelector('[data-comments-unavailable]');
+    const paused = root.querySelector('[data-comments-paused]');
+    const turnstileSlot = root.querySelector('[data-comments-turnstile]');
+
+    const endpoint = `${apiBase}/api/comments/${encodeURIComponent(page)}`;
+    let turnstileToken = '';
+
+    const setStatus = (message) => {
+      if (status) status.textContent = message || '';
+    };
+    const setLive = (message) => {
+      if (live) live.textContent = message || '';
+    };
+    const disableForm = () => {
+      if (fieldset) fieldset.disabled = true;
+      if (submit) submit.disabled = true;
+      if (unavailable) unavailable.hidden = false;
+    };
+    const enableForm = () => {
+      if (fieldset) fieldset.disabled = false;
+      if (submit) submit.disabled = false;
+      if (unavailable) unavailable.hidden = true;
+    };
+
+    const translatedFromLabel = (lang) => {
+      if (lang === 'en') return root.dataset.translatedFromEn;
+      if (lang === 'es') return root.dataset.translatedFromEs;
+      return root.dataset.translatedFromOther;
+    };
+
+    const renderComment = (comment) => {
+      const item = document.createElement('li');
+      item.className = 'comment';
+
+      const head = document.createElement('div');
+      head.className = 'comment__head';
+
+      const who = document.createElement('span');
+      who.className = 'comment__name';
+      who.textContent = comment.name || root.dataset.anonymous;
+
+      const when = document.createElement('time');
+      when.className = 'comment__time';
+      const date = new Date(comment.created_at);
+      when.dateTime = date.toISOString();
+      when.textContent = date.toLocaleString(locale === 'es' ? 'es-ES' : 'en-GB');
+
+      head.append(who, when);
+
+      const text = document.createElement('p');
+      text.className = 'comment__body';
+      const original = String(comment.body || '');
+      const translation = typeof comment.translation === 'string' ? comment.translation : '';
+      text.textContent = translation || original;
+
+      item.append(head, text);
+
+      if (comment.source_lang && comment.source_lang !== locale) {
+        const meta = document.createElement('p');
+        meta.className = 'comment__meta';
+        if (translation) {
+          const badge = document.createElement('span');
+          badge.className = 'chip chip--neutral comment__badge';
+          badge.textContent = translatedFromLabel(comment.source_lang);
+
+          const toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'comment__toggle';
+          let showingTranslation = true;
+          toggle.textContent = root.dataset.viewOriginal;
+          toggle.addEventListener('click', () => {
+            showingTranslation = !showingTranslation;
+            text.textContent = showingTranslation ? translation : original;
+            toggle.textContent = showingTranslation
+              ? root.dataset.viewOriginal
+              : root.dataset.viewTranslation;
+          });
+
+          meta.append(badge, toggle);
+        } else {
+          meta.classList.add('comment__meta--notice');
+          meta.textContent = root.dataset.translationUnavailable;
+        }
+        item.append(meta);
+      }
+
+      const actions = document.createElement('p');
+      actions.className = 'comment__actions';
+      const report = document.createElement('button');
+      report.type = 'button';
+      report.className = 'comment__report';
+      report.textContent = root.dataset.report;
+      report.addEventListener('click', async () => {
+        report.disabled = true;
+        try {
+          const response = await fetch(
+            `${endpoint}/${encodeURIComponent(comment.id)}/report`,
+            { method: 'POST', headers: { accept: 'application/json' } },
+          );
+          if (!response.ok) throw new Error('report failed');
+          report.textContent = root.dataset.statusReported;
+          setStatus(root.dataset.statusReported);
+        } catch {
+          report.disabled = false;
+          setStatus(root.dataset.statusReportError);
+        }
+      });
+      actions.append(report);
+      item.append(actions);
+
+      return item;
+    };
+
+    const load = async () => {
+      try {
+        const response = await fetch(endpoint, { headers: { accept: 'application/json' } });
+        if (!response.ok) throw new Error('list failed');
+        const data = await response.json();
+        if (Array.isArray(data.comments)) {
+          list.replaceChildren(...data.comments.map(renderComment));
+          if (empty) empty.hidden = data.comments.length > 0;
+        }
+        if (paused) paused.hidden = !data.translation_paused;
+        enableForm();
+        return true;
+      } catch {
+        disableForm();
+        setStatus(root.dataset.statusUnavailable);
+        return false;
+      }
+    };
+
+    const renderTurnstile = () => {
+      if (!turnstileSlot) return;
+      if (!window.turnstile) {
+        setStatus(root.dataset.turnstileBlocked);
+        disableForm();
+        return;
+      }
+      window.turnstile.render(turnstileSlot, {
+        sitekey: turnstileSlot.dataset.sitekey,
+        action: 'comment',
+        theme: 'auto',
+        callback: (token) => {
+          turnstileToken = token;
+        },
+        'error-callback': () => {
+          turnstileToken = '';
+        },
+        'expired-callback': () => {
+          turnstileToken = '';
+        },
+      });
+    };
+
+    window.addEventListener('comments-turnstile-ready', renderTurnstile);
+    window.addEventListener('comments-turnstile-error', () => {
+      setStatus(root.dataset.turnstileBlocked);
+      disableForm();
+    });
+
+    if (bodyInput && counter) {
+      bodyInput.addEventListener('input', () => {
+        counter.textContent = `${bodyInput.value.length}/${maxLength}`;
+      });
+    }
+
+    if (form) {
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const body = (bodyInput ? bodyInput.value : '').trim();
+        if (body.length === 0 || body.length > maxLength) {
+          setStatus(root.dataset.statusInvalidBody);
+          if (bodyInput) bodyInput.focus();
+          return;
+        }
+        if (!turnstileToken) {
+          setStatus(root.dataset.turnstileBlocked);
+          return;
+        }
+        if (submit) {
+          submit.disabled = true;
+          submit.textContent = root.dataset.submitting;
+        }
+        setStatus('');
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            body: JSON.stringify({
+              body,
+              name: nameInput ? nameInput.value : '',
+              lang: langSelect ? langSelect.value : '',
+              website: (root.querySelector('[name="website"]') || {}).value || '',
+              turnstileToken,
+            }),
+          });
+          if (response.status === 429) {
+            setStatus(root.dataset.statusRateLimited);
+            return;
+          }
+          if (response.status === 400) {
+            setStatus(root.dataset.statusInvalidBody);
+            return;
+          }
+          if (response.status === 403 || response.status === 503) {
+            setStatus(root.dataset.statusInvalidToken);
+            return;
+          }
+          if (!response.ok) throw new Error('post failed');
+          const data = await response.json();
+          if (data.status === 'published' && data.comment) {
+            list.prepend(renderComment(data.comment));
+            if (empty) empty.hidden = true;
+            setStatus(root.dataset.statusPosted);
+            setLive(root.dataset.statusPosted);
+          } else {
+            setStatus(root.dataset.statusQueued);
+          }
+          if (bodyInput) bodyInput.value = '';
+          if (counter) counter.textContent = `0/${maxLength}`;
+          turnstileToken = '';
+          if (window.turnstile && turnstileSlot) {
+            try {
+              window.turnstile.reset(turnstileSlot);
+            } catch {
+              /* a stale widget must not block the next submission */
+            }
+          }
+        } catch {
+          setStatus(root.dataset.statusLoadError);
+        } finally {
+          if (submit) {
+            submit.disabled = false;
+            submit.textContent = root.dataset.submit;
+          }
+        }
+      });
+    }
+
+    if (configured) {
+      load();
+      const script = document.createElement('script');
+      script.src =
+        'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => window.dispatchEvent(new Event('comments-turnstile-ready'));
+      script.onerror = () => window.dispatchEvent(new Event('comments-turnstile-error'));
+      document.head.appendChild(script);
+    }
+  })();
+</script>
+
+<style>
+  .comments {
+    padding-block: var(--space-16) var(--space-24);
+    scroll-margin-top: var(--header-height);
+  }
+
+  .comments__inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .comments__head h2 {
+    margin-block: var(--space-2) var(--space-3);
+  }
+
+  .comments__notice {
+    padding: var(--space-4);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+  }
+
+  .comments__list-block,
+  .comments__form-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .comments__list-block h3,
+  .comments__form-block h3 {
+    margin: 0;
+  }
+
+  .comments__status:empty {
+    display: none;
+  }
+
+  .comments__status {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+
+  .comments__empty,
+  .comments__paused {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+
+  .comments__paused {
+    padding: var(--space-3);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+
+  .comments__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .comment {
+    padding: var(--space-4);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .comment__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+
+  .comment__name {
+    font-weight: 600;
+  }
+
+  .comment__time {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+  }
+
+  .comment__body {
+    margin: 0;
+    white-space: pre-line;
+  }
+
+  .comment__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    font-size: var(--text-sm);
+  }
+
+  .comment__meta--notice {
+    color: var(--color-text-muted);
+  }
+
+  .comment__toggle,
+  .comment__report {
+    min-height: 44px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--color-accent);
+    font: inherit;
+    font-size: var(--text-sm);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .comment__actions {
+    margin: var(--space-2) 0 0;
+  }
+
+  .comment__report {
+    color: var(--color-text-muted);
+  }
+
+  .comments__unavailable {
+    padding: var(--space-4);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-warn);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+  }
+
+  .comments__form,
+  .comments__nojs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .comments__fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  .comments__honeypot {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .comments__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .comments__label {
+    color: var(--color-text);
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+
+  .comments__required {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    font-weight: 400;
+  }
+
+  .comments__input {
+    padding: var(--space-3);
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    transition: border-color var(--duration-fast) var(--ease-standard);
+  }
+
+  .comments__input:hover {
+    border-color: var(--color-accent);
+  }
+
+  .comments__input:focus-visible {
+    border-color: var(--color-accent);
+    box-shadow: var(--ring-focus);
+  }
+
+  .comments__input--textarea {
+    resize: vertical;
+  }
+
+  .comments__hint,
+  .comments__privacy,
+  .comments__counter {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+  }
+
+  .comments__counter {
+    margin: 0;
+    font-family: var(--font-mono);
+    text-align: end;
+  }
+
+  .comments__turnstile {
+    min-height: 65px;
+  }
+
+  .comments__submit,
+  .comments__cta {
+    align-self: flex-start;
+  }
+
+  .comments__nojs {
+    padding: var(--space-4);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+
+  .comments__nojs-heading {
+    font-weight: 600;
+  }
+</style>

@@ -1,0 +1,5 @@
+{
+  "$comment": "Which routes render the comment UI, as a glob pattern list over the locale-less route path. Enabling comments on a page is a one-line edit here. `apiBase` is the origin of the comments Worker; an empty string means same-origin (the Cloudflare Workers mirror). On the GitHub Pages canonical host there is no /api/comments, so the client probe fails and the component renders its honest unavailable state instead of a form that cannot work.",
+  "enabled": ["work/**", "career", "evolution", "build"],
+  "apiBase": ""
+}
