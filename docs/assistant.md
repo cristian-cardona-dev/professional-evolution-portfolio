@@ -16,8 +16,12 @@ governs both.
 
 A dependency-free, client-side search over a small index that is **serialized
 into the page at build time** from the canonical `data/*.json` files. There is
-no backend, no API key, no network call, and no runtime data fetch. Opening the
-panel and searching works offline once the page is loaded.
+no backend and no API key at runtime. Since the Fase F semantic layer
+(`semantic-search.ts`), the page may fetch one same-origin static asset,
+`semantic-index.json`, to enable build-time-embedded semantic search; when the
+build ran without embeddings (keyword-only mode, recorded in the build
+metadata) that asset carries no vectors and the search stays pure keyword.
+No AI or third-party endpoint is ever called at runtime.
 
 - **Component:** `web/src/components/AssistantWidget.astro`
 - **Index builder:** `assistantIndex()` in `web/src/lib/data.ts` (reads only)
@@ -104,8 +108,12 @@ dependency.
 
 ### Known limitations of v1
 
-- It is **keyword** search: synonyms outside the indexed words will not match
-  (there is no semantic/embedding layer).
+- In **keyword-only** builds (no `CLOUDFLARE_API_TOKEN` at build time) it is
+  **keyword** search: synonyms outside the indexed words will not match (there
+  is no semantic/embedding layer in that mode). In **semantic** builds the
+  `bge-m3` vectors shipped in `semantic-index.json` widen matching by meaning;
+  `SEMANTIC_MIN_SCORE` below-threshold results fall back to the keyword rule.
+  The `/build/` page states which mode is live.
 - **Free-typed Spanish** queries match only where the English data happens to
   share a word or the folded token collides; use the chips for a guaranteed
   answer in Spanish. (Case-study bodies and project summaries are English by the
