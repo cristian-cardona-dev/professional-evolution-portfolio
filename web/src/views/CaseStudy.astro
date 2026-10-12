@@ -14,6 +14,9 @@
  *     HTML passthrough). The canonical `sections` are English; the reviewed
  *     `sections_es` (from `case-studies/<slug>.es.md`) is the Spanish
  *     translation of that same evidence and is what the es locale renders.
+ *   - The source H1 shown as provenance (`.case-study__source-title`) is
+ *     localized the same way: the es locale reads `title_es` (the H1 of the
+ *     same companion file) and falls back to the English `title`.
  *   - The first two sections (classification, problem/context) are always
  *     visible; everything after them sits behind one `<details>` disclosure
  *     labelled from `copy.caseStudy.disclosure`.
@@ -38,6 +41,25 @@ interface Props {
 const { locale, copy, project } = Astro.props;
 
 const study = caseStudyFor(project.slug);
+
+/**
+ * The source H1 of the markdown, shown verbatim as provenance
+ * (`.case-study__source-title`).
+ *
+ * The es locale reads the reviewed `title_es` when the study publishes one
+ * (the H1 of `case-studies/<slug>.es.md`); otherwise — and always on en — it
+ * falls back to the canonical English `title`, exactly like `summary_es` and
+ * `sections_es`.
+ *
+ * The document `<title>`/`og:title` are NOT derived from this: the route pages
+ * build them from `project.name` + `copy.caseStudy.eyebrow`, so those head
+ * surfaces are byte-identical in both locales by construction.
+ */
+const sourceTitle = study
+  ? locale === 'es' && study.title_es
+    ? study.title_es
+    : study.title
+  : null;
 
 /**
  * Section bodies in the page's locale.
@@ -134,8 +156,8 @@ const contactHref = sectionHref(locale, 'contact', Astro.url.pathname);
         </div>
 
         {
-          study && (
-            <p class="case-study__source-title">{study.title}</p>
+          sourceTitle && (
+            <p class="case-study__source-title">{sourceTitle}</p>
           )
         }
 
@@ -296,7 +318,8 @@ const contactHref = sectionHref(locale, 'contact', Astro.url.pathname);
   }
 
   /* The H1 of the source markdown: it carries the boundary wording of the
-     original document ("public reproduction"), so it is shown verbatim. */
+     original document ("public reproduction" / "reproducción pública"), so it
+     is shown verbatim — in the page's locale, via `title_es` on es. */
   .case-study__source-title {
     margin-bottom: var(--space-4);
     color: var(--color-text-muted);

@@ -1,5 +1,5 @@
 {
-  "note": "Derived from case-studies/*.md by scripts/case-studies-sync.mjs; bodies are verbatim except GitHub URLs canonicalised to cristian-cardona-dev. Optional Spanish translations live in case-studies/*.es.md and are attached as sections_es.",
+  "note": "Derived from case-studies/*.md by scripts/case-studies-sync.mjs; bodies are verbatim except GitHub URLs canonicalised to cristian-cardona-dev. Optional Spanish translations live in case-studies/*.es.md and are attached as title_es and sections_es.",
   "caseStudies": [
     {
       "source": "case-studies/ai-automation-workflow-lab.md",
@@ -28,6 +28,7 @@
           "body": "- Repository: <https://github.com/cristian-cardona-dev/ai-automation-workflow-lab>\n- Portfolio evidence record: `ev-ai-automation-workflow-repository`\n- Portfolio claim: `claim-ai-automation-workflow-reproduction`"
         }
       ],
+      "title_es": "AI Automation Workflow Lab — reproducción pública",
       "sections_es": [
         {
           "heading": "Clasificación",
@@ -86,6 +87,7 @@
           "body": "The next safe evolution is a mock/provider adapter with a fixed evaluation set.\nA real provider remains disabled until privacy, cost, timeout, and abuse controls\nare separately reviewed."
         }
       ],
+      "title_es": "AI Engineering Reliability Lab — reproducción pública",
       "sections_es": [
         {
           "heading": "Clasificación",
@@ -152,6 +154,7 @@
           "body": "The next useful improvement is not a larger dashboard. It is a reviewed,\nreproducible operational scenario with a documented failure case and an\nevaluation of any optional AI explanation. No live integration is implied."
         }
       ],
+      "title_es": "Cloud Dashboard — reproducción pública",
       "sections_es": [
         {
           "heading": "Clasificación",

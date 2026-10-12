@@ -108,6 +108,14 @@ export interface CaseStudy {
   projectSlug: string | null;
   /** The H1 of the source markdown, verbatim. */
   title: string;
+  /**
+   * Optional reviewed Spanish H1, derived from
+   * `case-studies/<fileSlug>.es.md`. When present the es locale renders it in
+   * place of `title`; absent means "no translation published yet". It MAY
+   * legitimately equal `title` (proper nouns, product names), so the validator
+   * only requires a non-empty string.
+   */
+  title_es?: string;
   sections: CaseStudySection[];
   /**
    * Optional reviewed Spanish translation of `sections`, derived from

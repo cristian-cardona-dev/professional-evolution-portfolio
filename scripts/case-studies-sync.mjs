@@ -11,6 +11,10 @@
  *   - sections: every `## …` heading with the raw markdown body below it —
  *               lines in source order, leading/trailing blank lines trimmed,
  *               nothing else rewritten.
+ *   - title_es: optional. The H1 of `case-studies/<stem>.es.md`, parsed with
+ *               the exact same rule as the English title (canonicalised, and
+ *               required — a missing H1 fails the run, exactly like the
+ *               English file). Attached only when the companion exists.
  *   - sections_es: optional. When `case-studies/<stem>.es.md` exists it is
  *               parsed with the exact same section logic and attached as
  *               `sections_es` on the matching entry; the field is omitted when
@@ -62,7 +66,7 @@ const PROJECT_SLUG_BY_FILE = {
 };
 
 const NOTE =
-  'Derived from case-studies/*.md by scripts/case-studies-sync.mjs; bodies are verbatim except GitHub URLs canonicalised to cristian-cardona-dev. Optional Spanish translations live in case-studies/*.es.md and are attached as sections_es.';
+  'Derived from case-studies/*.md by scripts/case-studies-sync.mjs; bodies are verbatim except GitHub URLs canonicalised to cristian-cardona-dev. Optional Spanish translations live in case-studies/*.es.md and are attached as title_es and sections_es.';
 
 function fail(message) {
   console.error(`case-studies:sync FAILED — ${message}`);
@@ -173,11 +177,15 @@ function main() {
     };
 
     // Optional Spanish companion: same stem + `.es.md`. Identical parser, so
-    // the section shape and order mirror the English file exactly.
+    // the section shape and order mirror the English file exactly, and the H1
+    // is subject to the same "must exist" rule (`parseCaseStudy` fails loudly),
+    // so a translation that dropped its H1 cannot silently fall back to the
+    // English title on the es page.
     const esFile = `${fileSlug}.es.md`;
     if (existsSync(join(SOURCE_DIR, esFile))) {
       const parsedEs = parseCaseStudy(esFile, readFileSync(join(SOURCE_DIR, esFile), 'utf8'));
       if (parsedEs.sections.length === 0) fail(`${esFile}: no "## " section found`);
+      entry.title_es = parsedEs.title;
       entry.sections_es = parsedEs.sections;
     }
 

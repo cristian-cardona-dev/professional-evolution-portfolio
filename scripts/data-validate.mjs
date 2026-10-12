@@ -20,6 +20,7 @@
  *   - case studies: required shape, `projectSlug` resolves to a declared project,
  *     every GitHub URL inside a body is canonical, the source file exists, and
  *     each declared `caseStudy` path has a matching entry that maps back; the
+ *     optional `title_es`, when present, is a non-empty string, and the
  *     optional `sections_es`, when present, is a non-empty array of
  *     {heading, body} strings that mirrors `sections` 1:1 (same length)
  *   - evolution `projects` slugs resolve to declared projects
@@ -416,6 +417,19 @@ function validateCaseStudies(data, projectSlugs, projects) {
       }
     }
     validateCanonicalUrls(entry.title, `${label} title`);
+
+    // Optional reviewed Spanish H1 (`case-studies/<fileSlug>.es.md`, derived by
+    // the sync script). When present it must be a non-empty string so the es
+    // locale never renders an empty heading; it MAY legitimately equal the
+    // English title (proper nouns, product names), so there is no distinctness
+    // rule — only non-emptiness, plus the same canonical-URL rule as `title`.
+    if (entry.title_es !== undefined) {
+      if (!isNonEmptyString(entry.title_es)) {
+        fail(`${label}: "title_es" must be a non-empty string when present`);
+      } else {
+        validateCanonicalUrls(entry.title_es, `${label} title_es`);
+      }
+    }
 
     if (!Array.isArray(entry.sections) || entry.sections.length === 0) {
       fail(`${label}: "sections" must be a non-empty array`);
