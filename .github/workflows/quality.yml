@@ -64,18 +64,30 @@ jobs:
 
       - name: Lighthouse CI (5 primary pages)
         # Thresholds are honest measured baselines of the correctly-served,
-        # styled build — not aspirations. Local replication (2026-10-11, astro
-        # preview on 127.0.0.1:4173, lighthouse@12.8.2) scored:
-        # performance 75 (home) / 90 (work) / 81 (career) / 84 (evolution) /
-        # 76 (es-home, twice, stable); accessibility, best-practices and seo
-        # scored 100 everywhere. The remaining perf opportunities (responsive
-        # image sizes on home; main-thread JS time on the long pages) are not
-        # fixable within this task's scope, so performance is set to the
-        # measured floor (75) minus a small margin; the other three categories
-        # keep their original passing thresholds. The old --budget-path flag
-        # was dropped: lighthouse-budget.json's budgets (TBT 200 ms, LCP 2.5 s,
-        # keyed on `/`, `/en/`, `/es/`) don't match the base-path URLs audited
-        # here and would fail on honest TBT (measured 430-1,140 ms) — noise.
+        # styled build — not aspirations. Re-measured 2026-10-12 (astro preview
+        # on 127.0.0.1:4173, lighthouse@12.8.2, --headless --no-sandbox
+        # --disable-gpu, mobile emulation), 10 runs = 5 URLs x 2: performance
+        # 100/100/100/100/100 then 99/100/100/100/100 (floor 99, home), TBT
+        # 0-53 ms, and accessibility/best-practices/seo 100 on every URL. The
+        # earlier 75-84 figures were CPU contention on a shared machine: the
+        # documented CI run 38173955793 (commit 0621f6f, before the C2 image
+        # shrink) scored performance 96/100/100/100/99, i.e. this gate's own
+        # environment agrees with the higher floor. performance is therefore set
+        # to the measured floor (0.99) minus a 0.05 margin = 0.94; the other
+        # three categories keep their original passing thresholds.
+        #
+        # No TBT fix was applied in the E4 task, because real LHRs show there is
+        # nothing left to win: TBT 0-53 ms, duplicated-javascript and
+        # unused-javascript both score 1 with 0 bytes, forced-reflow-insight is
+        # empty, and all page JS costs 32-33 ms of script evaluation. The
+        # residual main-thread cost is Style & Layout (675-751 ms on /career/
+        # and /evolution/), which is the initial layout of honest content under
+        # 4x CPU throttling and completes BEFORE FCP (hence no TBT); every lever
+        # that would reduce it (text-rendering, text-wrap: balance,
+        # backdrop-filter) changes rendered pixels and is out of scope. The old
+        # --budget-path flag was dropped earlier: lighthouse-budget.json's
+        # budgets (TBT 200 ms, LCP 2.5 s, keyed on `/`, `/en/`, `/es/`) don't
+        # match the base-path URLs audited here and would fail on honest TBT.
         run: |
           set -u
           urls=("/professional-evolution-portfolio/" "/professional-evolution-portfolio/work/" "/professional-evolution-portfolio/career/" "/professional-evolution-portfolio/evolution/" "/professional-evolution-portfolio/es/")
@@ -90,7 +102,7 @@ jobs:
           node -e "
             const fs=require('fs');
             const urls=['/','/work/','/career/','/evolution/','/es/'];
-            const thresholds={performance:0.7,accessibility:0.95,'best-practices':0.9,seo:0.95};
+            const thresholds={performance:0.94,accessibility:0.95,'best-practices':0.9,seo:0.95};
             let fail=false;
             urls.forEach((url,i)=>{
               const report=JSON.parse(fs.readFileSync('/tmp/lighthouse-'+i+'.json','utf8'));
