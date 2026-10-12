@@ -3,10 +3,14 @@
  * language models, per the llms.txt specification (llmstxt.org).
  *
  * Design:
- *   - The prose summary is the only hand-written text; every list entry is
- *     derived from the canonical data layer (`data/profile.json`,
- *     `data/projects.json`) so the file cannot advertise a page or project the
- *     site does not publish.
+ *   - The prose summary and the two hand-written sections (the Spanish page
+ *     map and the résumés) are the only text not derived from the canonical
+ *     data layer: there is no data source for the site's own route list. Every
+ *     URL they list is a real, built page (the résumés are static files in
+ *     `web/public/`, linked from Career).
+ *   - Every other list entry is derived from the canonical data layer
+ *     (`data/profile.json`, `data/projects.json`) so the file cannot advertise
+ *     a page or project the site does not publish.
  *   - All URLs are absolute and built from `PUBLIC_CANONICAL_BASE` — the same
  *     canonical source BaseLayout uses — so the Worker mirror does not list its
  *     own origin. `rss.xml` and the suggestion-issue form come from their
@@ -51,6 +55,7 @@ export const GET: APIRoute = ({ site }) => {
     'links. All content is generated from a reviewed data layer; only public,',
     'human-declared career facts are published; no client names, compensation or',
     'private operational data is published, and planned work is explicitly labelled.',
+    'Spanish versions of the routed pages live under /es/ (see "Páginas en español").',
     '',
     '## Pages',
     `- [Home](${abs()}): the portfolio overview.`,
@@ -61,11 +66,25 @@ export const GET: APIRoute = ({ site }) => {
     `- [How this site is built](${abs('build/')}): the stack, deployment and boundaries behind this site.`,
     `- [RSS feed](${abs('rss.xml')}): evolution milestones as a feed.`,
     '',
+    '## Páginas en español',
+    `- [Inicio](${abs('es/')}): la visión general del portafolio.`,
+    `- [Trabajo](${abs('es/work/')}): los estudios de caso de los proyectos.`,
+    `- [Evolución](${abs('es/evolution/')}): la línea de tiempo profesional y la hoja de ruta.`,
+    `- [Evidencia](${abs('es/evidence/')}): los enlaces de prueba detrás de las afirmaciones.`,
+    `- [Trayectoria](${abs('es/career/')}): el historial de empleadores y la trayectoria de habilidades.`,
+    `- [Contacto](${abs('es/#contact')}): cómo ponerse en contacto.`,
+    `- [Cómo está construido este sitio](${abs('es/build/')}): el stack, el despliegue y los límites de este sitio.`,
+    `- [Perfil imprimible](${abs('es/print/')}): una vista imprimible generada a partir de los datos publicados.`,
+    '',
     '## Career',
     `- [Career](${abs('career/')}): the employer history and skills trajectory.`,
     '',
     '## Case studies',
     ...projects.map((project) => `- [${project.name}](${abs(`work/${project.slug}/`)}): ${project.summary}`),
+    '',
+    '## Currículums',
+    `- [Currículum (EN)](${abs('resume-en.html')}): the résumé as a standalone HTML page, in English.`,
+    `- [Currículum (ES)](${abs('resume-es.html')}): the résumé as a standalone HTML page, in Spanish.`,
     '',
     '## Source',
     `- [GitHub repository](${repo}): public source for this site and its data layer.`,
