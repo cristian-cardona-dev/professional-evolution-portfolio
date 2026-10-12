@@ -11,6 +11,12 @@
  *   - sections: every `## …` heading with the raw markdown body below it —
  *               lines in source order, leading/trailing blank lines trimmed,
  *               nothing else rewritten.
+ *   - sections_es: optional. When `case-studies/<stem>.es.md` exists it is
+ *               parsed with the exact same section logic and attached as
+ *               `sections_es` on the matching entry; the field is omitted when
+ *               the file is absent. `*.es.md` companions are never treated as
+ *               standalone studies. The two locales mirror 1:1 (same heading
+ *               count, same order); `data-validate.mjs` enforces the length.
  *   - bodies:   GitHub URLs canonicalised so a legacy owner
  *               (`github.com/HunterProX/`, `github.com/tuuser/`) becomes the
  *               canonical owner (`github.com/cristian-cardona-dev/`).
@@ -56,7 +62,7 @@ const PROJECT_SLUG_BY_FILE = {
 };
 
 const NOTE =
-  'Derived from case-studies/*.md by scripts/case-studies-sync.mjs; bodies are verbatim except GitHub URLs canonicalised to cristian-cardona-dev.';
+  'Derived from case-studies/*.md by scripts/case-studies-sync.mjs; bodies are verbatim except GitHub URLs canonicalised to cristian-cardona-dev. Optional Spanish translations live in case-studies/*.es.md and are attached as sections_es.';
 
 function fail(message) {
   console.error(`case-studies:sync FAILED — ${message}`);
@@ -139,7 +145,9 @@ function main() {
   if (!existsSync(SOURCE_DIR)) fail('case-studies/ directory not found');
 
   const files = readdirSync(SOURCE_DIR)
-    .filter((name) => name.toLowerCase().endsWith('.md'))
+    .filter(
+      (name) => name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.es.md'),
+    )
     .sort();
   if (files.length === 0) fail('no case-studies/*.md files found');
 
@@ -156,13 +164,24 @@ function main() {
     if (projectSlug !== null) mappedCount += 1;
     sectionCount += parsed.sections.length;
 
-    caseStudies.push({
+    const entry = {
       source: `case-studies/${file}`,
       fileSlug,
       projectSlug,
       title: parsed.title,
       sections: parsed.sections,
-    });
+    };
+
+    // Optional Spanish companion: same stem + `.es.md`. Identical parser, so
+    // the section shape and order mirror the English file exactly.
+    const esFile = `${fileSlug}.es.md`;
+    if (existsSync(join(SOURCE_DIR, esFile))) {
+      const parsedEs = parseCaseStudy(esFile, readFileSync(join(SOURCE_DIR, esFile), 'utf8'));
+      if (parsedEs.sections.length === 0) fail(`${esFile}: no "## " section found`);
+      entry.sections_es = parsedEs.sections;
+    }
+
+    caseStudies.push(entry);
   }
 
   // --- Mapping consistency with the canonical project dataset (read-only) ---

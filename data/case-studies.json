@@ -1,5 +1,5 @@
 {
-  "note": "Derived from case-studies/*.md by scripts/case-studies-sync.mjs; bodies are verbatim except GitHub URLs canonicalised to cristian-cardona-dev.",
+  "note": "Derived from case-studies/*.md by scripts/case-studies-sync.mjs; bodies are verbatim except GitHub URLs canonicalised to cristian-cardona-dev. Optional Spanish translations live in case-studies/*.es.md and are attached as sections_es.",
   "caseStudies": [
     {
       "source": "case-studies/ai-automation-workflow-lab.md",
@@ -26,6 +26,28 @@
         {
           "heading": "Evidence",
           "body": "- Repository: <https://github.com/cristian-cardona-dev/ai-automation-workflow-lab>\n- Portfolio evidence record: `ev-ai-automation-workflow-repository`\n- Portfolio claim: `claim-ai-automation-workflow-reproduction`"
+        }
+      ],
+      "sections_es": [
+        {
+          "heading": "Clasificación",
+          "body": "Esta es una nueva reproducción pública de un flujo de trabajo acotado. No es un\nflujo de trabajo de cliente, una integración con Personal OS, un sistema de\nproducción autónomo, un flujo de n8n ni un despliegue de OpenClaw."
+        },
+        {
+          "heading": "Qué se implementó",
+          "body": "- Contrato de entrada sintética.\n- Estados explícitos de propuesta, aprobación, rechazo y ejecución.\n- Acciones deterministas en lista de permitidos.\n- Clave de idempotencia y ejecución segura ante repeticiones.\n- Evento de auditoría por cada transición de estado.\n- Pruebas de entrada no válida y de omisión de aprobación."
+        },
+        {
+          "heading": "Qué demuestra esto",
+          "body": "- Diseño de flujos de trabajo con el humano en el bucle.\n- Transiciones de estado y límites de aprobación.\n- Acciones deterministas y auditabilidad.\n- Comportamiento seguro ante ejecución duplicada."
+        },
+        {
+          "heading": "Qué no demuestra esto",
+          "body": "- Automatización de producción autónoma.\n- Integración con servicios externos.\n- Escrituras en sistemas privados.\n- Datos de cliente o implementación de flujos de trabajo de un empleador.\n- Operación de n8n, OpenClaw o un runtime de agentes."
+        },
+        {
+          "heading": "Evidencia",
+          "body": "- Repositorio: <https://github.com/cristian-cardona-dev/ai-automation-workflow-lab>\n- Registro de evidencia del portafolio: `ev-ai-automation-workflow-repository`\n- Afirmación del portafolio: `claim-ai-automation-workflow-reproduction`"
         }
       ]
     },
@@ -63,6 +85,36 @@
           "heading": "Next boundary",
           "body": "The next safe evolution is a mock/provider adapter with a fixed evaluation set.\nA real provider remains disabled until privacy, cost, timeout, and abuse controls\nare separately reviewed."
         }
+      ],
+      "sections_es": [
+        {
+          "heading": "Clasificación",
+          "body": "Este es un **nuevo proyecto público / reproducción pública**. No es un asistente\nde producción, un sistema de cliente, una base de código de un empleador ni una\nprueba de RAG en producción."
+        },
+        {
+          "heading": "Problema",
+          "body": "Definir un contrato de respuesta seguro para un asistente de IA público antes de\nintroducir un proveedor de modelos, un sistema de recuperación, herramientas o\nconversaciones persistentes."
+        },
+        {
+          "heading": "Qué se implementó",
+          "body": "- Respuestas representativas deterministas sobre un conjunto de conocimiento en\n  lista de permitidos.\n- Identificadores de cita restringidos a registros aprobados del conjunto.\n- Respuestas explícitas de `insufficient_evidence` para preguntas no admitidas.\n- Límite de tamaño de solicitud y rechazo del historial de conversación.\n- Endpoint de salud sin estado que expone la frontera del proveedor activo.\n- Pruebas integradas de Node para respuestas admitidas, preguntas desconocidas,\n  límites y el contrato de respuesta."
+        },
+        {
+          "heading": "Qué demuestra esto",
+          "body": "- Diseño acotado de una API de IA sin depender de un proveedor de modelos.\n- Comportamiento fail-closed cuando la evidencia es insuficiente.\n- Un contrato de respuesta pequeño que más adelante puede situarse detrás de un\n  adaptador neutro respecto al proveedor.\n- Límites de privacidad y de citas comprobables."
+        },
+        {
+          "heading": "Qué no demuestra esto",
+          "body": "- RAG de producción, embeddings, búsqueda vectorial o calidad de recuperación.\n- Operación de OpenAI u otro proveedor de modelos.\n- Streaming, agentes, herramientas, autenticación, limitación de tasa o\n  protección frente al abuso público.\n- Datos de cliente o de empleador."
+        },
+        {
+          "heading": "Evidencia",
+          "body": "- Repositorio: <https://github.com/cristian-cardona-dev/ai-chat-app>\n- Registro de instantánea del portafolio: `ev-ai-reliability-lab-repository`\n- Afirmación del portafolio: `claim-ai-chat-prototype-exists`"
+        },
+        {
+          "heading": "Siguiente frontera",
+          "body": "La siguiente evolución segura es un adaptador mock/proveedor con un conjunto de\nevaluación fijo. Un proveedor real permanece desactivado hasta que la privacidad,\nel coste, el tiempo de espera y los controles de abuso se revisen por separado."
+        }
       ]
     },
     {
@@ -98,6 +150,36 @@
         {
           "heading": "Next boundary",
           "body": "The next useful improvement is not a larger dashboard. It is a reviewed,\nreproducible operational scenario with a documented failure case and an\nevaluation of any optional AI explanation. No live integration is implied."
+        }
+      ],
+      "sections_es": [
+        {
+          "heading": "Clasificación",
+          "body": "Este es un **nuevo proyecto público / reproducción pública**. No es código de\ncliente, infraestructura de un empleador en producción ni una reconstrucción de\nun sistema privado."
+        },
+        {
+          "heading": "Problema",
+          "body": "Crear una interfaz pequeña de estilo observabilidad que pueda inspeccionarse\nlocalmente y que haga visibles los límites operativos en lugar de dar a entender\nque hay acceso a la nube en vivo."
+        },
+        {
+          "heading": "Qué se implementó",
+          "body": "- Interfaz de panel adaptable construida con Next.js, React y TypeScript.\n- Datos sintéticos deterministas de CPU, memoria, volumen de solicitudes,\n  disponibilidad, servicio y alertas.\n- Controles locales de umbral de CPU y memoria.\n- Estados de carga y error accesibles.\n- Pruebas unitarias, pruebas de flujo en navegador, verificación de tipos, lint,\n  compilación de producción y un escaneo de privacidad centrado.\n- Explicación opcional de IA en el servidor, desactivada por defecto, que usa\n  solo las métricas sintéticas integradas."
+        },
+        {
+          "heading": "Qué demuestra esto",
+          "body": "- Una implementación pública y reproducible de una interfaz orientada a la nube.\n- Composición de componentes full-stack y manejo de datos con tipos.\n- Comportamiento de UI comprobable y estados de fallo explícitos.\n- Una frontera conservadora en torno al comportamiento opcional de IA."
+        },
+        {
+          "heading": "Qué no demuestra esto",
+          "body": "- Telemetría en vivo de AWS, Azure o GCP.\n- Operación de Kubernetes, Prometheus, Terraform o Helm.\n- Costes reales de nube, disponibilidad en producción o infraestructura de\n  clientes.\n- Autenticación, autorización, limitación de tasa o controles de abuso en\n  producción.\n- Trabajo histórico realizado para Talan, Siigo u otro empleador."
+        },
+        {
+          "heading": "Evidencia",
+          "body": "- Repositorio: <https://github.com/cristian-cardona-dev/cloud-dashboard>\n- Registro de instantánea del portafolio: `ev-cloud-dashboard-repository`\n- Afirmación del portafolio: `claim-cloud-dashboard-planned` (el ID se conserva\n  por continuidad de la instantánea; su texto actual describe la reproducción\n  pública)."
+        },
+        {
+          "heading": "Siguiente frontera",
+          "body": "La siguiente mejora útil no es un panel más grande. Es un escenario operativo\nrevisado y reproducible, con un caso de fallo documentado y una evaluación de\ncualquier explicación opcional de IA. No se implica ninguna integración en vivo."
         }
       ]
     }

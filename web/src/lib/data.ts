@@ -109,6 +109,13 @@ export interface CaseStudy {
   /** The H1 of the source markdown, verbatim. */
   title: string;
   sections: CaseStudySection[];
+  /**
+   * Optional reviewed Spanish translation of `sections`, derived from
+   * `case-studies/<fileSlug>.es.md`. When present it mirrors `sections` 1:1 —
+   * same length, same order — and the es locale renders it instead of the
+   * English sections. Absent means "no translation published yet".
+   */
+  sections_es?: CaseStudySection[];
 }
 
 /** One declared employer entry of `data/experience.json`. */

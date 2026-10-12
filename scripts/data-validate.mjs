@@ -19,7 +19,9 @@
  *   - project `caseStudy` paths exist on disk
  *   - case studies: required shape, `projectSlug` resolves to a declared project,
  *     every GitHub URL inside a body is canonical, the source file exists, and
- *     each declared `caseStudy` path has a matching entry that maps back
+ *     each declared `caseStudy` path has a matching entry that maps back; the
+ *     optional `sections_es`, when present, is a non-empty array of
+ *     {heading, body} strings that mirrors `sections` 1:1 (same length)
  *   - evolution `projects` slugs resolve to declared projects
  *   - experience.json: ISO month periods (end >= start), unique company ids
  *   - skills.json: category enum, employedAt ⊆ experience ids,
@@ -432,6 +434,36 @@ function validateCaseStudies(data, projectSlugs, projects) {
       }
       if (isNonEmptyString(section.body)) validateCanonicalUrls(section.body, sectionLabel);
     });
+
+    // Optional reviewed Spanish translation (`case-studies/<fileSlug>.es.md`,
+    // derived by the sync script). When present it must be a non-empty array of
+    // the same shape as `sections` AND mirror it 1:1, so the two locales can
+    // never drift into different section counts (the page anchors are
+    // position-derived and rely on that parity).
+    if (entry.sections_es !== undefined) {
+      if (!Array.isArray(entry.sections_es) || entry.sections_es.length === 0) {
+        fail(`${label}: "sections_es" must be a non-empty array when present`);
+      } else {
+        if (entry.sections_es.length !== entry.sections.length) {
+          fail(
+            `${label}: "sections_es" length (${entry.sections_es.length}) must mirror "sections" (${entry.sections.length})`,
+          );
+        }
+        entry.sections_es.forEach((section, position) => {
+          const sectionLabel = `${label} sections_es[${position}]`;
+          if (!section || typeof section !== 'object' || Array.isArray(section)) {
+            fail(`${sectionLabel}: expected an object`);
+            return;
+          }
+          for (const field of ['heading', 'body']) {
+            if (!isNonEmptyString(section[field])) {
+              fail(`${sectionLabel}: "${field}" must be a non-empty string`);
+            }
+          }
+          if (isNonEmptyString(section.body)) validateCanonicalUrls(section.body, sectionLabel);
+        });
+      }
+    }
   });
 
   // Mirror of the sync script's cross-check: a declared `caseStudy` path must

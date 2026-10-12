@@ -9,10 +9,11 @@
  * Content rules:
  *   - The name, status, repository and summary come from `data/projects.json`
  *     (the es locale reads `summary_es` when the dataset publishes one).
- *   - Section bodies come verbatim from `data/case-studies.json` and are
- *     rendered through `renderSectionBody` (escape first, then bold + links
- *     only — no HTML passthrough). The section text is English because the
- *     source markdown is English in both locales: it is evidence, not copy.
+ *   - Section bodies come from `data/case-studies.json` and are rendered
+ *     through `renderSectionBody` (escape first, then bold + links only — no
+ *     HTML passthrough). The canonical `sections` are English; the reviewed
+ *     `sections_es` (from `case-studies/<slug>.es.md`) is the Spanish
+ *     translation of that same evidence and is what the es locale renders.
  *   - The first two sections (classification, problem/context) are always
  *     visible; everything after them sits behind one `<details>` disclosure
  *     labelled from `copy.caseStudy.disclosure`.
@@ -38,10 +39,28 @@ const { locale, copy, project } = Astro.props;
 
 const study = caseStudyFor(project.slug);
 
+/**
+ * Section bodies in the page's locale.
+ *
+ * The es locale reads the reviewed `sections_es` when the study publishes one
+ * (derived from `case-studies/<slug>.es.md`, the same shape as `sections`);
+ * otherwise — and always on en — it falls back to the canonical English
+ * sections, exactly like `summary_es` on the project summary. The two locales
+ * mirror 1:1, which `data-validate.mjs` enforces.
+ *
+ * Anchors stay `case-study-section-<index>`, derived from the section position
+ * and never from the heading text, so the id set is identical in both locales
+ * even though the headings are translated.
+ */
+const sections = study
+  ? locale === 'es' && study.sections_es
+    ? study.sections_es
+    : study.sections
+  : [];
 /** Sections 1–2 (classification / problem) stay open. */
-const visibleSections = study ? study.sections.slice(0, 2) : [];
+const visibleSections = sections.slice(0, 2);
 /** Everything else is progressive disclosure. */
-const disclosedSections = study ? study.sections.slice(2) : [];
+const disclosedSections = sections.slice(2);
 const hasContent = visibleSections.length > 0;
 
 const related = relatedProjects(project.slug);
