@@ -72,9 +72,18 @@ jobs:
         # earlier 75-84 figures were CPU contention on a shared machine: the
         # documented CI run 38173955793 (commit 0621f6f, before the C2 image
         # shrink) scored performance 96/100/100/100/99, i.e. this gate's own
-        # environment agrees with the higher floor. performance is therefore set
-        # to the measured floor (0.99) minus a 0.05 margin = 0.94; the other
-        # three categories keep their original passing thresholds.
+        # environment agrees with the higher floor. So the honest floor is 0.99
+        # locally and 0.96 on the documented CI run.
+        #
+        # performance is therefore set to 0.90 = CI-worst floor (0.96) minus
+        # 0.06. The extra margin over the previous 0.94 (which was local floor
+        # 0.99 minus 0.05) is deliberate: GitHub has announced that
+        # ubuntu-latest migrates to Ubuntu 26 on 2026-10-19, and a new runner
+        # image can move measured performance before any code changes, so the
+        # gate carries headroom for that migration rather than flaking on it.
+        # 0.90 still catches real regressions — the pre-optimization CI floor
+        # was 96 and the old gate was 0.70 — and the other three categories
+        # keep their original passing thresholds.
         #
         # No TBT fix was applied in the E4 task, because real LHRs show there is
         # nothing left to win: TBT 0-53 ms, duplicated-javascript and
@@ -102,7 +111,7 @@ jobs:
           node -e "
             const fs=require('fs');
             const urls=['/','/work/','/career/','/evolution/','/es/'];
-            const thresholds={performance:0.94,accessibility:0.95,'best-practices':0.9,seo:0.95};
+            const thresholds={performance:0.90,accessibility:0.95,'best-practices':0.9,seo:0.95};
             let fail=false;
             urls.forEach((url,i)=>{
               const report=JSON.parse(fs.readFileSync('/tmp/lighthouse-'+i+'.json','utf8'));

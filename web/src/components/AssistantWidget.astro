@@ -124,7 +124,17 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
 
         <p class="assistant__banner" id="pep-assistant-banner">{copy.assistant.banner}</p>
 
-        <form class="assistant__form" data-a-form>
+        {/* WebMCP annotation (agent-facing, English on both locales, like the
+            contact form). It describes what this form really does — a keyword
+            search of the index already embedded in this page — so an agent is
+            not sold a capability the site does not have: no network request,
+            no backend, no model call, and an honest empty result. */}
+        <form
+          class="assistant__form"
+          data-a-form
+          toolname="site_search"
+          tooldescription="Searches this site's own published index with client-side keyword matching and returns links to the pages that match. It runs entirely in the visitor's browser against an index embedded in the page: no network request, no backend and no AI model or API call. A query that matches nothing returns an honest fallback with the site's own listings instead of an invented answer."
+        >
           <label class="visually-hidden" for="pep-assistant-input">{copy.assistant.open}</label>
           <input
             class="assistant__input"
@@ -135,6 +145,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
             autocomplete="off"
             placeholder={copy.assistant.placeholder}
             aria-describedby="pep-assistant-banner"
+            toolparamdescription="Keywords matched against the titles, summaries and status text of the site's own published pages."
           />
           <button class="button button--primary assistant__submit" type="submit">
             {copy.assistant.submit}
