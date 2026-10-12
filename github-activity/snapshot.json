@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-10-10T05:34:52Z",
+  "captured_at": "2026-10-12T15:27:19Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -26,22 +26,22 @@
       "pull_requests": [],
       "commits": [
         {
-          "id": "5f35a733c6f5b0624c155906fc1ff72a4a435d96",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/5f35a733c6f5b0624c155906fc1ff72a4a435d96",
-          "captured_at": "2026-10-10T05:32:46Z",
-          "title": "ai(portfolio): use wrangler 404-page asset mode"
+          "id": "e7a77df6921bb7b421435d7ecb5c4579ad536a9e",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/e7a77df6921bb7b421435d7ecb5c4579ad536a9e",
+          "captured_at": "2026-10-12T15:04:01Z",
+          "title": "ai(portfolio): caveat machine drafted spanish in cutover doc"
         },
         {
-          "id": "88da53535ff00cd2721b8da6a1077bc1f427f607",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/88da53535ff00cd2721b8da6a1077bc1f427f607",
-          "captured_at": "2026-10-10T05:28:33Z",
-          "title": "ai(portfolio): serve branded localized 404 everywhere"
+          "id": "8788100f59f55676f563a94938b94430e68e5be3",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/8788100f59f55676f563a94938b94430e68e5be3",
+          "captured_at": "2026-10-12T14:41:17Z",
+          "title": "ai(portfolio): annotate search form and widen perf gate margin"
         },
         {
-          "id": "0871dbdd6a34ff1de47d20128349e7b26cb18ad5",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/0871dbdd6a34ff1de47d20128349e7b26cb18ad5",
-          "captured_at": "2026-10-09T22:29:29Z",
-          "title": "ai(portfolio): add command palette and print profile"
+          "id": "6ea1f5e8e51f91f22552e4158fcaa891103c6e09",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/6ea1f5e8e51f91f22552e4158fcaa891103c6e09",
+          "captured_at": "2026-10-12T13:53:55Z",
+          "title": "ai(portfolio): recalibrate perf gate from honest lighthouse measurement"
         }
       ],
       "releases": [],
