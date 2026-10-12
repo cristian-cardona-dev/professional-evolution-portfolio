@@ -55,14 +55,28 @@ const describedBy = (field: 'name' | 'email' | 'message', hintId?: string) =>
             data-contact-post
             data-required-message={copy.contact.fieldRequired}
             data-email-message={copy.contact.invalidEmail}
+            toolname="contact_message"
+            tooldescription="Sends a contact message to the site owner through this site's configured form endpoint. The endpoint only exists when the canonical data sets it; until then the site renders the mailto fallback below instead of this form."
           >
-            <input type="hidden" name="form_key" value={profile.formKey ?? ''} />
+            <input
+              type="hidden"
+              name="form_key"
+              value={profile.formKey ?? ''}
+              toolparamdescription="Service key added by the site itself; agents must leave it unchanged."
+            />
 
             {/* Honeypot: hidden from people, tempting to bots. It renders before
                 the submit controls with aria-hidden + tabindex=-1. */}
             <div class="contact__honeypot" aria-hidden="true">
               <label for="contact-website">{copy.contact.honeypot}</label>
-              <input type="text" id="contact-website" name="website" tabindex="-1" autocomplete="off" />
+              <input
+                type="text"
+                id="contact-website"
+                name="website"
+                tabindex="-1"
+                autocomplete="off"
+                toolparamdescription="Anti-spam trap field. It must be left empty; a filled value marks the submission as automated."
+              />
             </div>
 
             <h3 class="contact__form-heading">{copy.contact.formHeading}</h3>
@@ -80,6 +94,7 @@ const describedBy = (field: 'name' | 'email' | 'message', hintId?: string) =>
                 required
                 aria-invalid={errors.name ? 'true' : undefined}
                 aria-describedby={describedBy('name')}
+                toolparamdescription="The visitor's name, as they want to be addressed."
               />
               <p
                 class="contact__error"
@@ -105,6 +120,7 @@ const describedBy = (field: 'name' | 'email' | 'message', hintId?: string) =>
                 required
                 aria-invalid={errors.email ? 'true' : undefined}
                 aria-describedby={describedBy('email')}
+                toolparamdescription="The visitor's email address, so the site owner can reply."
               />
               <p
                 class="contact__error"
@@ -129,6 +145,7 @@ const describedBy = (field: 'name' | 'email' | 'message', hintId?: string) =>
                 required
                 aria-invalid={errors.message ? 'true' : undefined}
                 aria-describedby={describedBy('message', 'contact-message-hint')}
+                toolparamdescription="The message the visitor wants to send to the site owner."
               />
               <p class="contact__hint" id="contact-message-hint">
                 {copy.contact.messageHint}
@@ -171,6 +188,8 @@ const describedBy = (field: 'name' | 'email' | 'message', hintId?: string) =>
               data-contact-mailto
               data-mailto={mailto}
               data-subject={copy.contact.suggestionSubject}
+              toolname="contact_message"
+              tooldescription="Composes a message to the site owner and opens it in the visitor's own email client, prefilled with a subject and body, for the visitor to review and send. The site itself never transmits or stores the message; sending depends on the visitor's mail client."
             >
               <div class="contact__field">
                 <label class="contact__label" for="contact-suggestion">
@@ -183,6 +202,7 @@ const describedBy = (field: 'name' | 'email' | 'message', hintId?: string) =>
                   rows="4"
                   aria-describedby="contact-suggestion-hint"
                   data-contact-suggestion
+                  toolparamdescription="The message the visitor wants to send to the site owner; it becomes the body of the prefilled email."
                 />
                 <p class="contact__hint" id="contact-suggestion-hint">
                   {copy.contact.suggestionHint}

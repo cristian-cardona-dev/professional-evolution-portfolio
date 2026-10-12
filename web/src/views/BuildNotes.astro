@@ -15,7 +15,7 @@
  * constants here, like `SUGGESTION_ISSUE_URL` in `lib/urls.ts`, because a link
  * target never changes with the locale.
  *
- * Heading order: h1 (page) → h2 (stack, deployment, assistant, source,
+ * Heading order: h1 (page) → h2 (stack, deployment, assistant, agent, source,
  * boundary) — no level is skipped.
  */
 import type { Copy, Locale } from '../i18n/copy';
@@ -61,6 +61,11 @@ const rssHref = `${import.meta.env.BASE_URL}rss.xml`;
     <section class="build-block reveal" aria-labelledby="build-assistant-heading">
       <h2 id="build-assistant-heading">{copy.build.assistantHeading}</h2>
       <p class="build-note">{copy.build.assistantNote}</p>
+    </section>
+
+    <section class="build-block reveal" aria-labelledby="build-agent-heading">
+      <h2 id="build-agent-heading">{copy.build.agentHeading}</h2>
+      <p class="build-note">{copy.build.agentNote}</p>
     </section>
 
     <section class="build-block reveal" aria-labelledby="build-source-heading">
