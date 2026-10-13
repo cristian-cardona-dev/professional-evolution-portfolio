@@ -1,0 +1,132 @@
+---
+/**
+ * Copy-anchor — the small link-icon button that sits beside a case-study
+ * section heading and copies the canonical URL of the page plus that
+ * section's fragment.
+ *
+ * It is the E1b copy contract (`lib/clipboard.ts`) unchanged: a real
+ * `<button type="button" data-copy>` inside a `[data-copy-region]`, next to a
+ * polite `role="status"` region, with every string rendered from
+ * `i18n/copy.ts` into `data-copy-*` attributes. Two attributes make it a
+ * section link rather than a page link:
+ *
+ *   - `data-copy-canonical` — the base is read at click time from the page's
+ *     own `<link rel="canonical">`, so what reaches the clipboard is exactly
+ *     the address the page advertises (never the Workers mirror's origin, and
+ *     never a URL baked into the markup).
+ *   - `data-copy-fragment` — the bare section id the helper appends as
+ *     `#<id>`. The id arrives as a prop from the section loop, which derives it
+ *     from the section POSITION (`case-study-section-<index>`) and never from
+ *     the heading text: both locales translate the headings, so a text-derived
+ *     anchor would break every shared link.
+ *
+ * The button is hidden until the pre-paint `html.js` gate runs, so a no-JS
+ * visit never sees a control that cannot work, and the helper hides the whole
+ * region when the Clipboard API is unavailable (insecure context, older
+ * browser). The component starts the helper itself — bundled, not `is:inline`,
+ * and idempotent exactly like `ShareRow` — so it keeps working wherever it is
+ * mounted without the page having to remember to wire it.
+ */
+import type { Copy } from '../i18n/copy';
+
+interface Props {
+  copy: Copy;
+  /** Bare fragment id of the heading this button links to (no leading `#`). */
+  sectionId: string;
+}
+
+const { copy, sectionId } = Astro.props;
+---
+
+<span class="copy-anchor" data-copy-region>
+  <button
+    class="copy-anchor__button"
+    type="button"
+    data-copy
+    data-copy-canonical
+    data-copy-fragment={sectionId}
+    data-copy-success={copy.clipboard.anchorCopied}
+    data-copy-error={copy.clipboard.failed}
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"></path>
+      <path
+        d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"></path>
+    </svg>
+    <span class="visually-hidden">{copy.clipboard.anchor}</span>
+  </button>
+
+  <span
+    class="copy-control__status copy-anchor__status"
+    role="status"
+    aria-live="polite"
+    data-copy-status></span>
+</span>
+
+<script>
+  // Same wiring as the share row and the contact section: bundled (never
+  // `is:inline`) so the shared module is imported once, and idempotent — a
+  // button already carrying `data-copy-wired` is skipped — so several copy
+  // controls on one page stay safe.
+  import { enhanceCopyButtons } from '../lib/clipboard';
+
+  enhanceCopyButtons();
+</script>
+
+<style>
+  .copy-anchor {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  /* Hidden without JavaScript: the copy cannot work, so a no-JS visit must not
+     see a dead control (the same `html.js` gate the other copy buttons use). */
+  .copy-anchor__button {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition:
+      color var(--duration-fast) var(--ease-standard),
+      background-color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard);
+  }
+
+  html.js .copy-anchor__button {
+    display: inline-flex;
+  }
+
+  .copy-anchor__button:hover {
+    color: var(--color-accent);
+    background-color: var(--color-surface-raised);
+    border-color: var(--color-border);
+  }
+
+  .copy-anchor__button svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .copy-anchor__status {
+    font-size: var(--text-xs);
+  }
+</style>

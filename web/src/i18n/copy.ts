@@ -383,6 +383,15 @@ export interface Copy {
     link: string;
     /** Feedback after the canonical page URL reached the clipboard. */
     linkCopied: string;
+    /**
+     * Accessible name of the per-section copy-anchor button beside a case-study
+     * heading (`components/CopyAnchor.astro`). The button is an icon, so this
+     * string is the whole accessible name; the section it belongs to is the
+     * heading it sits next to.
+     */
+    anchor: string;
+    /** Feedback after the canonical URL plus section fragment reached the clipboard. */
+    anchorCopied: string;
     /** Honest failure: the clipboard refused, so manual copying remains. */
     failed: string;
   };
@@ -940,6 +949,8 @@ export const en: Copy = {
     emailCopied: 'Email address copied.',
     link: 'Copy link to this page',
     linkCopied: 'Page link copied.',
+    anchor: 'Copy link to this section',
+    anchorCopied: 'Section link copied.',
     failed: 'Could not copy automatically. Select the text and copy it manually.',
   },
   share: {
@@ -1421,6 +1432,8 @@ export const es: Copy = {
     emailCopied: 'Dirección de correo copiada.',
     link: 'Copiar enlace de esta página',
     linkCopied: 'Enlace de la página copiado.',
+    anchor: 'Copiar enlace a esta sección',
+    anchorCopied: 'Enlace de la sección copiado.',
     failed: 'No se ha podido copiar automáticamente. Selecciona el texto y cópialo manualmente.',
   },
   share: {

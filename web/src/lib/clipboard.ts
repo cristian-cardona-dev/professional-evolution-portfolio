@@ -74,15 +74,24 @@ export async function copyText(text: string): Promise<boolean> {
  *     not.
  *   - `data-copy-text` — a literal, e.g. the published address.
  *
- * Returns `null` when the button carries neither, which the caller reports as
- * a failure rather than copying an empty string.
+ * `data-copy-fragment` (optional) appends `#<id>` to whichever source above
+ * matched, which is what the per-section copy anchors need: the base stays the
+ * live canonical URL read at click time (never a URL baked into the markup),
+ * and the section id travels as data. A leading `#` is accepted and stripped;
+ * without a resolvable base the fragment is ignored and the result is `null`,
+ * exactly like a button that carries neither source.
+ *
+ * Returns `null` when no value resolves, which the caller reports as a failure
+ * rather than copying an empty string.
  */
 export function resolveCopyValue(button: HTMLElement): string | null {
-  if (button.hasAttribute('data-copy-canonical')) {
-    const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-    return canonical?.href || window.location.href;
-  }
-  return button.dataset.copyText || null;
+  const base = button.hasAttribute('data-copy-canonical')
+    ? document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href || window.location.href
+    : button.dataset.copyText || null;
+  if (base === null) return null;
+
+  const fragment = button.dataset.copyFragment?.replace(/^#/, '');
+  return fragment ? `${base}#${fragment}` : base;
 }
 
 /** The `[data-copy-region]` wrapper that owns a button's status region. */
