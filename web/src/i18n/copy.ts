@@ -557,8 +557,17 @@ export interface Copy {
     summary: string;
     /** Heading of the stack section. */
     stackHeading: string;
-    /** One line per build fact, in display order. */
+    /** Static build facts, in display order (the analytics line is chosen separately). */
     stackItems: string[];
+    /**
+     * Stack line rendered when this build shipped the Cloudflare Web Analytics
+     * beacon (task E4). `BuildNotes` picks this or `stackItemNoAnalytics` from
+     * the generated build metadata, so the page states the analytics the build
+     * actually has — never a claim either way that the build does not support.
+     */
+    stackItemAnalytics: string;
+    /** Stack line rendered when this build shipped no analytics. */
+    stackItemNoAnalytics: string;
     /** Heading of the deployment section. */
     deployHeading: string;
     /** One line under `deployHeading`. */
@@ -1068,8 +1077,11 @@ export const en: Copy = {
       'A static site built with Astro 5: every page is pre-rendered at build time, with no server runtime.',
       'Data-driven: pages render from a reviewed JSON layer under data/, so a change to the data is a change to the site.',
       'Bilingual EN/ES: both locales render the same structure from one shared source.',
-      'No client-side analytics and no third-party scripts; the only script is the site’s own, and the theme choice stays in your browser.',
     ],
+    stackItemAnalytics:
+      'Privacy-first analytics: a Cloudflare Web Analytics beacon with no cookies and no cross-site tracking. It is the only third-party script on the site, and the theme choice stays in your browser.',
+    stackItemNoAnalytics:
+      'No client-side analytics and no third-party scripts; the only script is the site’s own, and the theme choice stays in your browser.',
     deployHeading: 'Deployment',
     deployNote:
       'Every push to main is built and published automatically by GitHub Actions. GitHub Pages is the canonical host; a Cloudflare Workers mirror serves the same static build.',
@@ -1552,8 +1564,11 @@ export const es: Copy = {
       'Un sitio estático construido con Astro 5: cada página se pre-renderiza en tiempo de compilación, sin servidor en tiempo de ejecución.',
       'Dirigido por datos: las páginas se renderizan desde una capa JSON revisada en data/, así que un cambio en los datos es un cambio en el sitio.',
       'Bilingüe EN/ES: ambos locales renderizan la misma estructura desde una sola fuente compartida.',
-      'Sin analítica en el cliente y sin scripts de terceros; el único script es el del propio sitio, y la elección de tema se queda en tu navegador.',
     ],
+    stackItemAnalytics:
+      'Analítica respetuosa con la privacidad: un beacon de Cloudflare Web Analytics sin cookies ni seguimiento entre sitios. Es el único script de terceros del sitio, y la elección de tema se queda en tu navegador.',
+    stackItemNoAnalytics:
+      'Sin analítica en el cliente y sin scripts de terceros; el único script es el del propio sitio, y la elección de tema se queda en tu navegador.',
     deployHeading: 'Despliegue',
     deployNote:
       'Cada push a main se compila y publica automáticamente mediante GitHub Actions. GitHub Pages es el host canónico; un espejo en Cloudflare Workers sirve la misma compilación estática.',

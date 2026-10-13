@@ -84,6 +84,15 @@ const metaDescription = description ?? copy.meta.description;
    The computation itself lives in `lib/urls.ts` (`canonicalUrl`) so every
    component that must publish the same URL — the share row's intent anchors —
    provably uses one source and cannot drift to the serving host. */
+/* Privacy-first analytics (task E4). The Cloudflare Web Analytics beacon is
+   injected ONLY when `PUBLIC_CF_BEACON_TOKEN` is present at build — the same
+   env-gated pattern as the Turnstile sitekey in `Comments.astro`. The token is
+   public by design (it is the site's own identifier, not a secret), and no
+   token means the script is not rendered at all: the shipped HTML is then
+   byte-identical to a build without analytics. The token also drives the honest
+   disclosure on `/build/` through the generated build metadata, so the page and
+   the script can never disagree. */
+const beaconToken = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
 const canonicalBase = import.meta.env.PUBLIC_CANONICAL_BASE;
 const canonicalUrlFor = (targetLocale: Locale, targetPath: string) =>
   canonicalUrl(targetLocale, targetPath, Astro.site);
@@ -159,6 +168,19 @@ const ogImageAlt = ogImagePath ? (title ?? copy.meta.title) : copy.meta.title;
       jsonLd.map((block) => (
         <script type="application/ld+json" set:html={JSON.stringify(block)} />
       ))
+    }
+    {
+      /* Cloudflare Web Analytics beacon — only with a token at build. `defer`
+         keeps it off the critical path; `is:inline` ships it verbatim (it is a
+         third-party URL, not a bundle input). No token: nothing is emitted. */
+      beaconToken && (
+        <script
+          is:inline
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon={JSON.stringify({ token: beaconToken })}
+        />
+      )
     }
 
     <script is:inline>

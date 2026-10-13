@@ -63,6 +63,10 @@ jobs:
         env:
           # Turnstile sitekey (public by design; rendered into the comments form)
           PUBLIC_TURNSTILE_SITEKEY: ${{ vars.PUBLIC_TURNSTILE_SITEKEY }}
+          # Cloudflare Web Analytics beacon token (public by design; the site's
+          # own identifier). Unset -> no beacon script is shipped and /build/
+          # states nothing about analytics.
+          PUBLIC_CF_BEACON_TOKEN: ${{ vars.PUBLIC_CF_BEACON_TOKEN }}
           # Build-time semantic embeddings (F-C): degrades honestly to
           # keyword-only when absent or when the token lacks Workers AI read.
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -109,6 +113,10 @@ jobs:
           PUBLIC_CANONICAL_BASE: https://cristian-cardona-dev.github.io/professional-evolution-portfolio/
           # Turnstile sitekey (public by design; rendered into the comments form)
           PUBLIC_TURNSTILE_SITEKEY: ${{ vars.PUBLIC_TURNSTILE_SITEKEY }}
+          # Cloudflare Web Analytics beacon token (public by design; the site's
+          # own identifier). Unset -> no beacon script is shipped and /build/
+          # states nothing about analytics.
+          PUBLIC_CF_BEACON_TOKEN: ${{ vars.PUBLIC_CF_BEACON_TOKEN }}
           # Build-time semantic embeddings (F-C): degrades honestly to
           # keyword-only when absent or when the token lacks Workers AI read.
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

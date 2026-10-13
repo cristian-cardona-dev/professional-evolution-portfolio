@@ -103,7 +103,11 @@ function selectEmbedder() {
 function emit(index, reason) {
   mkdirSync(OUT_DIR, { recursive: true });
   const bytes = writeArtifact('semantic-index.json', index);
-  writeArtifact('build-metadata.json', buildMetadata(index, bytes, reason));
+  // The analytics beacon is env-gated exactly like the Turnstile sitekey
+  // (`BaseLayout` reads the same variable); recording it here keeps `/build/`
+  // honest about what this build ships.
+  const analytics = Boolean(process.env.PUBLIC_CF_BEACON_TOKEN);
+  writeArtifact('build-metadata.json', buildMetadata(index, bytes, reason, analytics));
   return bytes;
 }
 

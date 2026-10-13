@@ -32,7 +32,22 @@ export interface BuildMetadata {
   vocabulary: number;
   bytes: number;
   reason: string | null;
+  /**
+   * Whether this build shipped the Cloudflare Web Analytics beacon (task E4).
+   * The generator derives it from `PUBLIC_CF_BEACON_TOKEN`, the same variable
+   * `BaseLayout` uses to gate the script, so the disclosure on `/build/` and
+   * the shipped HTML cannot disagree.
+   */
+  analytics: boolean;
 }
+
+/**
+ * The beacon token is public by design and read here only to keep the honest
+ * fallback honest: if `build-metadata.json` is absent (a bare `astro dev`),
+ * `BaseLayout` still injects the beacon when the variable is set, so the page
+ * must not then claim there is no analytics.
+ */
+const envAnalytics = Boolean(import.meta.env.PUBLIC_CF_BEACON_TOKEN);
 
 /** The honest answer when the artifact is missing or unreadable. */
 export const KEYWORD_ONLY_FALLBACK: BuildMetadata = {
@@ -43,6 +58,7 @@ export const KEYWORD_ONLY_FALLBACK: BuildMetadata = {
   vocabulary: 0,
   bytes: 0,
   reason: 'build-metadata.json was not present when the site rendered',
+  analytics: false,
 };
 
 /** Candidate paths, most specific first; `import.meta.url` is Vite-dependent. */
@@ -72,10 +88,14 @@ export function readBuildMetadata(): BuildMetadata {
         vocabulary: typeof raw.vocabulary === 'number' ? raw.vocabulary : 0,
         bytes: typeof raw.bytes === 'number' ? raw.bytes : 0,
         reason: typeof raw.reason === 'string' ? raw.reason : null,
+        analytics: raw.analytics === true,
       };
     } catch {
       // Try the next candidate; absent is expected outside a full build.
     }
   }
-  return KEYWORD_ONLY_FALLBACK;
+  // The artifact was absent: keep the honest keyword-only answer, but read the
+  // beacon variable directly rather than claim there is no analytics when the
+  // script will still ship (see `envAnalytics`).
+  return { ...KEYWORD_ONLY_FALLBACK, analytics: envAnalytics };
 }

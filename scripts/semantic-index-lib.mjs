@@ -207,9 +207,13 @@ export async function assembleIndex({ entries, vocabulary, embed }) {
 /**
  * The small metadata file the site reads at build time (`BuildNotes`) and
  * ships to readers: which mode is live, the counts, the byte size and, when
- * keyword-only, the honest reason.
+ * keyword-only, the honest reason. `analytics` records whether this build
+ * shipped the Cloudflare Web Analytics beacon (task E4): it is derived from
+ * the same `PUBLIC_CF_BEACON_TOKEN` that gates the script in `BaseLayout`, so
+ * `/build/` can never claim analytics the build did not ship — or hide one it
+ * did.
  */
-export function buildMetadata(index, bytes, reason = null) {
+export function buildMetadata(index, bytes, reason = null, analytics = false) {
   return {
     semantic_index: index.semantic_index,
     model: index.model,
@@ -218,6 +222,7 @@ export function buildMetadata(index, bytes, reason = null) {
     vocabulary: index.vocabulary ? Object.keys(index.vocabulary).length : 0,
     bytes,
     reason,
+    analytics: analytics === true,
     generated_by: 'scripts/build-semantic-index.mjs',
   };
 }
