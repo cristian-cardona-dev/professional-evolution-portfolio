@@ -8,8 +8,9 @@ import type { Locale } from '../../../i18n/copy';
 import { getCopy } from '../../../i18n/copy';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import CaseStudy from '../../../views/CaseStudy.astro';
-import { projects } from '../../../lib/data';
+import { caseStudyFor, projects } from '../../../lib/data';
 import type { Project } from '../../../lib/data';
+import { ogCardPath } from '../../../lib/urls';
 
 interface Props {
   project: Project;
@@ -29,6 +30,10 @@ const copy = getCopy(locale);
 
 const title = `${project.name} — ${copy.caseStudy.eyebrow}`;
 const description = project.summary_es ?? project.summary;
+/* Only a project with a published case study gets its own card; the honest
+   empty state keeps the site-wide cover. The generator's two-way check fails
+   the build if this ever advertises a card it did not draw. */
+const ogImagePath = caseStudyFor(project.slug) ? ogCardPath(locale, `work/${project.slug}/`) : undefined;
 ---
 
 <BaseLayout
@@ -38,6 +43,7 @@ const description = project.summary_es ?? project.summary;
   description={description}
   ogType="article"
   path={`work/${project.slug}/`}
+  ogImagePath={ogImagePath}
   activeNav="projects"
 >
   <CaseStudy locale={locale} copy={copy} project={project} />

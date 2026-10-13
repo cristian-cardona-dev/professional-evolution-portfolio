@@ -27,8 +27,9 @@ jobs:
 
       - name: Install Playwright Chromium
         # Before the build, not after it: the build prints the resume PDFs
-        # with Playwright (F-E1a), so the browser must already be there when
-        # `npm --prefix web run build` reaches that step.
+        # (F-E1a) and the per-route social cards (F-E2b) with Playwright, so
+        # the browser must already be there when
+        # `npm --prefix web run build` reaches those steps.
         working-directory: web
         run: npx playwright install --with-deps chromium
 

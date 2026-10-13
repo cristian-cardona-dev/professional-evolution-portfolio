@@ -7,6 +7,7 @@ import type { Locale } from '../../i18n/copy';
 import { getCopy } from '../../i18n/copy';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Evolution from '../../views/Evolution.astro';
+import { ogCardPath } from '../../lib/urls';
 
 const locale: Locale = 'es';
 const copy = getCopy('es');
@@ -21,6 +22,7 @@ const description = copy.evolution.summary;
   title={title}
   description={description}
   path="evolution/"
+  ogImagePath={ogCardPath(locale, 'evolution/')}
   activeNav="evolution"
 >
   <Evolution locale={locale} copy={copy} />

@@ -7,6 +7,7 @@ import type { Locale } from '../i18n/copy';
 import { getCopy } from '../i18n/copy';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Work from '../views/Work.astro';
+import { ogCardPath } from '../lib/urls';
 
 const locale: Locale = 'en';
 const copy = getCopy(locale);
@@ -15,6 +16,13 @@ const title = copy.nav.work;
 const description = copy.work.summary;
 ---
 
-<BaseLayout locale={locale} title={title} description={description} path="work/" activeNav="projects">
+<BaseLayout
+  locale={locale}
+  title={title}
+  description={description}
+  path="work/"
+  ogImagePath={ogCardPath(locale, 'work/')}
+  activeNav="projects"
+>
   <Work locale={locale} copy={copy} />
 </BaseLayout>

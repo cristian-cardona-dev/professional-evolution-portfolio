@@ -166,7 +166,11 @@ revert PR; never force-push or `git reset --hard`).
 - **`favicon.ico`** — `web/public/favicon.ico` now ships alongside `favicon.svg`.
 - **`og:image`** — `web/public/og-cover.png` (1200×630) is produced by
   `scripts/brand-assets.mjs` and referenced as `og:image` in
-  `web/src/layouts/BaseLayout.astro`.
+  `web/src/layouts/BaseLayout.astro`. The work index, career, evolution and the
+  three case studies additionally carry their own 1200×630 card, drawn offline
+  by `scripts/generate-og-images.mjs` (Playwright, chained into the web build
+  like the résumé PDFs) into `web/dist/og/`; the home and every other page keep
+  the cover.
 - **Scroll-spy** — active-section highlighting in the numbered side nav is
   implemented with `IntersectionObserver` in `web/src/components/Header.astro`
   (the reveal observer in `BaseLayout.astro` uses the same API).

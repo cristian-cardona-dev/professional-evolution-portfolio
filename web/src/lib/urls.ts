@@ -85,3 +85,18 @@ export function canonicalUrl(locale: Locale, path: string, site?: string | URL):
 export function localeFromPathname(pathname: string): Locale {
   return pathname.includes('/es/') ? 'es' : 'en';
 }
+
+/**
+ * Path of a page's per-route social card inside the deployment base, e.g.
+ * `og/work-ai-chat-app-es.png` for `work/ai-chat-app/` in Spanish.
+ *
+ * The convention — the route path with its slashes turned into hyphens, plus
+ * the locale suffix — is shared with the generator that draws the PNGs,
+ * `scripts/generate-og-images.mjs`, which writes exactly these names into
+ * `web/dist/og/`. Keep the two in sync: the generator fails the build when a
+ * page advertises a card it did not draw.
+ */
+export function ogCardPath(locale: Locale, path: string): string {
+  const stem = path.replace(/^\/+/, '').replace(/\/+$/, '').replace(/\//g, '-');
+  return `og/${stem}-${locale}.png`;
+}
