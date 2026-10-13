@@ -60,6 +60,13 @@ jobs:
         run: npm run build:release
       - name: Build GitHub Pages artifact (web)
         if: env.PIPELINE == 'web'
+        env:
+          # Turnstile sitekey (public by design; rendered into the comments form)
+          PUBLIC_TURNSTILE_SITEKEY: ${{ vars.PUBLIC_TURNSTILE_SITEKEY }}
+          # Build-time semantic embeddings (F-C): degrades honestly to
+          # keyword-only when absent or when the token lacks Workers AI read.
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npm --prefix web ci
           npm --prefix web run build
@@ -96,6 +103,12 @@ jobs:
         env:
           ASTRO_BASE: /
           PUBLIC_CANONICAL_BASE: https://cristian-cardona-dev.github.io/professional-evolution-portfolio/
+          # Turnstile sitekey (public by design; rendered into the comments form)
+          PUBLIC_TURNSTILE_SITEKEY: ${{ vars.PUBLIC_TURNSTILE_SITEKEY }}
+          # Build-time semantic embeddings (F-C): degrades honestly to
+          # keyword-only when absent or when the token lacks Workers AI read.
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npm --prefix web ci
           npm --prefix web run build
