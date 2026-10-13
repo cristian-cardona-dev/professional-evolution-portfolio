@@ -451,6 +451,13 @@ export interface Copy {
     askByEmail: string;
     /** Subject line of the prefilled `mailto:` compose. */
     emailSubject: string;
+    /**
+     * Label of the page-level "ask about this page" button
+     * (`components/AskAboutPage.astro`). It opens the floating assistant with a
+     * query seeded from the page; the widget then runs its own search, so the
+     * label promises no answer of its own.
+     */
+    askPage: string;
   };
   /** Command palette (`components/CommandPalette.astro`). */
   palette: {
@@ -990,6 +997,7 @@ export const en: Copy = {
       'No published entry matches those words. The pages below hold the same content, and a question by email is answered from what is public.',
     askByEmail: 'Ask by email',
     emailSubject: 'Question about the portfolio',
+    askPage: 'Ask about this page',
   },
   palette: {
     open: 'Open the command palette',
@@ -1473,6 +1481,7 @@ export const es: Copy = {
       'Ninguna entrada publicada coincide con esas palabras. Las páginas de abajo contienen el mismo contenido, y una pregunta por correo se responde con lo que es público.',
     askByEmail: 'Preguntar por correo',
     emailSubject: 'Pregunta sobre el portafolio',
+    askPage: 'Pregunta sobre esta página',
   },
   palette: {
     open: 'Abrir la paleta de comandos',

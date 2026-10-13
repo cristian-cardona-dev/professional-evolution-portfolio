@@ -21,10 +21,12 @@
  */
 import type { Copy, Locale } from '../i18n/copy';
 import { canonicalUrl } from '../lib/urls';
+import { skills } from '../lib/data';
 import CareerTimeline from '../components/CareerTimeline.astro';
 import SkillMatrix from '../components/SkillMatrix.astro';
 import Comments from '../components/Comments.astro';
 import ShareRow from '../components/ShareRow.astro';
+import AskAboutPage from '../components/AskAboutPage.astro';
 
 interface Props {
   locale: Locale;
@@ -52,6 +54,23 @@ const resumePdfHref = `${import.meta.env.BASE_URL}resume-${locale}.pdf`;
  * advertise a different host than the page itself does.
  */
 const pageCanonical = canonicalUrl(locale, 'career/');
+
+/**
+ * Seed query of the "ask about this page" deep link
+ * (`components/AskAboutPage.astro`): the names of the skills this page
+ * publishes that a public project stands behind. Those are the page's own
+ * words that the assistant can actually answer about — its published index
+ * carries work, evidence, milestones and the profile, never an employer — so
+ * the seed is restricted to the evidenced skills instead of the whole matrix,
+ * and the button still only seeds: the widget runs its own search and shows
+ * the honest fallback if nothing matched. English by design, because the
+ * canonical datasets (and the index) are English-only, so both locales seed
+ * the same words.
+ */
+const askQuery = skills
+  .filter((skill) => skill.projects.length > 0)
+  .map((skill) => skill.name)
+  .join(' ');
 ---
 
 <section class="section" id="career" aria-labelledby="career-heading">
@@ -80,6 +99,7 @@ const pageCanonical = canonicalUrl(locale, 'career/');
           canonical Pages URL via the shared `canonicalUrl()` helper. */}
       <div class="career__share">
         <ShareRow copy={copy} url={pageCanonical?.href} />
+        <AskAboutPage copy={copy} query={askQuery} />
       </div>
     </header>
 
@@ -131,8 +151,16 @@ const pageCanonical = canonicalUrl(locale, 'career/');
   }
 
   /* The share row follows the résumé controls in the intro, where a reader
-     deciding to pass the record on looks for them. */
+     deciding to pass the record on looks for them; the "ask about this page"
+     button joins it as a page-level action of the same rank, separated by the
+     wider column gap. (`--space-4`, not `--space-5`: there is no `--space-5`
+     token, and a var() that resolves to nothing would drop the whole `gap`
+     declaration.) */
   .career__share {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
     margin-top: var(--space-3);
   }
 

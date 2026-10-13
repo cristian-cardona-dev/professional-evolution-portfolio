@@ -1,0 +1,89 @@
+---
+/**
+ * "Ask about this page" — the deep link from a content page into the floating
+ * assistant (`components/AssistantWidget.astro`).
+ *
+ * The button does exactly one thing: it dispatches a bubbling `assistant:ask`
+ * CustomEvent whose `detail.query` is the seed the page computed. It does not
+ * search, does not rank and holds no index of its own. The widget listens for
+ * the event on `document`, opens its panel and runs **its own** search
+ * (`hybridSearch`/`searchEntries` over the index this page already embeds), so
+ * the button can never produce a result the widget could not produce by hand.
+ * The seam is deliberately this small — one documented event name plus one
+ * string — because it needs no change to the widget's search logic, no second
+ * index and no shared module: the alternative (teaching the palette or the
+ * widget about every page) would duplicate what `assistantIndex` already does.
+ *
+ * Honesty: the seed is a query, not an answer. The widget fills its input with
+ * the exact words that ran — the same transparency rule the suggestion chips
+ * follow — and a seed that matches nothing still renders the widget's honest
+ * fallback. The seed itself is computed by the calling view from the page's own
+ * published data (a case study's title and tags; the career page's evidenced
+ * skills), in English, because `data/*.json` is the English canonical dataset
+ * and the published index it is matched against is English-only (the same
+ * documented limitation as the assistant's chips). An `es` page therefore seeds
+ * the same English words and matches the same entries; only the button label is
+ * translated.
+ *
+ * Progressive enhancement: the button needs scripting to reach the widget, so
+ * it is hidden until the pre-paint `html.js` gate ran — the same contract as
+ * the assistant's own floating button and the copy controls. Without
+ * JavaScript the visitor loses nothing: the assistant is not offered either,
+ * and every entry it indexes is already a published page.
+ */
+import type { Copy } from '../i18n/copy';
+
+interface Props {
+  copy: Copy;
+  /**
+   * Seed query for the assistant, in the published index's language (English).
+   * Empty is ignored by the widget (no panel, no search).
+   */
+  query: string;
+}
+
+const { copy, query } = Astro.props;
+---
+
+<div class="ask-about">
+  <button
+    type="button"
+    class="button button--ghost ask-about__button"
+    data-ask-page
+    data-ask-query={query}
+    aria-haspopup="dialog"
+  >
+    {copy.assistant.askPage}
+  </button>
+</div>
+
+<script>
+  (() => {
+    // One listener per rendered button; a page may carry several (case studies
+    // and career each render one). The event bubbles to `document`, where the
+    // assistant widget listens — neither component imports the other, and the
+    // widget keeps working exactly as before when the event never fires.
+    for (const button of document.querySelectorAll<HTMLButtonElement>('[data-ask-page]')) {
+      button.addEventListener('click', () => {
+        button.dispatchEvent(
+          new CustomEvent('assistant:ask', {
+            bubbles: true,
+            detail: { query: button.dataset.askQuery ?? '' },
+          }),
+        );
+      });
+    }
+  })();
+</script>
+
+<style>
+  /* No-JS: the button cannot reach the assistant, so it is not rendered as a
+     dead control — the `html.js` gate is set pre-paint by BaseLayout. */
+  .ask-about__button {
+    display: none;
+  }
+
+  html.js .ask-about__button {
+    display: inline-flex;
+  }
+</style>

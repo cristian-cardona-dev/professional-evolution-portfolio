@@ -33,6 +33,7 @@ import { canonicalUrl, route, sectionHref, SUGGESTION_ISSUE_URL } from '../lib/u
 import ProjectCard from '../components/ProjectCard.astro';
 import Comments from '../components/Comments.astro';
 import ShareRow from '../components/ShareRow.astro';
+import AskAboutPage from '../components/AskAboutPage.astro';
 import CopyAnchor from '../components/CopyAnchor.astro';
 
 interface Props {
@@ -131,6 +132,17 @@ const contactHref = sectionHref(locale, 'contact', Astro.url.pathname);
  * advertise a different host than the page itself does.
  */
 const pageCanonical = canonicalUrl(locale, `work/${project.slug}/`);
+
+/**
+ * Seed query of the "ask about this page" deep link
+ * (`components/AskAboutPage.astro`): the page's own title and its declared
+ * keywords, exactly as this page renders them. English by design — the
+ * canonical datasets are English and the assistant's published index is
+ * English-only — so the `es` page seeds the same words and matches the same
+ * entries. The button only seeds; the widget runs its own search, so a seed
+ * that matched nothing would still show the honest fallback.
+ */
+const askQuery = [project.name, ...project.tags].join(' ');
 ---
 
 <article class="case-study">
@@ -193,6 +205,7 @@ const pageCanonical = canonicalUrl(locale, `work/${project.slug}/`);
             copy-control contract in global.css. */}
         <div class="case-study__share">
           <ShareRow copy={copy} url={pageCanonical?.href} />
+          <AskAboutPage copy={copy} query={askQuery} />
         </div>
 
         {
@@ -481,8 +494,16 @@ const pageCanonical = canonicalUrl(locale, `work/${project.slug}/`);
 
   /* The share row replaces the old inline copy button: it now carries the
      copy control AND the two share intents, so it gets the meta row's own
-     bottom spacing before the source title / lead. */
+     bottom spacing before the source title / lead. The "ask about this page"
+     button sits beside it as a page-level action of the same rank, and the
+     slightly wider column gap marks it as a separate group from the share
+     actions. (`--space-4`, not `--space-5`: there is no `--space-5` token, and
+     a var() that resolves to nothing would drop the whole `gap` declaration.) */
   .case-study__share {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
     margin-bottom: var(--space-4);
   }
 

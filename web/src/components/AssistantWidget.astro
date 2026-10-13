@@ -39,6 +39,12 @@
  * English-only; a Spanish question would otherwise answer nothing. The
  * limitation is stated in `docs/assistant.md`.
  *
+ * A page can also open the panel with a seeded query through the documented
+ * `assistant:ask` CustomEvent (dispatched by
+ * `components/AskAboutPage.astro`); the event only fills the input and calls
+ * the same `run` the form and the chips use, so it adds a door into this
+ * widget and no behaviour of its own.
+ *
  * Without JavaScript the button itself is hidden (the `html.js` gate), so a
  * no-JS visit loses nothing: every piece of content the assistant indexes is
  * already a published page.
@@ -407,6 +413,28 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
         void run(query);
       });
     }
+
+    /**
+     * Deep-link seam: a page-level "Ask about this page" button
+     * (`components/AskAboutPage.astro`) dispatches a bubbling `assistant:ask`
+     * CustomEvent carrying the seed query. The button only SEEDS — the search
+     * below is this widget's own (`run`), over the index this page already
+     * embeds, so the seed can never produce an answer the widget could not
+     * produce by hand. The input shows the exact words that ran, the same
+     * transparency rule the chips follow. Opening through `openPanel` also
+     * records the button as the `opener`, so closing returns focus to it; when
+     * the panel is already open the event only re-focuses the input. An empty
+     * seed is ignored rather than turned into a search.
+     */
+    document.addEventListener('assistant:ask', (event) => {
+      const detail = (event as CustomEvent<{ query?: unknown } | null>).detail;
+      const query = typeof detail?.query === 'string' ? detail.query.trim() : '';
+      if (query === '') return;
+      if (panel.hidden) openPanel();
+      else input.focus();
+      input.value = query;
+      void run(query);
+    });
 
     // Guarded regions: at narrow widths the FAB's corner overlaps the home
     // hero's action row at the top and the footer notes at the bottom, so the

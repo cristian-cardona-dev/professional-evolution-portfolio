@@ -24,6 +24,8 @@ metadata) that asset carries no vectors and the search stays pure keyword.
 No AI or third-party endpoint is ever called at runtime.
 
 - **Component:** `web/src/components/AssistantWidget.astro`
+- **Page-level deep link:** `web/src/components/AskAboutPage.astro` (dispatches
+  `assistant:ask`; see *Ask about this page* below)
 - **Index builder:** `assistantIndex()` in `web/src/lib/data.ts` (reads only)
 - **Matching logic:** `web/src/lib/assistant-search.ts` (zero imports, pure)
 - **Copy (EN/ES):** the `assistant` block in `web/src/i18n/copy.ts`
@@ -89,6 +91,22 @@ Each is verified against the real index (`built`→projects, `ai`→the AI labs,
 `contact`→the profile/email, the aspirational-vs-demonstrated chip→a labelled
 mix). The verification harness for this is a throwaway script, not a shipped
 dependency.
+
+### Ask about this page (deep link)
+
+Case studies and `/career/` carry an **"Ask about this page"** button
+(`web/src/components/AskAboutPage.astro`). It is a *seed*, not a second search:
+clicking it dispatches the documented bubbling `assistant:ask` CustomEvent
+(`detail.query`), this widget opens its panel, fills the input with that exact
+query and runs its own `hybridSearch`/`searchEntries` over the index the page
+already embeds. The seam is one event name plus one string, so it needs no
+change to the scoring and no second index, and the button can never produce a
+result the visitor could not get by typing the same words. The seed is the
+page's own published vocabulary — a case study's title and tags; the skills
+`/career/` publishes that a public project stands behind — in **English**,
+because the canonical data and the index are English-only (the same limitation
+as the chips). A seed that matches nothing still shows the honest fallback, and
+the input always reveals the words that actually ran.
 
 ### Progressive enhancement & accessibility
 
