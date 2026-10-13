@@ -1,0 +1,115 @@
+---
+/**
+ * Share row — one line of actions for sending this page to somebody else:
+ * copy the canonical link, share on LinkedIn, share on X.
+ *
+ * The two share actions are PLAIN anchors: their `href` is the share intent
+ * with the page URL as the only parameter, so the row needs no third-party
+ * script, no SDK and no tracking parameter. The intent URLs are fixed
+ * constants (verified shapes):
+ *   - LinkedIn `share-offsite` takes exactly one `url` parameter
+ *     (https://www.linkedin.com/sharing/share-offsite/?url=…);
+ *   - X serves the long-standing web intent
+ *     (https://twitter.com/intent/tweet?url=…), which the domain still
+ *     resolves and redirects to the current app.
+ * Both open in a new tab with `rel="noopener noreferrer"`, the same contract
+ * every external link on the site follows.
+ *
+ * `url` is the page's ABSOLUTE CANONICAL URL on the GitHub Pages origin,
+ * computed by the caller through `lib/urls.ts`'s `canonicalUrl()` — the same
+ * helper `BaseLayout` uses for `<link rel="canonical">`, so what the share
+ * intents advertise is exactly what the page publishes, never the serving
+ * host (the Workers mirror must not share its own URL). The copy-link control
+ * is the E1b contract unchanged: `button[data-copy]` + `data-copy-canonical`,
+ * resolved at click time from the document's canonical tag by
+ * `lib/clipboard.ts`, and hidden until `html.js` so a no-JS visit never sees
+ * a button that cannot work. The share anchors have no such dependency —
+ * they work without JavaScript by construction.
+ *
+ * The row is a labelled `role="group"` so a screen reader announces the three
+ * actions as one unit, and every anchor carries its own accessible name from
+ * `i18n/copy.ts` (EN/ES parity type-enforced at the catalog).
+ */
+import type { Copy } from '../i18n/copy';
+
+interface Props {
+  copy: Copy;
+  /** Absolute canonical URL of the page (GitHub Pages origin). */
+  url?: string;
+}
+
+const { copy, url } = Astro.props;
+
+/* One encoding for both intents: percent-encode the whole URL as the single
+   `url` parameter. The links below are static, so this runs at build time. */
+const encoded = url ? encodeURIComponent(url) : null;
+const linkedInHref = encoded
+  ? `https://www.linkedin.com/sharing/share-offsite/?url=${encoded}`
+  : null;
+const xHref = encoded ? `https://twitter.com/intent/tweet?url=${encoded}` : null;
+---
+
+<div class="share-row" role="group" aria-label={copy.share.group}>
+  <div class="copy-control" data-copy-region>
+    <button
+      class="button button--ghost copy-control__button"
+      type="button"
+      data-copy
+      data-copy-canonical
+      data-copy-success={copy.clipboard.linkCopied}
+      data-copy-error={copy.clipboard.failed}
+    >
+      {copy.clipboard.link}
+    </button>
+    <p class="copy-control__status" role="status" aria-live="polite" data-copy-status />
+  </div>
+
+  {
+    linkedInHref && (
+      <a class="share-row__link" href={linkedInHref} target="_blank" rel="noopener noreferrer">
+        {copy.share.linkedIn}
+        <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
+      </a>
+    )
+  }
+
+  {
+    xHref && (
+      <a class="share-row__link" href={xHref} target="_blank" rel="noopener noreferrer">
+        {copy.share.x}
+        <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
+      </a>
+    )
+  }
+</div>
+
+<script>
+  // The copy control is the E1b helper, wired the same way the contact
+  // section and the case-study header wired it: bundled (never `is:inline`)
+  // so the shared module is imported once. Calling it is idempotent — an
+  // already-wired button carries `data-copy-wired` — so coexisting copy
+  // controls on a page stay safe. The share anchors need no script at all.
+  import { enhanceCopyButtons } from '../lib/clipboard';
+
+  enhanceCopyButtons();
+</script>
+
+<style>
+  .share-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-5);
+  }
+
+  /* Same shape as the other inline text links of the site (`.case-study__repo`,
+     the résumé link on career): the row is navigation-level chrome, and the
+     44px min-height keeps the tap target honest on touch screens. */
+  .share-row__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+</style>

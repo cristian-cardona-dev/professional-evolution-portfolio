@@ -29,9 +29,10 @@ import type { Copy, Locale } from '../i18n/copy';
 import type { Project } from '../lib/data';
 import { caseStudyFor, relatedProjects } from '../lib/data';
 import { renderSectionBody } from '../lib/markdown';
-import { route, sectionHref, SUGGESTION_ISSUE_URL } from '../lib/urls';
+import { canonicalUrl, route, sectionHref, SUGGESTION_ISSUE_URL } from '../lib/urls';
 import ProjectCard from '../components/ProjectCard.astro';
 import Comments from '../components/Comments.astro';
+import ShareRow from '../components/ShareRow.astro';
 
 interface Props {
   locale: Locale;
@@ -106,6 +107,14 @@ const statusVariant: Record<Project['status'], string> = {
 const backHref = route(locale, 'work/');
 /** Base-aware: from this page it resolves to `<locale root>#contact`. */
 const contactHref = sectionHref(locale, 'contact', Astro.url.pathname);
+
+/**
+ * The canonical URL of this case study, on the Pages origin — the same value
+ * `BaseLayout` publishes in `<link rel="canonical">`, read from the one
+ * shared computation in `lib/urls.ts` so the share intents below can never
+ * advertise a different host than the page itself does.
+ */
+const pageCanonical = canonicalUrl(locale, `work/${project.slug}/`);
 ---
 
 <article class="case-study">
@@ -154,27 +163,20 @@ const contactHref = sectionHref(locale, 'contact', Astro.url.pathname);
             </svg>
             <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
           </a>
+        </div>
 
-          {/* One natural home for "copy this link": the meta row of the page a
-              reader would send to somebody else. The value is this page's own
-              canonical URL, read from `<link rel="canonical">` by
-              `lib/clipboard.ts`, so what lands in the clipboard is exactly
-              what the page advertises and BaseLayout stays the only place
-              that computes a canonical URL. The control itself follows the
-              shared copy-control contract in global.css. */}
-          <div class="copy-control" data-copy-region>
-            <button
-              class="button button--ghost copy-control__button"
-              type="button"
-              data-copy
-              data-copy-canonical
-              data-copy-success={copy.clipboard.linkCopied}
-              data-copy-error={copy.clipboard.failed}
-            >
-              {copy.clipboard.link}
-            </button>
-            <p class="copy-control__status" role="status" aria-live="polite" data-copy-status />
-          </div>
+        {/* One natural home for "send this page to somebody else": the header
+            of the page a reader would share. The share row keeps the E1b
+            copy-link control — same `button[data-copy]` + `data-copy-canonical`
+            contract, same canonical value read from `<link rel="canonical">`
+            by `lib/clipboard.ts` — and adds the two plain-anchor share
+            intents beside it (no third-party script). The URL those intents
+            advertise comes from `canonicalUrl()`, the same helper BaseLayout
+            uses for the canonical tag, so the Workers mirror can never share
+            its own origin. The control itself follows the shared
+            copy-control contract in global.css. */}
+        <div class="case-study__share">
+          <ShareRow copy={copy} url={pageCanonical?.href} />
         </div>
 
         {
@@ -279,15 +281,6 @@ const contactHref = sectionHref(locale, 'contact', Astro.url.pathname);
 
 <Comments locale={locale} copy={copy} path={`work/${project.slug}/`} />
 
-<script>
-  // Copy-to-clipboard for the page link: bundled (never `is:inline`) so it can
-  // import the shared helper the contact section starts too. The markup above
-  // only carries the payload and the localized feedback strings.
-  import { enhanceCopyButtons } from '../lib/clipboard';
-
-  enhanceCopyButtons();
-</script>
-
 <style>
   .case-study {
     display: block;
@@ -333,6 +326,13 @@ const contactHref = sectionHref(locale, 'contact', Astro.url.pathname);
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-3) var(--space-5);
+    margin-bottom: var(--space-4);
+  }
+
+  /* The share row replaces the old inline copy button: it now carries the
+     copy control AND the two share intents, so it gets the meta row's own
+     bottom spacing before the source title / lead. */
+  .case-study__share {
     margin-bottom: var(--space-4);
   }
 

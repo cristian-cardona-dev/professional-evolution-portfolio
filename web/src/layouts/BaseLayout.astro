@@ -21,7 +21,7 @@
 import type { Copy, Locale } from '../i18n/copy';
 import { getCopy } from '../i18n/copy';
 import { profile } from '../lib/data';
-import { route } from '../lib/urls';
+import { canonicalUrl } from '../lib/urls';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import AssistantWidget from '../components/AssistantWidget.astro';
@@ -73,18 +73,16 @@ const metaDescription = description ?? copy.meta.description;
    the locale + page path — never the serving base, which would double it. When
    it is absent we fall back to `site` + serving base (a plain Pages build).
    Both locales have every route, so the alternates always resolve; `x-default`
-   points at English. */
+   points at English.
+   The computation itself lives in `lib/urls.ts` (`canonicalUrl`) so every
+   component that must publish the same URL — the share row's intent anchors —
+   provably uses one source and cannot drift to the serving host. */
 const canonicalBase = import.meta.env.PUBLIC_CANONICAL_BASE;
-const canonicalUrl = (targetLocale: Locale, targetPath: string) => {
-  if (canonicalBase) {
-    const localePrefix = targetLocale === 'es' ? 'es/' : '';
-    return new URL(`${localePrefix}${targetPath}`, canonicalBase);
-  }
-  return Astro.site ? new URL(route(targetLocale, targetPath), Astro.site) : undefined;
-};
-const canonical = canonicalUrl(locale, path);
-const alternateEn = canonicalUrl('en', path);
-const alternateEs = canonicalUrl('es', path);
+const canonicalUrlFor = (targetLocale: Locale, targetPath: string) =>
+  canonicalUrl(targetLocale, targetPath, Astro.site);
+const canonical = canonicalUrlFor(locale, path);
+const alternateEn = canonicalUrlFor('en', path);
+const alternateEs = canonicalUrlFor('es', path);
 const ogLocale = locale === 'es' ? 'es_ES' : 'en_US';
 const faviconHref = `${import.meta.env.BASE_URL}favicon.svg`;
 const faviconIcoHref = `${import.meta.env.BASE_URL}favicon.ico`;

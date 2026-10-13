@@ -20,9 +20,11 @@
  * → h2 (skills) → h3 (category, from the matrix).
  */
 import type { Copy, Locale } from '../i18n/copy';
+import { canonicalUrl } from '../lib/urls';
 import CareerTimeline from '../components/CareerTimeline.astro';
 import SkillMatrix from '../components/SkillMatrix.astro';
 import Comments from '../components/Comments.astro';
+import ShareRow from '../components/ShareRow.astro';
 
 interface Props {
   locale: Locale;
@@ -42,6 +44,14 @@ const { locale, copy } = Astro.props;
      builds. */
 const resumeHref = `${import.meta.env.BASE_URL}resume-${locale}.html`;
 const resumePdfHref = `${import.meta.env.BASE_URL}resume-${locale}.pdf`;
+
+/**
+ * The canonical URL of this page, on the Pages origin — the same value
+ * `BaseLayout` publishes in `<link rel="canonical">`, read from the one
+ * shared computation in `lib/urls.ts` so the share intents below can never
+ * advertise a different host than the page itself does.
+ */
+const pageCanonical = canonicalUrl(locale, 'career/');
 ---
 
 <section class="section" id="career" aria-labelledby="career-heading">
@@ -63,6 +73,14 @@ const resumePdfHref = `${import.meta.env.BASE_URL}resume-${locale}.pdf`;
           <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
         </a>
       </p>
+
+      {/* Sharing the career record is the second thing a reader does after the
+          résumé: the row carries the E1b copy-link control plus the two
+          plain-anchor share intents (no third-party script), pointed at the
+          canonical Pages URL via the shared `canonicalUrl()` helper. */}
+      <div class="career__share">
+        <ShareRow copy={copy} url={pageCanonical?.href} />
+      </div>
     </header>
 
     <div class="career-block">
@@ -110,6 +128,12 @@ const resumePdfHref = `${import.meta.env.BASE_URL}resume-${locale}.pdf`;
     gap: var(--space-2) var(--space-4);
     margin-top: var(--space-4);
     font-size: var(--text-sm);
+  }
+
+  /* The share row follows the résumé controls in the intro, where a reader
+     deciding to pass the record on looks for them. */
+  .career__share {
+    margin-top: var(--space-3);
   }
 
   .career-block > h2 {

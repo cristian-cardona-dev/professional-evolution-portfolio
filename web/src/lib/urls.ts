@@ -48,6 +48,32 @@ export function sectionHref(locale: Locale, id: string, pathname: string): strin
 }
 
 /**
+ * Absolute CANONICAL URL for a route in a locale, or `undefined` when no
+ * canonical base is configured (no fabricated origin).
+ *
+ * `PUBLIC_CANONICAL_BASE` is the GitHub Pages project URL (including the base
+ * path) that `BaseLayout` publishes in `<link rel="canonical">`, `og:url` and
+ * the `hreflang` alternates — the same source, so a caller that shares or
+ * copies a page link (the share row's intent anchors) can never advertise a
+ * different host than the one the page itself advertises. In particular the
+ * Cloudflare Workers mirror builds with a serving origin of its own and must
+ * still share Pages URLs; this helper is what makes that the default.
+ *
+ * `site` is the optional fallback (`Astro.site`, the serving origin): used
+ * only by `BaseLayout` when the variable is absent, matching its historic
+ * behaviour. Components that render share links simply pass nothing and get
+ * an honest `undefined` instead of a possibly-wrong origin.
+ */
+export function canonicalUrl(locale: Locale, path: string, site?: string | URL): URL | undefined {
+  const base: string | undefined = import.meta.env.PUBLIC_CANONICAL_BASE;
+  if (base) {
+    const localePrefix = locale === 'es' ? 'es/' : '';
+    return new URL(`${localePrefix}${path}`, base);
+  }
+  return site ? new URL(route(locale, path), site) : undefined;
+}
+
+/**
  * Locale implied by a built pathname (`Astro.url.pathname`).
  *
  * Used by components that render on every route but do not receive the

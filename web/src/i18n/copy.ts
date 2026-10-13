@@ -386,6 +386,21 @@ export interface Copy {
     /** Honest failure: the clipboard refused, so manual copying remains. */
     failed: string;
   };
+  /**
+   * Share row (`components/ShareRow.astro`): two plain-anchor share intents
+   * (LinkedIn and X) whose only parameter is the canonical page URL, plus the
+   * group that announces them as one unit. No third-party script is involved,
+   * so these are just the labels a visitor reads; the copy-link control in the
+   * same row keeps the `clipboard` strings above.
+   */
+  share: {
+    /** Accessible name of the share action group. */
+    group: string;
+    /** Accessible name of the LinkedIn share-intent anchor. */
+    linkedIn: string;
+    /** Accessible name of the X share-intent anchor. */
+    x: string;
+  };
   suggestions: {
     eyebrow: string;
     heading: string;
@@ -927,6 +942,11 @@ export const en: Copy = {
     linkCopied: 'Page link copied.',
     failed: 'Could not copy automatically. Select the text and copy it manually.',
   },
+  share: {
+    group: 'Share this page',
+    linkedIn: 'Share on LinkedIn',
+    x: 'Share on X',
+  },
   suggestions: {
     eyebrow: 'Suggestions',
     heading: 'Something missing? Say it in the open.',
@@ -1402,6 +1422,11 @@ export const es: Copy = {
     link: 'Copiar enlace de esta página',
     linkCopied: 'Enlace de la página copiado.',
     failed: 'No se ha podido copiar automáticamente. Selecciona el texto y cópialo manualmente.',
+  },
+  share: {
+    group: 'Comparte esta página',
+    linkedIn: 'Compartir en LinkedIn',
+    x: 'Compartir en X',
   },
   suggestions: {
     eyebrow: 'Sugerencias',
