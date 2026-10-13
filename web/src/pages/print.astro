@@ -13,6 +13,11 @@
  * rest of the site). The print stylesheet turns the dark-first theme into black
  * on white, hides the site chrome (already done globally for header/footer/
  * assistant/palette) and keeps entries from splitting across pages.
+ *
+ * The build prints this same route to `resume-en.pdf`
+ * (`scripts/generate-resume-pdf.mjs`, chained into the web build), and that
+ * step fails past two A4 pages — so `@media print` also carries the density the
+ * contract needs, without dropping a single claim the screen shows.
  */
 import type { Locale } from '../i18n/copy';
 import { getCopy } from '../i18n/copy';
@@ -37,7 +42,7 @@ const formatDate = (iso: string) => dateFormat.format(new Date(`${iso}T00:00:00Z
     <div class="shell shell--narrow">
       <header class="print__head">
         <p class="eyebrow">{copy.print.eyebrow}</p>
-        <h1>{copy.print.heading}</h1>
+        <h1>{copy.print.title}</h1>
         <p class="print__note">{copy.print.note}</p>
         <p class="print__generated">{copy.print.generatedNote}</p>
         <button type="button" class="button button--primary print__action" data-print-button>
@@ -303,8 +308,82 @@ const formatDate = (iso: string) => dateFormat.format(new Date(`${iso}T00:00:00Z
       display: none !important;
     }
 
+    /* Paper gets the dense end of the type scale. `scripts/generate-resume-pdf.mjs`
+       prints this route to `resume-<locale>.pdf` and fails the build past two
+       A4 pages, so print declares its own sizes instead of inheriting the screen
+       ones: 12-14 px text on a 1.3 leading, list gaps and section margins halved.
+       Nothing is dropped — the sheet carries exactly the claims the screen
+       shows; only the whitespace around them shrinks. */
+    .print__head {
+      margin-bottom: var(--space-3);
+    }
+
+    .print__head h1 {
+      margin-block: var(--space-1) var(--space-2);
+      font-size: var(--text-lg);
+      line-height: 1.3;
+    }
+
+    .print__note,
+    .print__generated {
+      font-size: var(--text-xs);
+      line-height: 1.3;
+    }
+
+    .print__generated {
+      margin-top: 0;
+    }
+
     .print__section {
-      margin-top: var(--space-8);
+      margin-top: var(--space-3);
+    }
+
+    .print__section > h2 {
+      padding-bottom: var(--space-1);
+      font-size: var(--text-base);
+      line-height: 1.3;
+    }
+
+    .print__subheading {
+      margin-top: var(--space-2);
+      font-size: var(--text-sm);
+      line-height: 1.3;
+    }
+
+    .print__list {
+      gap: var(--space-1);
+      margin-top: var(--space-1);
+    }
+
+    .print__entry-title {
+      font-size: var(--text-sm);
+      line-height: 1.3;
+    }
+
+    .print__summary {
+      margin-top: 0;
+      font-size: var(--text-xs);
+      line-height: 1.3;
+    }
+
+    .print__date,
+    .print__status,
+    .print__label,
+    .print__url,
+    .print__repo,
+    .print__contact dt,
+    .print__contact dd {
+      font-size: var(--text-xs);
+      line-height: 1.3;
+    }
+
+    .print__repo {
+      margin-top: 0;
+    }
+
+    .print__contact {
+      gap: 0 var(--space-3);
+      margin-top: var(--space-1);
     }
 
     /* Keep an entry or a contact block from splitting across two sheets. */

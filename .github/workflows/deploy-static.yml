@@ -69,6 +69,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npm --prefix web ci
+          # The build prints the resume PDFs with Playwright (E1a), so the
+          # browser has to exist before `run build` reaches that step.
+          npm --prefix web exec -- playwright install --with-deps chromium
           npm --prefix web run build
           node scripts/web-release-manifest.mjs
           mv web/dist dist
@@ -111,6 +114,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npm --prefix web ci
+          # Same PDF step as the Pages job (E1a): both host builds print the
+          # resume PDFs, so both need the Playwright browser first.
+          npm --prefix web exec -- playwright install --with-deps chromium
           npm --prefix web run build
           RELEASE_TARGET=cloudflare-worker node scripts/web-release-manifest.mjs
           mv web/dist dist

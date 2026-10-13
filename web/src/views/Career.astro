@@ -31,11 +31,17 @@ interface Props {
 
 const { locale, copy } = Astro.props;
 
-/* The résumé ships as a static file in `web/public/` (`resume-en.html` /
-   `resume-es.html`), not as an Astro route, so the href is the deployment base
-   plus the locale's filename: both files live at the base root, not under
-   `<base>es/`. */
+/* The résumé ships as static files, not as Astro routes, so the hrefs are the
+   deployment base plus the locale's filename: all three live at the base root,
+   not under `<base>es/`.
+   - `resume-en.html` / `resume-es.html` are generated from the public snapshot
+     (`scripts/generate-resume.mjs`) and copied into the build;
+   - `resume-en.pdf` / `resume-es.pdf` are printed from the `/print/` route by
+     `scripts/generate-resume-pdf.mjs`, chained into the web build, so the PDF
+     exists in `web/dist` (and therefore in the deployed artifact) on both host
+     builds. */
 const resumeHref = `${import.meta.env.BASE_URL}resume-${locale}.html`;
+const resumePdfHref = `${import.meta.env.BASE_URL}resume-${locale}.pdf`;
 ---
 
 <section class="section" id="career" aria-labelledby="career-heading">
@@ -45,6 +51,13 @@ const resumeHref = `${import.meta.env.BASE_URL}resume-${locale}.html`;
       <h1 id="career-heading">{copy.career.heading}</h1>
       <p class="lead">{copy.career.summary}</p>
       <p class="career__resume">
+        <a
+          class="button button--primary career__resume-pdf"
+          href={resumePdfHref}
+          download={`resume-${locale}.pdf`}
+        >
+          {copy.career.resumePdf}
+        </a>
         <a href={resumeHref} target="_blank" rel="noopener noreferrer">
           {copy.career.resume}
           <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
@@ -87,9 +100,14 @@ const resumeHref = `${import.meta.env.BASE_URL}resume-${locale}.html`;
     margin-block: var(--space-2) var(--space-3);
   }
 
-  /* The résumé link sits with the intro, where a reader assessing the career
-     record looks for a downloadable summary. */
+  /* The résumé controls sit with the intro, where a reader assessing the
+     career record looks for a downloadable summary: the PDF download is the
+     primary action, the HTML résumé stays beside it. */
   .career__resume {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
     margin-top: var(--space-4);
     font-size: var(--text-sm);
   }

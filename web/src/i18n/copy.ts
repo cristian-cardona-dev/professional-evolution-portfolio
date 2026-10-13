@@ -267,6 +267,12 @@ export interface Copy {
      * (`web/public/resume-en.html` / `resume-es.html`), rendered on `/career/`.
      */
     resume: string;
+    /**
+     * Label of the prominent button that downloads the PDF résumé the build
+     * prints from the `/print/` route (`scripts/generate-resume-pdf.mjs` →
+     * `resume-en.pdf` / `resume-es.pdf`), rendered beside the HTML link.
+     */
+    resumePdf: string;
   };
   /**
    * Skill matrix (`data/skills.json`), rendered by
@@ -823,6 +829,7 @@ export const en: Copy = {
     stackLabel: 'Declared stack',
     viewAll: 'View the full career',
     resume: 'Download the résumé (HTML)',
+    resumePdf: 'Download the resume (PDF)',
   },
   skills: {
     heading: 'Skills, and what stands behind each one.',
@@ -1296,6 +1303,7 @@ export const es: Copy = {
     stackLabel: 'Stack declarado',
     viewAll: 'Ver la trayectoria completa',
     resume: 'Descargar el currículum (HTML)',
+    resumePdf: 'Descargar el currículum (PDF)',
   },
   skills: {
     heading: 'Habilidades, y qué respalda cada una.',

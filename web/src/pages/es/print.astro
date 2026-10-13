@@ -9,6 +9,12 @@
  * se inventa nada y el texto dice con claridad que es una vista generada, no un
  * documento de CV aprobado. La estructura es idéntica a `/print/`; solo cambian
  * el catálogo y el idioma del documento.
+ *
+ * El build imprime esta misma ruta en `resume-es.pdf`
+ * (`scripts/generate-resume-pdf.mjs`, encadenado al build de `web`), y ese paso
+ * falla a partir de dos páginas A4 — por eso `@media print` lleva también la
+ * densidad que exige el contrato, sin eliminar ninguna de las afirmaciones que
+ * muestra la pantalla.
  */
 import type { Locale } from '../../i18n/copy';
 import { getCopy } from '../../i18n/copy';
@@ -39,7 +45,7 @@ const formatDate = (iso: string) => dateFormat.format(new Date(`${iso}T00:00:00Z
     <div class="shell shell--narrow">
       <header class="print__head">
         <p class="eyebrow">{copy.print.eyebrow}</p>
-        <h1>{copy.print.heading}</h1>
+        <h1>{copy.print.title}</h1>
         <p class="print__note">{copy.print.note}</p>
         <p class="print__generated">{copy.print.generatedNote}</p>
         <button type="button" class="button button--primary print__action" data-print-button>
@@ -305,8 +311,84 @@ const formatDate = (iso: string) => dateFormat.format(new Date(`${iso}T00:00:00Z
       display: none !important;
     }
 
+    /* El papel usa la parte densa de la escala tipográfica.
+       `scripts/generate-resume-pdf.mjs` imprime esta ruta en
+       `resume-<locale>.pdf` y falla el build si pasa de dos páginas A4, así
+       que print declara sus propios tamaños en vez de heredar los de pantalla:
+       texto de 12-14 px con interlínea 1.3, espaciados de lista y márgenes de
+       sección reducidos a la mitad. No se elimina nada — la hoja lleva
+       exactamente las mismas afirmaciones que la pantalla; solo se encoge el
+       espacio en blanco. */
+    .print__head {
+      margin-bottom: var(--space-3);
+    }
+
+    .print__head h1 {
+      margin-block: var(--space-1) var(--space-2);
+      font-size: var(--text-lg);
+      line-height: 1.3;
+    }
+
+    .print__note,
+    .print__generated {
+      font-size: var(--text-xs);
+      line-height: 1.3;
+    }
+
+    .print__generated {
+      margin-top: 0;
+    }
+
     .print__section {
-      margin-top: var(--space-8);
+      margin-top: var(--space-3);
+    }
+
+    .print__section > h2 {
+      padding-bottom: var(--space-1);
+      font-size: var(--text-base);
+      line-height: 1.3;
+    }
+
+    .print__subheading {
+      margin-top: var(--space-2);
+      font-size: var(--text-sm);
+      line-height: 1.3;
+    }
+
+    .print__list {
+      gap: var(--space-1);
+      margin-top: var(--space-1);
+    }
+
+    .print__entry-title {
+      font-size: var(--text-sm);
+      line-height: 1.3;
+    }
+
+    .print__summary {
+      margin-top: 0;
+      font-size: var(--text-xs);
+      line-height: 1.3;
+    }
+
+    .print__date,
+    .print__status,
+    .print__label,
+    .print__url,
+    .print__repo,
+    .print__contact dt,
+    .print__contact dd {
+      font-size: var(--text-xs);
+      line-height: 1.3;
+    }
+
+    .print__repo {
+      margin-top: 0;
+    }
+
+    .print__contact {
+      gap: 0 var(--space-3);
+      margin-top: var(--space-1);
     }
 
     /* Evita que una entrada o un bloque de contacto se parta entre hojas. */

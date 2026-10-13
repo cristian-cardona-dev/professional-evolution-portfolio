@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "astro dev",
     "prebuild": "node ../scripts/build-semantic-index.mjs",
-    "build": "astro build && node ../scripts/sitemap-generate.mjs",
+    "build": "astro build && node ../scripts/sitemap-generate.mjs && node ../scripts/generate-resume-pdf.mjs",
+    "pdf": "node ../scripts/generate-resume-pdf.mjs",
     "preview": "astro preview",
     "test:quality": "node --test \"tests/**/*.test.mjs\"",
     "test:visual": "playwright test tests/visual/visual.spec.mjs",

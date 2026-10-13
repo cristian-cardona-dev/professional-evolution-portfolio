@@ -25,6 +25,13 @@ jobs:
       - name: Install web dependencies
         run: npm --prefix web ci
 
+      - name: Install Playwright Chromium
+        # Before the build, not after it: the build prints the resume PDFs
+        # with Playwright (F-E1a), so the browser must already be there when
+        # `npm --prefix web run build` reaches that step.
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
       - name: Build web
         run: npm --prefix web run build
 
@@ -40,10 +47,6 @@ jobs:
         # 1.5 MB size budget. The stub is honoured by the build script only;
         # production never sets it and the client bundle has no reference to it.
         run: node --test web/tests/semantic-index.test.mjs
-
-      - name: Install Playwright Chromium
-        working-directory: web
-        run: npx playwright install --with-deps chromium
 
       - name: Accessibility in a real browser (axe-core WCAG 2.2 AA, dark + light)
         # Runs the DOM-based axe spec against the production build, which the
