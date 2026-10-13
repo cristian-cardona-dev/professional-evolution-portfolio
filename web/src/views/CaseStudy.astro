@@ -497,8 +497,8 @@ const askQuery = [project.name, ...project.tags].join(' ');
      bottom spacing before the source title / lead. The "ask about this page"
      button sits beside it as a page-level action of the same rank, and the
      slightly wider column gap marks it as a separate group from the share
-     actions. (`--space-4`, not `--space-5`: there is no `--space-5` token, and
-     a var() that resolves to nothing would drop the whole `gap` declaration.) */
+     actions. (`--space-4` keeps the tighter action gap; `--space-5` is the
+     wider layout step.) */
   .case-study__share {
     display: flex;
     flex-wrap: wrap;

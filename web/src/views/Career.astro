@@ -153,9 +153,8 @@ const askQuery = skills
   /* The share row follows the résumé controls in the intro, where a reader
      deciding to pass the record on looks for them; the "ask about this page"
      button joins it as a page-level action of the same rank, separated by the
-     wider column gap. (`--space-4`, not `--space-5`: there is no `--space-5`
-     token, and a var() that resolves to nothing would drop the whole `gap`
-     declaration.) */
+     wider column gap. (`--space-4` keeps the tighter action gap between the
+     two controls; `--space-5` is the wider layout step.) */
   .career__share {
     display: flex;
     flex-wrap: wrap;
