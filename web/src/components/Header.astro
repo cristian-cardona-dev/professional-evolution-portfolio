@@ -48,6 +48,10 @@ type NavId = NonNullable<Props['active']> | 'career';
    page; Contact is a home section, so it is a plain fragment on the home page
    itself and points at the same-language home section everywhere else.
    Section ids keep the preserved anchors: #projects, #career, #contact. */
+/* Seam: `/guestbook/` is published but deliberately absent from this list -
+   it is a destination, not a section, and it keeps its discoverability slot
+   for later. Adding it means one entry here plus widening `NavId`, the
+   `active` prop above and `BaseLayout`'s `activeNav` union to carry its id. */
 const links: { id: NavId; href: string; label: string }[] = [
   { id: 'projects', href: route(locale, 'work/'), label: copy.nav.work },
   { id: 'career', href: route(locale, 'career/'), label: copy.nav.career },

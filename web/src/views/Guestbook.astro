@@ -1,0 +1,58 @@
+---
+/**
+ * Guestbook - a short honest intro plus the shared comment system.
+ *
+ * The body of this page is deliberately two things only: the intro and the
+ * `Comments` component that `Work`, `Career`, `Evolution`, `BuildNotes` and
+ * `CaseStudy` already render. There is no guestbook-specific form, data layer
+ * or storage here — the route is one more entry in `config/comments.json`
+ * (`guestbook`), so both locales share one implementation, one page-id
+ * convention (`guestbook/`, `es/guestbook/`) and one moderation pipeline, and
+ * this page cannot promise anything the comment system does not actually do.
+ *
+ * Not in the header nav: the page is a destination rather than a section of
+ * the portfolio, so it does not take one of the five nav slots. The seam for
+ * adding it later is marked in `components/Header.astro`.
+ *
+ * Heading order: h1 (page) → h2 (comments heading) → h3 (list, form) — no
+ * level is skipped.
+ */
+import type { Copy, Locale } from '../i18n/copy';
+import Comments from '../components/Comments.astro';
+
+interface Props {
+  locale: Locale;
+  copy: Copy;
+}
+
+const { locale, copy } = Astro.props;
+---
+
+<section class="section" id="guestbook" aria-labelledby="guestbook-heading">
+  <div class="shell shell--narrow">
+    <header class="section__head reveal">
+      <p class="eyebrow">{copy.guestbook.eyebrow}</p>
+      <h1 id="guestbook-heading">{copy.guestbook.title}</h1>
+      <p class="lead">{copy.guestbook.summary}</p>
+    </header>
+  </div>
+</section>
+
+<Comments locale={locale} copy={copy} path="guestbook/" />
+
+<style>
+  /* Top spacing only: `Comments` brings its own block padding, so the intro
+     and the comment system read as one page instead of two stacked sections. */
+  .section {
+    padding-block: var(--space-16) 0;
+    scroll-margin-top: var(--header-height);
+  }
+
+  .section__head {
+    max-width: 68ch;
+  }
+
+  .section__head h1 {
+    margin-block: var(--space-2) var(--space-3);
+  }
+</style>

@@ -1,0 +1,32 @@
+---
+/**
+ * Ruta del libro de visitas (es) - una introducción breve y honesta más el
+ * sistema de comentarios.
+ *
+ * La composición vive en `src/views/Guestbook.astro`, compartida con
+ * `/guestbook/`, así que ambos locales renderizan la misma estructura desde una
+ * sola fuente. Sin `activeNav`: la página no es uno de los cinco destinos de la
+ * cabecera (ver el comentario de costura en `components/Header.astro`), y el pie
+ * es desde donde se enlazará cuando sea localizable.
+ */
+import type { Locale } from '../../i18n/copy';
+import { getCopy } from '../../i18n/copy';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Guestbook from '../../views/Guestbook.astro';
+
+const locale: Locale = 'es';
+const copy = getCopy('es');
+
+const title = copy.guestbook.title;
+const description = copy.guestbook.summary;
+---
+
+<BaseLayout
+  locale={locale}
+  lang="es"
+  title={title}
+  description={description}
+  path="guestbook/"
+>
+  <Guestbook locale={locale} copy={copy} />
+</BaseLayout>

@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { AXE_PAGES, gotoPage } from './pages.mjs';
 
 /**
- * Real-browser axe-core scan (WCAG 2.2 AA) of the twenty pages in
+ * Real-browser axe-core scan (WCAG 2.2 AA) of every page in
  * `AXE_PAGES` — the six primary pages, the three case-study detail pages in
  * both locales, the Spanish subpages, the English print page and the two
  * static résumé files — plus the two 404 routes, in BOTH colour schemes.

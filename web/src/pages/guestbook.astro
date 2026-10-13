@@ -1,0 +1,25 @@
+---
+/**
+ * Guestbook route (en) - a short honest intro plus the comment system.
+ *
+ * The composition lives in `src/views/Guestbook.astro`, shared with `/es/`, so
+ * both locales render identical structure from one source. No `activeNav`: the
+ * page is deliberately not one of the header's five destinations (see the seam
+ * comment in `components/Header.astro`), and the footer is where it will be
+ * linked from once it is discoverable.
+ */
+import type { Locale } from '../i18n/copy';
+import { getCopy } from '../i18n/copy';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Guestbook from '../views/Guestbook.astro';
+
+const locale: Locale = 'en';
+const copy = getCopy(locale);
+
+const title = copy.guestbook.title;
+const description = copy.guestbook.summary;
+---
+
+<BaseLayout locale={locale} title={title} description={description} path="guestbook/">
+  <Guestbook locale={locale} copy={copy} />
+</BaseLayout>

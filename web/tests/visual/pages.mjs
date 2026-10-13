@@ -35,7 +35,10 @@ export const PAGES = [
  *   - the Spanish subpages (`es/work/`, `es/career/`, `es/evolution/`,
  *     `es/evidence/`, `es/print/`) and the English print page (`print/`) were
  *     simply never listed: `PAGES` holds the English routes plus the Spanish
- *     home only, which left these routed pages with no axe coverage at all.
+ *     home only, which left these routed pages with no axe coverage at all;
+ *   - the guestbook (`guestbook/`, `es/guestbook/`) is a content page whose
+ *     body is the live comment list, so its pixels churn with every approved
+ *     comment: axe yes, screenshot baseline no.
  *
  * Same relative-path convention as `PAGES` — no leading slash, or the scan
  * silently lands on the 404 page (see the note above).
@@ -56,6 +59,8 @@ export const AXE_PAGES = [
   ['print', 'print/'],
   ['evidence', 'evidence/'],
   ['es-build', 'es/build/'],
+  ['guestbook', 'guestbook/'],
+  ['es-guestbook', 'es/guestbook/'],
   ['resume-en', 'resume-en.html'],
   ['resume-es', 'resume-es.html'],
 ];

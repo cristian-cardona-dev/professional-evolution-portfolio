@@ -542,6 +542,23 @@ export interface Copy {
     credits: string;
   };
   /**
+   * Guestbook (`views/Guestbook.astro`, `/guestbook/` and `/es/guestbook/`).
+   *
+   * Deliberately tiny: an honest intro plus the shared comment system, which
+   * carries the whole moderation/privacy contract on its own. There is no
+   * guestbook-specific data, form or storage — the page id is just another
+   * route enabled in `config/comments.json`, so nothing here can promise more
+   * than the comment system actually does.
+   */
+  guestbook: {
+    /** Eyebrow above the intro, same position as every other page. */
+    eyebrow: string;
+    /** Page `<title>` and the visible `h1`. */
+    title: string;
+    /** Lead paragraph under the heading: what this page is and is not. */
+    summary: string;
+  };
+  /**
    * Comments (`components/Comments.astro`, spec 9).
    *
    * Enabled per route by `config/comments.json`; the copy carries the whole
@@ -1007,6 +1024,12 @@ export const en: Copy = {
       'Only public, human-declared career facts are published; no client names, compensation or private operational data. No private data is published on this site.',
     credits: 'Built with Astro, hosted on GitHub Pages + Cloudflare Workers.',
   },
+  guestbook: {
+    eyebrow: 'Guestbook',
+    title: 'Guestbook',
+    summary:
+      'Leave a short, honest note about what you found here. It is the same comment system the other pages use — no account, no cookies, an optional display name — and every note is reviewed before it appears.',
+  },
   comments: {
     eyebrow: 'Comments',
     heading: 'Join the conversation',
@@ -1468,6 +1491,12 @@ export const es: Copy = {
     boundaryNote:
       'Solo se publican hechos profesionales públicos y declarados por la persona; no se publican nombres de clientes, compensación ni datos operativos privados. No se publica ningún dato privado en este sitio.',
     credits: 'Construido con Astro, alojado en GitHub Pages + Cloudflare Workers.',
+  },
+  guestbook: {
+    eyebrow: 'Libro de visitas',
+    title: 'Libro de visitas',
+    summary:
+      'Deja una nota breve y honesta sobre lo que has encontrado aquí. Es el mismo sistema de comentarios que usan las demás páginas — sin cuenta, sin cookies, con un nombre opcional — y cada nota se revisa antes de aparecer.',
   },
   comments: {
     eyebrow: 'Comentarios',
