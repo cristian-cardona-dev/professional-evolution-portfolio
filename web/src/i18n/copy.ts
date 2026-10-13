@@ -362,6 +362,24 @@ export interface Copy {
     suggestionSubject: string;
     suggestionCta: string;
   };
+  /**
+   * Copy-to-clipboard controls (`lib/clipboard.ts`): one label per button and
+   * the two outcomes announced through the `aria-live` region beside it. The
+   * strings are rendered into `data-copy-*` attributes at build time, so they
+   * exist in exactly one place: this catalog.
+   */
+  clipboard: {
+    /** Accessible name of the copy-address button in the contact section. */
+    email: string;
+    /** Feedback after the published address reached the clipboard. */
+    emailCopied: string;
+    /** Accessible name of the copy-page-link button on a case study. */
+    link: string;
+    /** Feedback after the canonical page URL reached the clipboard. */
+    linkCopied: string;
+    /** Honest failure: the clipboard refused, so manual copying remains. */
+    failed: string;
+  };
   suggestions: {
     eyebrow: string;
     heading: string;
@@ -895,6 +913,13 @@ export const en: Copy = {
     suggestionSubject: 'Portfolio suggestion',
     suggestionCta: 'Compose email',
   },
+  clipboard: {
+    email: 'Copy email address',
+    emailCopied: 'Email address copied.',
+    link: 'Copy link to this page',
+    linkCopied: 'Page link copied.',
+    failed: 'Could not copy automatically. Select the text and copy it manually.',
+  },
   suggestions: {
     eyebrow: 'Suggestions',
     heading: 'Something missing? Say it in the open.',
@@ -1362,6 +1387,13 @@ export const es: Copy = {
       'Describe qué mejorar. Esto abre tu cliente de correo con el asunto y el mensaje ya rellenados.',
     suggestionSubject: 'Sugerencia para el portafolio',
     suggestionCta: 'Redactar correo',
+  },
+  clipboard: {
+    email: 'Copiar dirección de correo',
+    emailCopied: 'Dirección de correo copiada.',
+    link: 'Copiar enlace de esta página',
+    linkCopied: 'Enlace de la página copiado.',
+    failed: 'No se ha podido copiar automáticamente. Selecciona el texto y cópialo manualmente.',
   },
   suggestions: {
     eyebrow: 'Sugerencias',

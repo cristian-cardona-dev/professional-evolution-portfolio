@@ -268,6 +268,49 @@ a:hover {
   transform: translateY(1px);
 }
 
+/* --- Copy-to-clipboard controls ------------------------------------------
+ * Shared by the contact section (copy the published address) and the
+ * case-study header (copy the canonical page link). Only the markup and the
+ * data attributes live in the components; the behaviour is
+ * `lib/clipboard.ts`, started by each component's bundled script.
+ *
+ * The button is hidden until the pre-paint `html.js` gate runs — the same
+ * contract as the print button and the assistant FAB — so a no-JS visit shows
+ * no dead control. `lib/clipboard.ts` hides the whole region when the
+ * Clipboard API is unavailable, and `[hidden]` needs an explicit rule because
+ * `.copy-control`'s own `display: flex` outranks the UA `[hidden]` style.
+ *
+ * The status region is deliberately NOT hidden while empty: a live region
+ * only announces what happens after it exists, so it has to stay in the
+ * accessibility tree from the first paint. As an empty flex item it is zero
+ * wide and adds nothing but the row gap.
+ * ----------------------------------------------------------------------- */
+.copy-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.copy-control[hidden] {
+  display: none;
+}
+
+.copy-control__button {
+  display: none;
+}
+
+html.js .copy-control__button {
+  display: inline-flex;
+}
+
+.copy-control__status {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  font-weight: 600;
+}
+
 /* --- State panel ---------------------------------------------------------
  * One shape for every honest empty / unavailable / error state on the site
  * (evidence empty list, case-study missing write-up, future form errors).

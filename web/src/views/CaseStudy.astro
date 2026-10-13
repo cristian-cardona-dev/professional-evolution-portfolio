@@ -154,6 +154,27 @@ const contactHref = sectionHref(locale, 'contact', Astro.url.pathname);
             </svg>
             <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
           </a>
+
+          {/* One natural home for "copy this link": the meta row of the page a
+              reader would send to somebody else. The value is this page's own
+              canonical URL, read from `<link rel="canonical">` by
+              `lib/clipboard.ts`, so what lands in the clipboard is exactly
+              what the page advertises and BaseLayout stays the only place
+              that computes a canonical URL. The control itself follows the
+              shared copy-control contract in global.css. */}
+          <div class="copy-control" data-copy-region>
+            <button
+              class="button button--ghost copy-control__button"
+              type="button"
+              data-copy
+              data-copy-canonical
+              data-copy-success={copy.clipboard.linkCopied}
+              data-copy-error={copy.clipboard.failed}
+            >
+              {copy.clipboard.link}
+            </button>
+            <p class="copy-control__status" role="status" aria-live="polite" data-copy-status />
+          </div>
         </div>
 
         {
@@ -257,6 +278,15 @@ const contactHref = sectionHref(locale, 'contact', Astro.url.pathname);
 </article>
 
 <Comments locale={locale} copy={copy} path={`work/${project.slug}/`} />
+
+<script>
+  // Copy-to-clipboard for the page link: bundled (never `is:inline`) so it can
+  // import the shared helper the contact section starts too. The markup above
+  // only carries the payload and the localized feedback strings.
+  import { enhanceCopyButtons } from '../lib/clipboard';
+
+  enhanceCopyButtons();
+</script>
 
 <style>
   .case-study {

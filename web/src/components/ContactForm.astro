@@ -17,6 +17,13 @@
  * Accessibility: every input has a visible `<label>`, hints and errors are
  * wired through `aria-describedby`, invalid fields carry `aria-invalid`, and
  * the status region is a polite live region.
+ *
+ * The fallback branch additionally renders the copy-address control: a real
+ * `<button type="button">` beside the published address, whose value and
+ * feedback strings arrive as `data-copy-*` attributes from `copy.ts` and whose
+ * behaviour lives in `lib/clipboard.ts` (started by the bundled script below).
+ * The POST branch has no address on display, so there is nothing to put the
+ * button next to there.
  */
 import type { Copy } from '../i18n/copy';
 import { profile } from '../lib/data';
@@ -175,7 +182,29 @@ const describedBy = (field: 'name' | 'email' | 'message', hintId?: string) =>
             <p class="contact__fallback-note">{copy.contact.fallbackNote}</p>
 
             <p class="contact__email-label">{copy.contact.emailLabel}</p>
-            <a class="contact__email" href={mailto}>{profile.email}</a>
+
+            {/* The address keeps its `mailto:` link, so it stays readable,
+                usable and hand-copyable even when the control beside it cannot
+                run (no JavaScript, or a context without the Clipboard API —
+                `lib/clipboard.ts` hides itself there and leaves this link as
+                the honest manual fallback). */}
+            <div class="contact__email-line">
+              <a class="contact__email" href={mailto}>{profile.email}</a>
+
+              <div class="copy-control" data-copy-region>
+                <button
+                  class="button button--ghost copy-control__button"
+                  type="button"
+                  data-copy
+                  data-copy-text={profile.email}
+                  data-copy-success={copy.clipboard.emailCopied}
+                  data-copy-error={copy.clipboard.failed}
+                >
+                  {copy.clipboard.email}
+                </button>
+                <p class="copy-control__status" role="status" aria-live="polite" data-copy-status />
+              </div>
+            </div>
 
             <a class="button button--primary contact__cta" href={mailto}>
               {copy.contact.mailtoCta}
@@ -299,6 +328,15 @@ const describedBy = (field: 'name' | 'email' | 'message', hintId?: string) =>
   })();
 </script>
 
+<script>
+  // Copy-to-clipboard, bundled (never `is:inline`) so it can import the one
+  // shared implementation; the case-study page starts the same helper. Only
+  // the markup differs per component, the behaviour does not.
+  import { enhanceCopyButtons } from '../lib/clipboard';
+
+  enhanceCopyButtons();
+</script>
+
 <style>
   .contact {
     padding-block: var(--space-24);
@@ -413,6 +451,15 @@ const describedBy = (field: 'name' | 'email' | 'message', hintId?: string) =>
     min-height: 44px;
     font-family: var(--font-mono);
     font-size: var(--text-md);
+  }
+
+  /* Address + copy control share a line and wrap instead of colliding on a
+     narrow viewport; the shared `.copy-control` styles live in global.css. */
+  .contact__email-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
   }
 
   @media (min-width: 1024px) {
