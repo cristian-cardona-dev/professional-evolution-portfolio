@@ -362,6 +362,13 @@ export interface Copy {
     /** Client-side validation messages for the POST branch. */
     fieldRequired: string;
     invalidEmail: string;
+    /** POST branch: status reported by the in-page fetch submission. */
+    submitPending: string;
+    submitSuccess: string;
+    submitError: string;
+    /** Email subject / sender name the endpoint receives. */
+    submitSubject: string;
+    submitFrom: string;
     /** Fallback branch: compose an email with a prefilled subject and body. */
     suggestionLabel: string;
     suggestionHint: string;
@@ -959,6 +966,11 @@ export const en: Copy = {
       'Describe what to improve. This opens your email client with the subject and message already filled in.',
     suggestionSubject: 'Portfolio suggestion',
     suggestionCta: 'Compose email',
+submitPending: 'Sending your message…',
+submitSuccess: 'Message sent. Thanks for writing.',
+submitError: 'Sending failed. Try again, or write to the address below.',
+submitSubject: 'New message from your portfolio site',
+submitFrom: 'Portfolio contact form',
   },
   clipboard: {
     email: 'Copy email address',
@@ -1446,6 +1458,11 @@ export const es: Copy = {
       'Describe qué mejorar. Esto abre tu cliente de correo con el asunto y el mensaje ya rellenados.',
     suggestionSubject: 'Sugerencia para el portafolio',
     suggestionCta: 'Redactar correo',
+submitPending: 'Enviando tu mensaje…',
+submitSuccess: 'Mensaje enviado. Gracias por escribir.',
+submitError: 'El envío falló. Inténtalo de nuevo o escribe a la dirección de abajo.',
+submitSubject: 'Nuevo mensaje desde el sitio del portafolio',
+submitFrom: 'Formulario de contacto del portafolio',
   },
   clipboard: {
     email: 'Copiar dirección de correo',
