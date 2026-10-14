@@ -382,6 +382,19 @@ const askQuery = [project.name, ...project.tags].join(' ');
     });
   }
 
+  // Close the disclosure again when the reader picks a section: on a narrow
+  // viewport the open list would otherwise sit between them and the section
+  // they just chose. It runs after `revealTarget` (the ancestor `<details>`
+  // must open first) and after the click has been dispatched, so the default
+  // anchor navigation is unaffected. On wide viewports the button is hidden
+  // and `data-open` is inert, so the same call is a no-op there.
+  const collapseToc = () => {
+    if (toc instanceof HTMLElement && tocToggle instanceof HTMLButtonElement) {
+      tocToggle.setAttribute('aria-expanded', 'false');
+      toc.removeAttribute('data-open');
+    }
+  };
+
   // 2. Sections 3+ live inside the progressive-disclosure `<details>`, whose
   // content is not rendered while closed. A TOC click — or a deep link, which
   // is exactly what the copy-anchor button produces — therefore has to open
@@ -396,7 +409,10 @@ const askQuery = [project.name, ...project.tags].join(' ');
   };
 
   for (const link of document.querySelectorAll<HTMLElement>('[data-toc-link]')) {
-    link.addEventListener('click', () => revealTarget(link.dataset.tocLink));
+    link.addEventListener('click', () => {
+      revealTarget(link.dataset.tocLink);
+      collapseToc();
+    });
   }
 
   // A shared or copied URL arrives with the fragment already set.
