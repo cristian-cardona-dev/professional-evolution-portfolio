@@ -3,6 +3,14 @@ dist/
 web/test-results/
 web/playwright-report/
 
+# Editor state (local IDE settings; never committed)
+.vscode/
+
+# Root lock: the root package.json declares scripts only (no dependencies to
+# pin - the 293-byte lock carries none), so it is local npm noise. Anchored to
+# the root on purpose: `web/package-lock.json` stays tracked and reproducible.
+/package-lock.json
+
 # Local `wrangler dev` state (created by the worker test harness / manual runs)
 .wrangler/
 
