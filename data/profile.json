@@ -6,7 +6,7 @@
     "github": "https://github.com/cristian-cardona-dev",
     "linkedin": "https://www.linkedin.com/in/cristian-cardona-dev/"
   },
-  "formEndpoint": null,
-  "formKey": null,
+  "formEndpoint": "https://api.web3forms.com/submit",
+  "formKey": "85adb37f-1d97-4300-b02d-a2ff42781115",
   "reposOwner": "cristian-cardona-dev"
 }
