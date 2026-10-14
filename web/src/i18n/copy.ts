@@ -650,10 +650,11 @@ export interface Copy {
    * Comments (`components/Comments.astro`, spec 9).
    *
    * Enabled per route by `config/comments.json`; the copy carries the whole
-   * honesty contract — no account, no cookies, AI screening plus human review,
-   * machine translation is labelled, and the GDPR removal path. The client
-   * reads most of these through `data-*` attributes on the section, so a
-   * translated string can never drift from the rendered markup.
+   * honesty contract — no account, no tracking cookies (Turnstile's strictly
+   * required clearance cookie is disclosed in `notice`), AI screening plus
+   * human review, machine translation is labelled, and the GDPR removal path.
+   * The client reads most of these through `data-*` attributes on the section,
+   * so a translated string can never drift from the rendered markup.
    */
   comments: {
     eyebrow: string;
@@ -1147,15 +1148,15 @@ submitFrom: 'Portfolio contact form',
     eyebrow: 'Guestbook',
     title: 'Guestbook',
     summary:
-      'Leave a short, honest note about what you found here. It is the same comment system the other pages use — no account, no cookies, an optional display name — and every note is reviewed before it appears.',
+      'Leave a short, honest note about what you found here. It is the same comment system the other pages use — no account, no tracking cookies, an optional display name — and every note is reviewed before it appears.',
   },
   comments: {
     eyebrow: 'Comments',
     heading: 'Join the conversation',
     summary:
-      'Comments are open on this page. No account, no cookies and no email address — a display name is optional.',
+      'Comments are open on this page. No account, no tracking cookies and no email address — a display name is optional.',
     notice:
-      'How this works: an AI model screens every comment before it appears, and anything it is unsure about goes to a human review queue, so nothing is published unreviewed. Comments are anonymous — your IP address is used only for a temporary rate limit and is never stored. To have a comment removed, write to me through the contact form (GDPR).',
+      'How this works: an AI model screens every comment before it appears, and anything it is unsure about goes to a human review queue, so nothing is published unreviewed. The comment form\'s Cloudflare Turnstile challenge stores one strictly required clearance cookie; the site itself sets no others. Comments are anonymous — your IP address is used only for a temporary rate limit and is never stored. To have a comment removed, write to me through the contact form (GDPR).',
     formHeading: 'Leave a comment',
     nameLabel: 'Name (optional)',
     nameHint: 'Shown next to your comment. Leave it empty to stay anonymous.',
@@ -1170,7 +1171,7 @@ submitFrom: 'Portfolio contact form',
     submit: 'Post comment',
     submitting: 'Posting…',
     privacy:
-      'No account, no cookies, no email collection. Your comment is public once it passes review, and you can ask for its removal at any time.',
+      'No account, no tracking cookies, no email collection. Your comment is public once it passes review, and you can ask for its removal at any time.',
     listHeading: 'Comments',
     empty: 'No comments yet. Be the first.',
     anonymous: 'Anonymous',
@@ -1646,15 +1647,15 @@ submitFrom: 'Formulario de contacto del portafolio',
     eyebrow: 'Libro de visitas',
     title: 'Libro de visitas',
     summary:
-      'Deja una nota breve y honesta sobre lo que has encontrado aquí. Es el mismo sistema de comentarios que usan las demás páginas — sin cuenta, sin cookies, con un nombre opcional — y cada nota se revisa antes de aparecer.',
+      'Deja una nota breve y honesta sobre lo que has encontrado aquí. Es el mismo sistema de comentarios que usan las demás páginas — sin cuenta, sin cookies de seguimiento, con un nombre opcional — y cada nota se revisa antes de aparecer.',
   },
   comments: {
     eyebrow: 'Comentarios',
     heading: 'Únete a la conversación',
     summary:
-      'Los comentarios están abiertos en esta página. Sin cuenta, sin cookies y sin correo electrónico: el nombre para mostrar es opcional.',
+      'Los comentarios están abiertos en esta página. Sin cuenta, sin cookies de seguimiento y sin correo electrónico: el nombre para mostrar es opcional.',
     notice:
-      'Cómo funciona: un modelo de IA revisa cada comentario antes de que aparezca, y todo lo que no tiene claro pasa a una cola de revisión humana, así que nada se publica sin revisar. Los comentarios son anónimos: tu dirección IP se usa solo para un límite temporal de frecuencia y nunca se almacena. Para pedir la eliminación de un comentario, escríbeme por el formulario de contacto (RGPD).',
+      'Cómo funciona: un modelo de IA revisa cada comentario antes de que aparezca, y todo lo que no tiene claro pasa a una cola de revisión humana, así que nada se publica sin revisar. El reto de Cloudflare Turnstile del formulario de comentarios guarda una cookie de verificación estrictamente necesaria; el propio sitio no guarda ninguna otra. Los comentarios son anónimos: tu dirección IP se usa solo para un límite temporal de frecuencia y nunca se almacena. Para pedir la eliminación de un comentario, escríbeme por el formulario de contacto (RGPD).',
     formHeading: 'Deja un comentario',
     nameLabel: 'Nombre (opcional)',
     nameHint: 'Se muestra junto a tu comentario. Déjalo vacío para seguir siendo anónimo.',
@@ -1669,7 +1670,7 @@ submitFrom: 'Formulario de contacto del portafolio',
     submit: 'Publicar comentario',
     submitting: 'Publicando…',
     privacy:
-      'Sin cuenta, sin cookies y sin recogida de correo. Tu comentario es público cuando pasa la revisión, y puedes pedir su eliminación en cualquier momento.',
+      'Sin cuenta, sin cookies de seguimiento y sin recogida de correo. Tu comentario es público cuando pasa la revisión, y puedes pedir su eliminación en cualquier momento.',
     listHeading: 'Comentarios',
     empty: 'Todavía no hay comentarios. Sé el primero.',
     anonymous: 'Anónimo',
