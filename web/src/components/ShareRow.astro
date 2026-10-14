@@ -9,9 +9,9 @@
  * constants (verified shapes):
  *   - LinkedIn `share-offsite` takes exactly one `url` parameter
  *     (https://www.linkedin.com/sharing/share-offsite/?url=…);
- *   - X serves the long-standing web intent
- *     (https://twitter.com/intent/tweet?url=…), which the domain still
- *     resolves and redirects to the current app.
+ *   - X serves its web intent at `https://x.com/intent/post?url=…`, the
+ *     canonical host and path since the rebrand (the legacy
+ *     `twitter.com/intent/tweet` still resolves and redirects to it).
  * Both open in a new tab with `rel="noopener noreferrer"`, the same contract
  * every external link on the site follows.
  *
@@ -46,7 +46,7 @@ const encoded = url ? encodeURIComponent(url) : null;
 const linkedInHref = encoded
   ? `https://www.linkedin.com/sharing/share-offsite/?url=${encoded}`
   : null;
-const xHref = encoded ? `https://twitter.com/intent/tweet?url=${encoded}` : null;
+const xHref = encoded ? `https://x.com/intent/post?url=${encoded}` : null;
 ---
 
 <div class="share-row" role="group" aria-label={copy.share.group}>

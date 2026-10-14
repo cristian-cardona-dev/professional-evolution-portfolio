@@ -23,14 +23,14 @@ import { gotoPage } from './pages.mjs';
  *     the case-study copy link is already covered there);
  *   - no third-party share script is ever loaded.
  *
- * `twitter.com/intent/tweet` is the long-standing X web intent (the domain
- * still resolves it and redirects to the current app); LinkedIn's documented
- * share endpoint is `linkedin.com/sharing/share-offsite/` with a single `url`
- * parameter.
+ * `x.com/intent/post` is X's web intent on the canonical host since the
+ * rebrand (the legacy `twitter.com/intent/tweet` still resolves and
+ * redirects to it); LinkedIn's documented share endpoint is
+ * `linkedin.com/sharing/share-offsite/` with a single `url` parameter.
  */
 
 const LINKEDIN_INTENT = 'https://www.linkedin.com/sharing/share-offsite/?url=';
-const X_INTENT = 'https://twitter.com/intent/tweet?url=';
+const X_INTENT = 'https://x.com/intent/post?url=';
 
 /** The four pages that carry the share row, with the labels of each catalog. */
 const SHARE_PAGES = [
