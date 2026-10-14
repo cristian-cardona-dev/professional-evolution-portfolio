@@ -252,6 +252,23 @@ export interface Copy {
     heading: string;
     /** Lead paragraph under the heading. */
     summary: string;
+    /**
+     * Availability chip rendered under the `h1` on `/career/` when
+     * `profile.availability` is declared. `status` maps the enum to a label;
+     * `asOf` prefixes the declaration date so the claim never reads timeless.
+     */
+    availability: {
+      /** Screen-reader label introducing the chip. */
+      label: string;
+      /** Label for `status: "available"`. */
+      available: string;
+      /** Label for `status: "busy"`. */
+      busy: string;
+      /** Label for `status: "unavailable"`. */
+      unavailable: string;
+      /** Formats the declaration date, e.g. `asOf('2026-10-14')`. */
+      asOf: (date: string) => string;
+    };
     /** Heading above the full timeline on `/career/`. */
     timelineHeading: string;
     /** End label of an ongoing role, instead of a month. */
@@ -870,6 +887,13 @@ export const en: Copy = {
     heading: 'Where the work happened, and on what.',
     summary:
       'Five employers, human-declared (verified facts, 2026-10-08) and corroborated on the public LinkedIn profile. Periods, roles and stacks are reproduced as declared; nothing here is inferred from a repository.',
+    availability: {
+      label: 'Availability',
+      available: 'Open to conversations',
+      busy: 'Currently booked',
+      unavailable: 'Not looking right now',
+      asOf: (date: string) => `As of ${date}`,
+    },
     timelineHeading: 'Employer history',
     present: 'Present',
     sourceLabel: 'Human-declared · corroborated on LinkedIn',
@@ -1360,6 +1384,13 @@ export const es: Copy = {
     heading: 'Dónde ocurrió el trabajo, y sobre qué.',
     summary:
       'Cinco empleadores, declarados por la persona (datos verificados, 2026-10-08) y corroborados en el perfil público de LinkedIn. Los periodos, roles y stacks se reproducen tal como se declararon; nada aquí se infiere de un repositorio.',
+    availability: {
+      label: 'Disponibilidad',
+      available: 'Abierto a conversaciones',
+      busy: 'Con agenda completa',
+      unavailable: 'Ahora mismo no busco',
+      asOf: (date: string) => `A fecha de ${date}`,
+    },
     timelineHeading: 'Historial de empleadores',
     present: 'Actualidad',
     sourceLabel: 'Declarado por la persona · corroborado en LinkedIn',

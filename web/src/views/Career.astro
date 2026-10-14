@@ -21,7 +21,7 @@
  */
 import type { Copy, Locale } from '../i18n/copy';
 import { canonicalUrl } from '../lib/urls';
-import { skills } from '../lib/data';
+import { profile, skills } from '../lib/data';
 import CareerTimeline from '../components/CareerTimeline.astro';
 import SkillMatrix from '../components/SkillMatrix.astro';
 import Comments from '../components/Comments.astro';
@@ -71,6 +71,21 @@ const askQuery = skills
   .filter((skill) => skill.projects.length > 0)
   .map((skill) => skill.name)
   .join(' ');
+
+/**
+ * Availability chip. Rendered only when the human filled the field in
+ * `data/profile.json` — there is deliberately no default status, so the page
+ * can never claim availability on their behalf. The declaration date ships
+ * visibly ("as of <date>") so a stale status reads as stale instead of
+ * timeless.
+ */
+const availability = profile.availability;
+const availabilityLabels: Record<string, string> = {
+  available: copy.career.availability.available,
+  busy: copy.career.availability.busy,
+  unavailable: copy.career.availability.unavailable,
+};
+const availabilityText = availability ? availabilityLabels[availability.status] : null;
 ---
 
 <section class="section" id="career" aria-labelledby="career-heading">
@@ -78,6 +93,23 @@ const askQuery = skills
     <header class="section__head reveal">
       <p class="eyebrow">{copy.career.eyebrow}</p>
       <h1 id="career-heading">{copy.career.heading}</h1>
+      {
+        availability && availabilityText && (
+          <p class="career__availability" data-availability={availability.status}>
+            <span class="career__availability-chip">
+              <span class="career__availability-dot" aria-hidden="true" />
+              <span class="visually-hidden">{copy.career.availability.label}: </span>
+              {availabilityText}
+            </span>
+            {availability.note && <span class="career__availability-note">{availability.note}</span>}
+            {availability.updated && (
+              <span class="career__availability-date">
+                {copy.career.availability.asOf(availability.updated)}
+              </span>
+            )}
+          </p>
+        )
+      }
       <p class="lead">{copy.career.summary}</p>
       <p class="career__resume">
         <a
@@ -136,6 +168,55 @@ const askQuery = skills
 
   .section__head h1 {
     margin-block: var(--space-2) var(--space-3);
+  }
+
+  /* Availability chip: a human-declared status line under the page `h1`.
+     Only the dot recolours per status (the label text carries the meaning for
+     everyone, including assistive tech), so the chip itself stays a neutral
+     surface in both themes. The "as of" date renders muted as provenance: it
+     belongs to the claim's freshness, not to the claim. */
+  .career__availability {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    margin-block: var(--space-3) var(--space-4);
+    font-size: var(--text-sm);
+  }
+
+  .career__availability-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0.2rem var(--space-3);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    font-weight: 600;
+  }
+
+  .career__availability-dot {
+    width: 0.55em;
+    height: 0.55em;
+    border-radius: var(--radius-full);
+    background-color: var(--color-text-muted);
+  }
+
+  .career__availability[data-availability='available'] .career__availability-dot {
+    background-color: var(--color-success);
+  }
+
+  .career__availability[data-availability='busy'] .career__availability-dot {
+    background-color: var(--color-warn);
+  }
+
+  .career__availability-note {
+    color: var(--color-text-muted);
+  }
+
+  .career__availability-date {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
   }
 
   /* The résumé controls sit with the intro, where a reader assessing the
