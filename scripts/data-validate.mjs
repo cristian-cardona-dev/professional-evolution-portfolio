@@ -163,6 +163,29 @@ function validateProfile(data) {
       }
     }
   }
+  // `availability` is optional (the career badge only renders when present)
+  // but must stay honest when declared: a known status enum, and an ISO date
+  // for `updated` so the UI can say "as of ..." instead of implying the
+  // statement is timeless.
+  const availability = data.availability;
+  if (availability !== undefined) {
+    if (!availability || typeof availability !== 'object' || Array.isArray(availability)) {
+      fail('profile.json: "availability" must be an object');
+    } else {
+      if (!['available', 'busy', 'unavailable'].includes(availability.status)) {
+        fail('profile.json: "availability.status" must be "available", "busy" or "unavailable"');
+      }
+      if (availability.note !== undefined && !isNonEmptyString(availability.note)) {
+        fail('profile.json: "availability.note" must be a non-empty string when present');
+      }
+      if (
+        availability.updated !== undefined &&
+        (!isNonEmptyString(availability.updated) || !/^\d{4}-\d{2}-\d{2}$/.test(availability.updated))
+      ) {
+        fail('profile.json: "availability.updated" must be an ISO date (YYYY-MM-DD) when present');
+      }
+    }
+  }
   for (const field of ['formEndpoint', 'formKey']) {
     const value = data[field];
     if (value !== null && !isNonEmptyString(value)) {

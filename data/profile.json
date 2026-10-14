@@ -1,6 +1,11 @@
 {
   "name": "Cristian Cardona",
   "headline": "Full Stack + Cloud foundation transitioning toward AI Engineering, AI Automation and Agentic Systems",
+  "availability": {
+    "status": "available",
+    "note": "Open to conversations about AI engineering, automation and cloud work.",
+    "updated": "2026-10-14"
+  },
   "email": "crisss198@gmail.com",
   "socials": {
     "github": "https://github.com/cristian-cardona-dev",

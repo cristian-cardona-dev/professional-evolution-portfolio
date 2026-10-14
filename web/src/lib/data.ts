@@ -42,11 +42,30 @@ export type MilestoneSource = (typeof MILESTONE_SOURCES)[number];
 export const MILESTONE_PHASES = ['foundation', 'transition', 'frontier'] as const;
 export type MilestonePhase = (typeof MILESTONE_PHASES)[number];
 
+/** Availability states a human publishes on the career page. */
+export type AvailabilityStatus = 'available' | 'busy' | 'unavailable';
+
+/**
+ * Human-declared work availability. Optional on purpose: the badge only
+ * renders when the person has filled it in, so no default value can ever
+ * claim something on their behalf. `updated` is the date the declaration was
+ * last touched - it ships so the UI can say "as of ..." instead of implying
+ * the statement is timeless.
+ */
+export interface Availability {
+  status: AvailabilityStatus;
+  /** Optional one-line note rendered next to the status chip. */
+  note?: string;
+  /** ISO date (YYYY-MM-DD) the declaration was last updated. */
+  updated?: string;
+}
+
 export interface Profile {
   name: string;
   headline: string;
   email: string;
   socials: { github: string; linkedin: string };
+  availability?: Availability;
   formEndpoint: string | null;
   formKey: string | null;
   reposOwner: string;
