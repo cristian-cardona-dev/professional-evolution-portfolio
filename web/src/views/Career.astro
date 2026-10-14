@@ -20,7 +20,7 @@
  * → h2 (skills) → h3 (category, from the matrix).
  */
 import type { Copy, Locale } from '../i18n/copy';
-import { canonicalUrl } from '../lib/urls';
+import { canonicalUrl, route } from '../lib/urls';
 import { profile, skills } from '../lib/data';
 import CareerTimeline from '../components/CareerTimeline.astro';
 import SkillMatrix from '../components/SkillMatrix.astro';
@@ -54,6 +54,9 @@ const resumePdfHref = `${import.meta.env.BASE_URL}resume-${locale}.pdf`;
  * advertise a different host than the page itself does.
  */
 const pageCanonical = canonicalUrl(locale, 'career/');
+
+/** Internal link to the guestbook of the current locale (base + `<base>es/`). */
+const guestbookHref = route(locale, 'guestbook/');
 
 /**
  * Seed query of the "ask about this page" deep link
@@ -128,10 +131,13 @@ const availabilityText = availability ? availabilityLabels[availability.status] 
       {/* Sharing the career record is the second thing a reader does after the
           résumé: the row carries the E1b copy-link control plus the two
           plain-anchor share intents (no third-party script), pointed at the
-          canonical Pages URL via the shared `canonicalUrl()` helper. */}
+          canonical Pages URL via the shared `canonicalUrl()` helper. The
+          guestbook CTA closes the row: the one place a reader who just
+          assessed the record can leave a note back. */}
       <div class="career__share">
         <ShareRow copy={copy} url={pageCanonical?.href} />
         <AskAboutPage copy={copy} query={askQuery} />
+        <a class="career__guestbook" href={guestbookHref}>{copy.career.guestbookCta}</a>
       </div>
     </header>
 
@@ -242,6 +248,16 @@ const availabilityText = availability ? availabilityLabels[availability.status] 
     align-items: center;
     gap: var(--space-3) var(--space-4);
     margin-top: var(--space-3);
+  }
+
+  /* The guestbook CTA is a plain internal anchor in the action row: same
+     44px touch target as every other footer/header link (WCAG 2.2 AA), same
+     small size as the row's other controls. */
+  .career__guestbook {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: var(--text-sm);
   }
 
   .career-block > h2 {

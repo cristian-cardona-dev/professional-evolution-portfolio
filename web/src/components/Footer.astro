@@ -24,6 +24,7 @@ const { copy, snapshotId } = Astro.props;
 const locale = localeFromPathname(Astro.url.pathname);
 const printHref = route(locale, 'print/');
 const buildHref = route(locale, 'build/');
+const guestbookHref = route(locale, 'guestbook/');
 
 const SOURCE_REPO = `https://github.com/${profile.reposOwner}/professional-evolution-portfolio`;
 const year = new Date().getUTCFullYear();
@@ -39,6 +40,9 @@ const year = new Date().getUTCFullYear();
       </p>
       <p class="site-footer__build">
         <a href={buildHref}>{copy.footer.buildPage}</a>
+      </p>
+      <p class="site-footer__guestbook">
+        <a href={guestbookHref}>{copy.footer.guestbook}</a>
       </p>
     </div>
 
@@ -95,12 +99,14 @@ const year = new Date().getUTCFullYear();
   }
 
   .site-footer__print,
-  .site-footer__build {
+  .site-footer__build,
+  .site-footer__guestbook {
     margin-top: var(--space-2);
   }
 
   .site-footer__print a,
-  .site-footer__build a {
+  .site-footer__build a,
+  .site-footer__guestbook a {
     display: inline-flex;
     align-items: center;
     min-height: 44px;

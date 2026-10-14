@@ -290,6 +290,11 @@ export interface Copy {
      * `resume-en.pdf` / `resume-es.pdf`), rendered beside the HTML link.
      */
     resumePdf: string;
+    /**
+     * CTA from the `/career/` share row to the guestbook: the one place a
+     * reader who just assessed the career record can leave a note back.
+     */
+    guestbookCta: string;
   };
   /**
    * Skill matrix (`data/skills.json`), rendered by
@@ -563,6 +568,8 @@ export interface Copy {
     printProfile: string;
     /** Link to the "how this site is built" page of the current locale. */
     buildPage: string;
+    /** Link to the guestbook of the current locale. */
+    guestbook: string;
   };
   /**
    * "How this site is built" page (`/build/`, `/es/build/`).
@@ -902,6 +909,7 @@ export const en: Copy = {
     viewAll: 'View the full career',
     resume: 'Download the résumé (HTML)',
     resumePdf: 'Download the resume (PDF)',
+    guestbookCta: 'Sign the guestbook',
   },
   skills: {
     heading: 'Skills, and what stands behind each one.',
@@ -1103,6 +1111,7 @@ submitFrom: 'Portfolio contact form',
     buildNote: 'Static site built with Astro. Scripts and tracking are disclosed on the build page.',
     printProfile: 'Print profile',
     buildPage: 'How this site is built',
+    guestbook: 'Guestbook',
   },
   build: {
     eyebrow: 'How this site is built',
@@ -1399,6 +1408,7 @@ export const es: Copy = {
     viewAll: 'Ver la trayectoria completa',
     resume: 'Descargar el currículum (HTML)',
     resumePdf: 'Descargar el currículum (PDF)',
+    guestbookCta: 'Firma el libro de visitas',
   },
   skills: {
     heading: 'Habilidades, y qué respalda cada una.',
@@ -1602,6 +1612,7 @@ submitFrom: 'Formulario de contacto del portafolio',
     buildNote: 'Sitio estático construido con Astro. Los scripts y el seguimiento se detallan en la página de build.',
     printProfile: 'Perfil imprimible',
     buildPage: 'Cómo está construido este sitio',
+    guestbook: 'Libro de visitas',
   },
   build: {
     eyebrow: 'Cómo está construido este sitio',
