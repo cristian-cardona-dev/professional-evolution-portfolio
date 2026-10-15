@@ -33,6 +33,7 @@ const options: { code: Locale; href: string; language: string; label: string }[]
           <a
             class="lang-switch__link"
             href={option.href}
+            data-locale-switch
             hreflang={option.code}
             lang={option.code}
             title={option.label}
@@ -48,6 +49,18 @@ const options: { code: Locale; href: string; language: string; label: string }[]
     }
   </ul>
 </nav>
+
+<script>
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const link = target.closest<HTMLAnchorElement>('[data-locale-switch]');
+    if (!link || !window.location.hash) return;
+    const destination = new URL(link.href);
+    destination.hash = window.location.hash;
+    link.href = destination.toString();
+  });
+</script>
 
 <style>
   .lang-switch__list {

@@ -871,6 +871,7 @@ const mailto = `mailto:${profile.email}?subject=${encodeURIComponent(mailtoSubje
     document.addEventListener('click', (event) => {
       const trigger = event.target.closest('[data-comments-trigger][data-evidence-anchor]');
       if (!trigger) return;
+      event.preventDefault();
       const anchor = trigger.dataset.evidenceAnchor;
       if (!anchor) return;
       setEvidenceContext(anchor);

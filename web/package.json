@@ -12,7 +12,7 @@
     "og": "node ../scripts/generate-og-images.mjs",
     "preview": "astro preview",
     "test:quality": "node --test \"tests/**/*.test.mjs\"",
-    "test:visual": "playwright test tests/visual/visual.spec.mjs tests/visual/reactions.spec.mjs",
+    "test:visual": "playwright test tests/visual/visual.spec.mjs tests/visual/reactions.spec.mjs tests/visual/milestone-navigation.spec.mjs",
     "test:ui": "playwright test"
   },
   "dependencies": {

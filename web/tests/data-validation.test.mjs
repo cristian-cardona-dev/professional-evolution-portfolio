@@ -34,7 +34,7 @@ after(() => {
   if (tempRoot) rmSync(tempRoot, { recursive: true, force: true });
 });
 
-test('data validation accepts reviewed Spanish narratives on every milestone', () => {
+test('data validation accepts non-empty static Spanish narratives on every milestone', () => {
   writeEvolution(originalEvolution);
   const result = validate();
   assert.equal(result.status, 0, result.stdout + result.stderr);
@@ -46,7 +46,7 @@ test('data validation rejects a missing narrativeEs', () => {
   writeEvolution(invalid);
   const result = validate();
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /"narrativeEs" must be a non-empty reviewed Spanish narrative/);
+  assert.match(result.stderr, /"narrativeEs" must be a non-empty static Spanish narrative/);
 });
 
 test('data validation rejects an empty narrativeEs', () => {
@@ -55,5 +55,18 @@ test('data validation rejects an empty narrativeEs', () => {
   writeEvolution(invalid);
   const result = validate();
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /"narrativeEs" must be a non-empty reviewed Spanish narrative/);
+  assert.match(result.stderr, /"narrativeEs" must be a non-empty static Spanish narrative/);
+});
+
+test('data validation rejects git candidates that omit the unreviewed candidate label', () => {
+  const invalid = structuredClone(originalEvolution);
+  const candidate = invalid.milestones.find((milestone) => milestone.source === 'git');
+  assert.ok(candidate, 'fixture includes generated git candidates');
+  candidate.narrative = 'A polished English narrative.';
+  candidate.narrativeEs = 'Una narración en español.';
+  writeEvolution(invalid);
+  const result = validate();
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /git-derived "narrative" must identify itself as a candidate/);
+  assert.match(result.stderr, /git-derived "narrativeEs" must identify itself as a candidate/);
 });

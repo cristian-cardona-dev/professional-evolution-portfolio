@@ -121,16 +121,30 @@ function getComments(page) {
   return api(`/api/comments/${encodeURIComponent(page)}`);
 }
 
-function translateComment(page, id, targetLocale) {
+function postCommentFrom(page, body, ip, extra = {}) {
+  return api(`/api/comments/${encodeURIComponent(page)}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-test-client-ip': ip },
+    body: JSON.stringify({ body, lang: 'en', turnstileToken: 'integration-token', ...extra }),
+  });
+}
+
+function translateComment(page, id, targetLocale, ip) {
   return api(`/api/comments/${encodeURIComponent(page)}/${encodeURIComponent(id)}/translate`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...(ip ? { 'x-test-client-ip': ip } : {}) },
     body: JSON.stringify({ targetLocale }),
   });
 }
 
 function adminQueue() {
   return api('/api/moderation/queue', {
+    headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+  });
+}
+
+function erasureStorage(id) {
+  return api(`/api/moderation/__test-erasure/${encodeURIComponent(id)}`, {
     headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
   });
 }
@@ -262,6 +276,26 @@ test('reading translation is explicit, cached and available only for published m
   assert.equal(nonMilestone.status, 404);
 });
 
+test('direct HTTP reading translations have a bounded per-IP/per-page rate limit', async () => {
+  const page = 'es/evolution/2026-10-03-evidence-boundary-contract/';
+  const ids = [];
+  for (let i = 0; i < 11; i += 1) {
+    const created = await postCommentFrom(page, `translation source ${i}`, `192.0.2.${i + 1}`);
+    assert.equal(created.body.status, 'published');
+    ids.push(created.body.comment.id);
+  }
+  const callerIp = '198.51.100.77';
+  for (const id of ids.slice(0, 10)) {
+    const result = await translateComment(page, id, 'es', callerIp);
+    assert.equal(result.status, 200);
+    assert.equal(result.body.cached, false);
+  }
+  const limited = await translateComment(page, ids[10], 'es', callerIp);
+  assert.equal(limited.status, 429);
+  assert.deepEqual(limited.body, { error: 'rate_limited' });
+  assert.equal(JSON.stringify(limited.body).includes(callerIp), false);
+});
+
 test('reading translation validates target locale, source locale and page locale', async () => {
   const enPage = 'evolution/2026-10-03-evidence-boundary-contract/';
   const spanish = await postComment(enPage, 'texto en español', { lang: 'es' });
@@ -376,14 +410,14 @@ test('admin approve publishes a queued comment and empties the queue entry', asy
   assert.ok(!queueAfter.body.entries.some((entry) => entry.id === id));
 });
 
-test('three reports flag a published comment and put it back in the queue', async () => {
+test('three distinct reporters flag a published comment and put it back in the queue', async () => {
   const created = await postComment('work/reports/', 'a comment that will be reported');
   const id = created.body.comment.id;
 
   for (let i = 1; i <= 2; i += 1) {
     const report = await api(
       `/api/comments/${encodeURIComponent('work/reports/')}/${encodeURIComponent(id)}/report`,
-      { method: 'POST' },
+      { method: 'POST', headers: { 'x-test-client-ip': `198.51.100.${i}` } },
     );
     assert.equal(report.status, 200);
     assert.equal(report.body.status, 'published');
@@ -391,7 +425,7 @@ test('three reports flag a published comment and put it back in the queue', asyn
 
   const third = await api(
     `/api/comments/${encodeURIComponent('work/reports/')}/${encodeURIComponent(id)}/report`,
-    { method: 'POST' },
+    { method: 'POST', headers: { 'x-test-client-ip': '198.51.100.3' } },
   );
   assert.equal(third.status, 200);
   assert.equal(third.body.reports, 3);
@@ -407,9 +441,42 @@ test('three reports flag a published comment and put it back in the queue', asyn
   );
 });
 
-test('the admin remove action is the GDPR delete path', async () => {
-  const created = await postComment('work/gdpr/', 'please delete me');
+test('repeating a report from the same caller never advances the flag threshold', async () => {
+  const page = 'work/report-dedup/';
+  const created = await postComment(page, 'a comment with duplicate reports');
   const id = created.body.comment.id;
+  const report = (ip) => api(
+    `/api/comments/${encodeURIComponent(page)}/${encodeURIComponent(id)}/report`,
+    { method: 'POST', headers: { 'x-test-client-ip': ip } },
+  );
+
+  const first = await report('203.0.113.10');
+  const duplicate = await report('203.0.113.10');
+  const duplicateAgain = await report('203.0.113.10');
+  assert.equal(first.body.reports, 1);
+  assert.equal(duplicate.body.reports, 1);
+  assert.equal(duplicateAgain.body.reports, 1);
+  assert.equal(duplicateAgain.body.status, 'published');
+
+  const list = await getComments(page);
+  assert.equal(list.body.comments.length, 1);
+});
+
+test('the admin remove action is the GDPR delete path', async () => {
+  const page = 'evolution/2026-10-03-initial-portfolio-build/';
+  const created = await postComment(page, 'please delete me', { lang: 'es', name: 'Private Name' });
+  const id = created.body.comment.id;
+  const translated = await translateComment(page, id, 'en');
+  assert.equal(translated.status, 200);
+  const before = await erasureStorage(id);
+  assert.deepEqual(before.body, {
+    bodyPresent: true,
+    namePresent: true,
+    moderationTranslationPresent: true,
+    readingCacheRows: 1,
+    status: 'published',
+  });
+
   const removed = await api(`/api/moderation/${encodeURIComponent(id)}`, {
     method: 'POST',
     headers: { authorization: `Bearer ${ADMIN_TOKEN}`, 'content-type': 'application/json' },
@@ -417,8 +484,17 @@ test('the admin remove action is the GDPR delete path', async () => {
   });
   assert.equal(removed.status, 200);
   assert.equal(removed.body.status, 'removed');
-  const list = await getComments('work/gdpr/');
-  assert.deepEqual(list.body.comments, []);
+  const list = await getComments(page);
+  assert.equal(list.body.comments.some((comment) => comment.id === id), false);
+  const after = await erasureStorage(id);
+  assert.deepEqual(after.body, {
+    bodyPresent: false,
+    namePresent: false,
+    moderationTranslationPresent: false,
+    readingCacheRows: 0,
+    status: 'removed',
+  });
+  assert.equal((await translateComment(page, id, 'en')).status, 404);
 });
 
 test('a reply is published under its parent and includes the evidence anchor', async () => {
@@ -503,7 +579,7 @@ test('reports and GDPR removal apply to replies like top-level comments', async 
   for (let i = 1; i <= 3; i += 1) {
     const report = await api(
       `/api/comments/${encodeURIComponent(page)}/${encodeURIComponent(replyId)}/report`,
-      { method: 'POST' },
+      { method: 'POST', headers: { 'x-test-client-ip': `192.0.2.${i}` } },
     );
     assert.equal(report.status, 200);
     if (i === 3) assert.equal(report.body.status, 'flagged');

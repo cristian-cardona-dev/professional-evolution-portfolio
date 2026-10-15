@@ -107,7 +107,11 @@ function adminAuthorized(request: Request, env: Env): boolean {
   return timingSafeEqual(header.slice('Bearer '.length), expected);
 }
 
-function clientIp(request: Request): string {
+function clientIp(request: Request, env?: Env): string {
+  // Simulate distinct callers in the local integration suite only. Production
+  // always uses Cloudflare's connection IP, never a client-controlled header.
+  const testIp = env?.ENVIRONMENT === 'test' ? request.headers.get('x-test-client-ip') : null;
+  if (testIp) return testIp;
   const direct = request.headers.get('cf-connecting-ip');
   if (direct) return direct;
   const forwarded = request.headers.get('x-forwarded-for');
@@ -187,7 +191,7 @@ async function routeComments(request: Request, env: Env, url: URL): Promise<Resp
     const id = decodeURIComponent(parts[1] ?? '');
     if (request.method !== 'POST') return fail('method_not_allowed', 405);
     if (!id) return fail('invalid_id', 400);
-    const result = await pageRoom(env, page).report(id);
+    const result = await pageRoom(env, page).report(id, clientIp(request, env));
     if (!result.found) return fail('not_found', 404);
     return json(result);
   }
@@ -212,7 +216,11 @@ async function routeComments(request: Request, env: Env, url: URL): Promise<Resp
       return fail('invalid_target_locale', 400);
     }
     if (payload.targetLocale !== milestoneLocale) return fail('invalid_target_locale', 400);
-    const result = await pageRoom(env, page).translateForReading({
+    const room = pageRoom(env, page);
+    if (!(await room.consumeReadingTranslationAllowance(clientIp(request, env)))) {
+      return fail('rate_limited', 429);
+    }
+    const result = await room.translateForReading({
       page,
       commentId: id,
       targetLocale: payload.targetLocale,
@@ -268,7 +276,7 @@ async function handleCreate(request: Request, env: Env, page: string): Promise<R
   const honeypot = typeof payload.website === 'string' ? payload.website.trim() : '';
   if (honeypot.length > 0) return fail('rejected', 400);
 
-  const remoteIp = clientIp(request);
+  const remoteIp = clientIp(request, env);
   const turnstile = await verifyTurnstile(env, payload.turnstileToken, remoteIp);
   if (turnstile === 'unconfigured') return fail('comments_unavailable', 503);
   if (turnstile === 'failed') return fail('turnstile_failed', 403);
@@ -296,6 +304,19 @@ async function handleCreate(request: Request, env: Env, page: string): Promise<R
 async function handleModeration(request: Request, env: Env, pathname: string): Promise<Response> {
   if (!env.COMMENTS_ADMIN_TOKEN) return fail('admin_unconfigured', 503);
   if (!adminAuthorized(request, env)) return fail('unauthorized', 401);
+
+  // Storage-level erasure assertion used only by the local integration suite.
+  // Production cannot activate it, and the result contains booleans/counts only.
+  const testErasurePrefix = '/api/moderation/__test-erasure/';
+  if (pathname.startsWith(testErasurePrefix)) {
+    if (env.ENVIRONMENT !== 'test' || request.method !== 'GET') return fail('not_found', 404);
+    const id = decodeURIComponent(pathname.slice(testErasurePrefix.length));
+    if (!id || id.includes('/')) return fail('invalid_id', 400);
+    const page = await moderationRoom(env).pageOf(id);
+    if (!page) return fail('not_found', 404);
+    const erased = await pageRoom(env, page).inspectErasureForTest(id);
+    return erased ? json(erased) : fail('not_found', 404);
+  }
 
   if (pathname === '/api/moderation/queue') {
     if (request.method !== 'GET') return fail('method_not_allowed', 405);
@@ -381,7 +402,7 @@ async function routeReactions(request: Request, env: Env, url: URL): Promise<Res
 
   if (request.method === 'PUT') {
     if (!nonce) return fail('invalid_nonce', 400);
-    const result = await room.react({ milestone, nonce, ip: clientIp(request) });
+    const result = await room.react({ milestone, nonce, ip: clientIp(request, env) });
     if (result.rateLimited) return fail('rate_limited', 429);
     return json({ milestone, count: result.count, reacted: result.reacted });
   }

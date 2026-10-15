@@ -248,14 +248,16 @@ export function buildAssistantEntries(
         ...words(milestone.title),
         ...(title === milestone.title ? [] : words(title)),
         ...KIND_TERMS.evolution,
-        ...(STATUS_TERMS[milestone.status] ?? []),
+        ...(milestone.source === 'git' ? [] : STATUS_TERMS[milestone.status] ?? []),
       ]),
       we: fold(resolveMilestoneNarrative(milestone, locale)),
       ti: title,
       sn: clip(resolveMilestoneNarrative(milestone, locale)),
       hr: env.route(locale, 'evolution/'),
-      ba: copy.evolution[MILESTONE_LABEL_KEY[milestone.status]],
-      bv: MILESTONE_BADGE[milestone.status],
+      ba: milestone.source === 'git'
+        ? copy.evolution.sourceLabel.git
+        : copy.evolution[MILESTONE_LABEL_KEY[milestone.status]],
+      bv: milestone.source === 'git' ? 'neutral' : MILESTONE_BADGE[milestone.status],
       yr: milestone.date.slice(0, 4),
     });
   }

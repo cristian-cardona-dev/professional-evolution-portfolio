@@ -43,13 +43,17 @@ import type { PageLocale, SourceLang } from './language';
 import { isAllowedOrigin } from './origins';
 import { ReadingTranslationCache } from './reading-translation-cache';
 import type { ReadingLocale, ReadingTranslationKey } from './reading-translation-cache';
+import { NeuronBudget } from './neuron-budget';
+import type { NeuronBudgetState, NeuronReservation } from './neuron-budget';
 
 export const MAX_BODY_LENGTH = 2000;
 export const MAX_NAME_LENGTH = 80;
 export const RATE_LIMIT_PER_HOUR = 5;
 export const RATE_WINDOW_MS = 60 * 60 * 1000;
 export const REPORT_FLAG_THRESHOLD = 3;
+export const REPORTER_DEDUP_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 export const NEURON_DAILY_LIMIT = 5000;
+export const READING_TRANSLATION_RATE_LIMIT_PER_HOUR = 10;
 export const DEFAULT_PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 100;
 
@@ -137,13 +141,6 @@ export interface ModerationEntry {
   evidence_anchor: string | null;
 }
 
-export interface BudgetState {
-  day: string;
-  neurons: number;
-  paused: boolean;
-  limit: number;
-}
-
 /** Public, aggregate-only reaction state for one milestone. */
 export interface ReactionState {
   /** How many anonymous visitors currently hold an active reaction. */
@@ -225,6 +222,7 @@ async function sha256Hex(value: string): Promise<string> {
 export class CommentsRoom extends DurableObject<Env> {
   private readonly sql: SqlStorage;
   private readonly readingTranslationCache: ReadingTranslationCache;
+  private readonly neuronBudget: NeuronBudget;
 
   /**
    * Serializes reaction mutations inside this room. A Durable Object is
@@ -237,6 +235,7 @@ export class CommentsRoom extends DurableObject<Env> {
    * callers that must not interleave.
    */
   private reactionChain: Promise<unknown> = Promise.resolve();
+  private abuseChain: Promise<unknown> = Promise.resolve();
 
   /**
    * The per-room secret, cached as a promise so two concurrent first-time
@@ -249,6 +248,7 @@ export class CommentsRoom extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.sql = ctx.storage.sql;
+    this.neuronBudget = new NeuronBudget(ctx.storage, NEURON_DAILY_LIMIT, () => utcDay(Date.now()));
     this.readingTranslationCache = new ReadingTranslationCache({
       invalidateStale: async (commentId, bodyHash) => {
         this.sql.exec(
@@ -353,7 +353,19 @@ export class CommentsRoom extends DurableObject<Env> {
          translation   TEXT NOT NULL,
          created_at    INTEGER NOT NULL,
          PRIMARY KEY (comment_id, body_hash, source_locale, target_locale)
+      )`,
+    );
+    this.sql.exec(
+      `CREATE TABLE IF NOT EXISTS comment_reporters (
+         comment_id    TEXT NOT NULL,
+         reporter_hash TEXT NOT NULL,
+         created_at    INTEGER NOT NULL,
+         PRIMARY KEY (comment_id, reporter_hash)
        )`,
+    );
+    this.sql.exec(
+      `CREATE INDEX IF NOT EXISTS idx_comment_reporters_created_at
+         ON comment_reporters(created_at)`,
     );
     // Reactions share the per-room SQLite pattern but live in their own table,
     // in their own `reactions:<milestone>` room, so they can never touch the
@@ -580,16 +592,10 @@ export class CommentsRoom extends DurableObject<Env> {
         targetLocale: input.targetLocale,
       };
       const result = await this.readingTranslationCache.getOrCreate(key, async () => {
-        // Reader translations share the existing site-wide neuron guard. The
-        // invisible moderation translation above remains independent and still
-        // fails closed when it cannot provide its second safety gate.
-        if ((await this.budgetState()).paused) throw new Error('reading-translation-paused');
-        const translated = await translate(
-          this.env,
-          row.body,
-          sourceLocale,
-          input.targetLocale,
-          'reading',
+        // A cache hit never enters this callback and therefore reserves no AI
+        // budget. Every uncached inference reserves atomically before calling AI.
+        const translated = await this.withNeuronBudget(NEURONS_PER_TRANSLATION, () =>
+          translate(this.env, row.body, sourceLocale, input.targetLocale, 'reading'),
         );
         const current = this.sql
           .exec<{ body: string; status: string }>(
@@ -601,7 +607,6 @@ export class CommentsRoom extends DurableObject<Env> {
         if (!current || current.status !== 'published' || current.body !== row.body) {
           throw new Error('comment-no-longer-public');
         }
-        await this.spendNeurons(NEURONS_PER_TRANSLATION);
         return translated;
       });
       // A report/removal can race a cache hit too. Recheck before returning any
@@ -618,7 +623,7 @@ export class CommentsRoom extends DurableObject<Env> {
       }
       return { status: 'translated', ...result };
     } catch (error) {
-      if (error instanceof Error && error.message === 'reading-translation-paused') {
+      if (error instanceof Error && error.message === 'neuron-budget-exhausted') {
         return { status: 'paused' };
       }
       if (error instanceof Error && error.message === 'comment-no-longer-public') {
@@ -626,6 +631,26 @@ export class CommentsRoom extends DurableObject<Env> {
       }
       return { status: 'unavailable' };
     }
+  }
+
+  /** Bounded per-IP, per-page allowance for direct reading-translation HTTP calls. */
+  async consumeReadingTranslationAllowance(ip: string): Promise<boolean> {
+    const salt = await this.rateSalt();
+    const key = `rlread:${await sha256Hex(`${salt}|${ip}`)}`;
+    return this.withAbuseLock(async () => {
+      const now = Date.now();
+      const previous = (await this.ctx.storage.get<number[]>(key)) ?? [];
+      const recent = previous.filter(
+        (timestamp) => typeof timestamp === 'number' && now - timestamp < RATE_WINDOW_MS,
+      );
+      if (recent.length >= READING_TRANSLATION_RATE_LIMIT_PER_HOUR) {
+        await this.ctx.storage.put(key, recent);
+        return false;
+      }
+      recent.push(now);
+      await this.ctx.storage.put(key, recent);
+      return true;
+    });
   }
 
   /** Presence = open WebSockets in this room (spec 7). Best-effort by design. */
@@ -689,20 +714,20 @@ export class CommentsRoom extends DurableObject<Env> {
     const { stored: sourceLang, translateFrom } = normalizeSourceLang(input.lang);
     const needsTranslation = sourceLang !== locale;
 
-    const budget = await this.budgetState();
     let translation: string | null = null;
     let translationFailed = false;
     let translationPaused = false;
 
     if (needsTranslation) {
-      if (budget.paused) {
-        translationPaused = true;
-      } else {
-        try {
-          translation = await translate(this.env, body, translateFrom, locale);
-          await this.spendNeurons(NEURONS_PER_TRANSLATION);
-        } catch {
-          translation = null;
+      try {
+        translation = await this.withNeuronBudget(NEURONS_PER_TRANSLATION, () =>
+          translate(this.env, body, translateFrom, locale),
+        );
+      } catch (error) {
+        translation = null;
+        if (error instanceof Error && error.message === 'neuron-budget-exhausted') {
+          translationPaused = true;
+        } else {
           translationFailed = true;
         }
       }
@@ -712,8 +737,7 @@ export class CommentsRoom extends DurableObject<Env> {
     // failed gate, not a pass.
     let verdictA: Verdict | null = null;
     try {
-      verdictA = await moderate(this.env, body);
-      await this.spendNeurons(NEURONS_PER_GUARD);
+      verdictA = await this.withNeuronBudget(NEURONS_PER_GUARD, () => moderate(this.env, body));
     } catch {
       verdictA = null;
     }
@@ -723,8 +747,9 @@ export class CommentsRoom extends DurableObject<Env> {
     let verdictB: Verdict | null = null;
     if (needsTranslation && translation) {
       try {
-        verdictB = await moderate(this.env, translation);
-        await this.spendNeurons(NEURONS_PER_GUARD);
+        verdictB = await this.withNeuronBudget(NEURONS_PER_GUARD, () =>
+          moderate(this.env, translation!),
+        );
       } catch {
         verdictB = null;
       }
@@ -809,10 +834,25 @@ export class CommentsRoom extends DurableObject<Env> {
     return { status: status === 'published' ? 'published' : 'pending', comment, reason };
   }
 
-  async report(id: string): Promise<ReportResult> {
+  async report(id: string, ip: string): Promise<ReportResult> {
     const row = this.sql.exec<CommentRow>(`SELECT * FROM comments WHERE id = ?`, id).toArray()[0];
     if (!row || row.status === 'removed') return { found: false, reports: 0, status: null };
-    const reports = (row.reports ?? 0) + 1;
+    const reporterHash = await this.reporterHash(ip);
+    const cutoff = Date.now() - REPORTER_DEDUP_WINDOW_MS;
+    this.sql.exec(`DELETE FROM comment_reporters WHERE created_at < ?`, cutoff);
+    this.sql.exec(
+      `INSERT OR IGNORE INTO comment_reporters (comment_id, reporter_hash, created_at)
+       VALUES (?, ?, ?)`,
+      id,
+      reporterHash,
+      Date.now(),
+    );
+    const reports = this.sql
+      .exec<{ count: number }>(
+        `SELECT COUNT(*) AS count FROM comment_reporters WHERE comment_id = ?`,
+        id,
+      )
+      .one().count;
     const status: CommentStatus =
       reports >= REPORT_FLAG_THRESHOLD ? 'flagged' : (row.status as CommentStatus);
     this.sql.exec(
@@ -843,7 +883,24 @@ export class CommentsRoom extends DurableObject<Env> {
     const row = this.sql.exec<CommentRow>(`SELECT * FROM comments WHERE id = ?`, id).toArray()[0];
     if (!row) return { ok: false, status: null };
     const status: CommentStatus = action === 'approve' ? 'published' : 'removed';
-    this.sql.exec(`UPDATE comments SET status = ? WHERE id = ?`, status, id);
+    if (action === 'remove') {
+      // Keep only the id/page/date/thread relationship required to render safe
+      // reply tombstones. Erase every visitor-authored or generated text copy.
+      this.sql.exec(`DELETE FROM comment_reading_translations WHERE comment_id = ?`, id);
+      this.sql.exec(`DELETE FROM comment_reporters WHERE comment_id = ?`, id);
+      this.sql.exec(
+        `UPDATE comments
+            SET name = NULL, body = '', source_lang = 'other', status = 'removed',
+                translation = NULL, reports = 0, last_report_at = NULL,
+                evidence_anchor = NULL
+          WHERE id = ?`,
+        id,
+      );
+    } else {
+      // A GDPR tombstone is terminal: never restore an erased body by approving it.
+      if (row.status === 'removed' || !row.body) return { ok: false, status: 'removed' };
+      this.sql.exec(`UPDATE comments SET status = ? WHERE id = ?`, status, id);
+    }
     // `approve` runs the publish path (spec 5), so it broadcasts like any publish.
     if (status === 'published') {
       const comment = toPublicComment(row);
@@ -947,20 +1004,50 @@ export class CommentsRoom extends DurableObject<Env> {
 
   // --- Global neuron budget (role: __budget__) -------------------------------
 
-  async budget(): Promise<BudgetState> {
-    const day = utcDay(Date.now());
-    const neurons = (await this.ctx.storage.get<number>(`neurons:${day}`)) ?? 0;
-    return { day, neurons, paused: neurons >= NEURON_DAILY_LIMIT, limit: NEURON_DAILY_LIMIT };
+  async budget(): Promise<NeuronBudgetState> {
+    return this.neuronBudget.state();
   }
 
-  async consumeNeurons(amount: number): Promise<number> {
-    const day = utcDay(Date.now());
-    const key = `neurons:${day}`;
-    const total = ((await this.ctx.storage.get<number>(key)) ?? 0) + Math.max(0, amount);
-    await this.ctx.storage.put(key, total);
-    // Only today's counter is meaningful; drop yesterday's so the key never grows.
-    await this.ctx.storage.delete(`neurons:${utcDay(Date.now() - 24 * 60 * 60 * 1000)}`);
-    return total;
+  async reserveNeurons(amount: number): Promise<NeuronReservation | null> {
+    return this.neuronBudget.reserve(amount);
+  }
+
+  async settleNeurons(reservation: NeuronReservation): Promise<void> {
+    return this.neuronBudget.settle(reservation);
+  }
+
+  async releaseNeurons(reservation: NeuronReservation): Promise<void> {
+    return this.neuronBudget.release(reservation);
+  }
+
+  /** Test-only aggregate inspection; never returns or logs stored user text. */
+  async inspectErasureForTest(id: string): Promise<{
+    bodyPresent: boolean;
+    namePresent: boolean;
+    moderationTranslationPresent: boolean;
+    readingCacheRows: number;
+    status: string | null;
+  } | null> {
+    if (this.env.ENVIRONMENT !== 'test') return null;
+    const row = this.sql
+      .exec<{ body: string; name: string | null; translation: string | null; status: string }>(
+        `SELECT body, name, translation, status FROM comments WHERE id = ?`,
+        id,
+      )
+      .toArray()[0];
+    if (!row) return null;
+    return {
+      bodyPresent: row.body.length > 0,
+      namePresent: Boolean(row.name),
+      moderationTranslationPresent: Boolean(row.translation),
+      readingCacheRows: this.sql
+        .exec<{ count: number }>(
+          `SELECT COUNT(*) AS count FROM comment_reading_translations WHERE comment_id = ?`,
+          id,
+        )
+        .one().count,
+      status: row.status,
+    };
   }
 
   // --- Internal helpers ------------------------------------------------------
@@ -986,25 +1073,36 @@ export class CommentsRoom extends DurableObject<Env> {
     await this.moderationStub().register(entry);
   }
 
-  /**
-   * An unknown budget is treated as exhausted: if the shared counter cannot be
-   * read, auto-translation is skipped rather than spending unbudgeted neurons.
-   * Moderation still runs (safety is never traded for cost).
-   */
-  private async budgetState(): Promise<BudgetState> {
+  /** Reserve before every inference; release only when that inference throws. */
+  private async withNeuronBudget<T>(amount: number, inference: () => Promise<T>): Promise<T> {
+    const reservation = await this.budgetStub().reserveNeurons(amount);
+    if (!reservation) throw new Error('neuron-budget-exhausted');
+    let result: T;
     try {
-      return await this.budgetStub().budget();
-    } catch {
-      return { day: utcDay(Date.now()), neurons: 0, paused: true, limit: NEURON_DAILY_LIMIT };
+      result = await inference();
+    } catch (error) {
+      try {
+        await this.budgetStub().releaseNeurons(reservation);
+      } catch {
+        // A failed release conservatively leaves the reservation counted.
+      }
+      throw error;
     }
+    // If settlement fails, the reservation remains counted, which is safer
+    // than releasing budget after a successful (and billable) inference.
+    await this.budgetStub().settleNeurons(reservation);
+    return result;
   }
 
-  private async spendNeurons(amount: number): Promise<void> {
-    try {
-      await this.budgetStub().consumeNeurons(amount);
-    } catch {
-      // The guardrail counter is best-effort; never fail a comment over it.
-    }
+  private async reporterHash(ip: string): Promise<string> {
+    const salt = await this.rateSalt();
+    return sha256Hex(`${salt}|reporter|${ip}`);
+  }
+
+  private withAbuseLock<T>(operation: () => Promise<T>): Promise<T> {
+    const run = this.abuseChain.then(operation, operation);
+    this.abuseChain = run.then(() => undefined, () => undefined);
+    return run;
   }
 
   /**

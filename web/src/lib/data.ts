@@ -89,23 +89,32 @@ export interface Project {
   screenshots: string[];
 }
 
-export interface Milestone {
+interface MilestoneFields {
   id: string;
   date: string;
   title: string;
   /** Optional reviewed Spanish translation of `title`, used on the es locale. */
   titleEs?: string;
   narrative: string;
-  /** Required reviewed Spanish narrative; detail routes do not fall back to English. */
+  /** Required static Spanish narrative; git source marks unreviewed candidates. */
   narrativeEs: string;
   evidence: string[];
   status: MilestoneStatus;
-  source: MilestoneSource;
   /** Roadmap phase; absent when the milestone is not part of the roadmap. */
   phase?: MilestonePhase;
   /** Project slugs this milestone belongs to; absent means "no project link". */
   projects?: string[];
 }
+
+/**
+ * `source` is also the editorial review boundary: git-derived entries are
+ * candidates, while curated and snapshot entries are treated as reviewed.
+ * Keep this discriminated so callers can make candidate state explicit without
+ * duplicating a second review-status field in the canonical data.
+ */
+export type GitCandidateMilestone = MilestoneFields & { source: 'git' };
+export type ReviewedMilestone = MilestoneFields & { source: 'curated' | 'snapshot' };
+export type Milestone = GitCandidateMilestone | ReviewedMilestone;
 
 export interface EvidenceItem {
   label: string;

@@ -69,6 +69,34 @@ test('milestone detail pages render their canonical static narrative in each loc
   assert.deepEqual(failures, [], failures.join('\n'));
 });
 
+test('git-derived candidates never render a shipped badge as reviewed milestone status', () => {
+  const candidate = milestones.find((milestone) => milestone.source === 'git');
+  assert.ok(candidate, 'fixture includes generated git candidates');
+  for (const locale of ['en', 'es']) {
+    const html = readFileSync(pagePath(locale, candidate.id), 'utf8');
+    const meta = html.match(/<div class="milestone-post__meta"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? '';
+    assert.ok(meta.includes(locale === 'es' ? 'Candidato de git · sin revisar' : 'Git candidate · unreviewed'));
+    assert.doesNotMatch(meta, /chip--success[^>]*>(?:Shipped|Entregado)</);
+  }
+});
+
+test('print profiles exclude unreviewed git candidates from delivered milestone claims', () => {
+  for (const locale of ['en', 'es']) {
+    const path = locale === 'es' ? join(DIST, 'es', 'print', 'index.html') : join(DIST, 'print', 'index.html');
+    assert.ok(existsSync(path), `${locale} print profile exists`);
+    const html = readFileSync(path, 'utf8');
+    const milestoneRows = [...html.matchAll(/<li class="print__entry print__entry--milestone">([\s\S]*?)<\/li>/g)]
+      .map((match) => match[1]);
+    for (const candidate of milestones.filter((milestone) => milestone.source === 'git')) {
+      assert.equal(
+        milestoneRows.some((row) => row.includes(candidate.title)),
+        false,
+        `${locale} print should not publish ${candidate.id} as a delivered milestone`,
+      );
+    }
+  }
+});
+
 test('Spanish home notes feed renders the reviewed Spanish milestone excerpt', () => {
   const latestCurated = milestones
     .filter((milestone) => milestone.source === 'curated')

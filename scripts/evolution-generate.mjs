@@ -27,7 +27,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA_FILE = join(ROOT, 'data', 'evolution.json');
@@ -185,13 +185,13 @@ function toCandidate(commit) {
  * Both are curation decisions that cannot be derived from a commit subject, so
  * only hand-written entries carry them.
  */
-function toMilestone(candidate, hashes) {
+export function toMilestone(candidate, hashes) {
   return {
     id: candidate.id,
     date: candidate.date,
     title: candidate.title,
-    narrative: `Derived from commit ${hashes[0].slice(0, 7)}: "${candidate.subject}". Candidate entry — review the narrative before promoting it to a curated milestone.`,
-    narrativeEs: `Derivado del commit ${hashes[0].slice(0, 7)}: "${candidate.subject}". Entrada candidata: revisa la narración antes de promoverla a un hito curado.`,
+    narrative: `Git-derived candidate from commit ${hashes[0].slice(0, 7)}: "${candidate.subject}". This narrative is unreviewed and is not curated history.`,
+    narrativeEs: `Candidato derivado de git del commit ${hashes[0].slice(0, 7)}: "${candidate.subject}". Esta narración no está revisada y no es historia curada.`,
     evidence: hashes.map((hash) => `${REPO_URL}/commit/${hash}`),
     status: 'shipped',
     source: 'git',
@@ -263,4 +263,4 @@ function main() {
   console.log(summary);
 }
 
-main();
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) main();

@@ -180,6 +180,9 @@ export interface Copy {
     completedHeading: string;
     /** One line under `completedHeading`. */
     completedNote: string;
+    /** Heading and note for generated, unreviewed candidate narratives. */
+    candidateHeading: string;
+    candidateNote: string;
     /** Heading of the timeline half that covers planned, not-yet-delivered work. */
     directionAheadHeading: string;
     /**
@@ -903,7 +906,7 @@ export const en: Copy = {
     planned: 'Planned',
     sourceLabel: {
       curated: 'Curated',
-      git: 'Derived from git',
+      git: 'Git candidate · unreviewed',
       snapshot: 'Snapshot',
     },
     sourcesNote: 'How to read the source badge',
@@ -918,6 +921,9 @@ export const en: Copy = {
     completedHeading: 'Completed & ongoing',
     completedNote:
       'Work that is published or in flight. Every entry links to the commits and artifacts behind it.',
+    candidateHeading: 'Git-derived candidates · not reviewed',
+    candidateNote:
+      'These entries come from commit subjects. Their narratives are placeholders, not reviewed editorial history or verified milestone claims.',
     directionAheadHeading: 'Direction ahead',
     directionAheadNote:
       'Not achievements. These entries record intent only: no artifact exists yet, and the links point at what would be extended.',
@@ -1433,7 +1439,7 @@ export const es: Copy = {
     planned: 'Planificado',
     sourceLabel: {
       curated: 'Curado',
-      git: 'Derivado de git',
+      git: 'Candidato de git · sin revisar',
       snapshot: 'Instantánea',
     },
     sourcesNote: 'Cómo leer la insignia de origen',
@@ -1449,6 +1455,9 @@ export const es: Copy = {
     completedHeading: 'Completado y en curso',
     completedNote:
       'Trabajo publicado o en marcha. Cada entrada enlaza con los commits y artefactos que lo respaldan.',
+    candidateHeading: 'Candidatos derivados de git · sin revisar',
+    candidateNote:
+      'Estas entradas proceden de asuntos de commits. Sus narraciones son borradores, no historia editorial revisada ni afirmaciones de hitos verificadas.',
     directionAheadHeading: 'Dirección por delante',
     directionAheadNote:
       'No son logros. Estas entradas solo registran intención: todavía no existe ningún artefacto y los enlaces apuntan a lo que se ampliaría.',

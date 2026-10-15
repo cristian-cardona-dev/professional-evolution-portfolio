@@ -96,9 +96,11 @@ function evidenceLabel(url: string): string {
           <time class="tabular" datetime={milestone.date}>
             {dateFormat.format(new Date(`${milestone.date}T00:00:00Z`))}
           </time>
-          <span class={`chip ${statusVariant[milestone.status]}`}>
-            {statusLabel[milestone.status]}
-          </span>
+          {milestone.source !== 'git' && (
+            <span class={`chip ${statusVariant[milestone.status]}`}>
+              {statusLabel[milestone.status]}
+            </span>
+          )}
           <span class="chip chip--neutral">{copy.evolution.sourceLabel[milestone.source]}</span>
           {
             milestone.phase && (
@@ -156,14 +158,14 @@ function evidenceLabel(url: string): string {
                     <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
                   </a>
                   <CopyAnchor copy={copy} sectionId={anchorId} />
-                  <button
+                  <a
                     class="milestone-post__evidence-discuss"
-                    type="button"
+                    href="#comments"
                     data-evidence-anchor={anchorId}
                     data-comments-trigger
                   >
                     {copy.evolution.discussEvidence || 'Discuss'}
-                  </button>
+                  </a>
                 </div>
               </li>
             );
@@ -320,6 +322,8 @@ function evidenceLabel(url: string): string {
   }
 
   .milestone-post__evidence-discuss {
+    display: inline-flex;
+    align-items: center;
     min-height: 44px;
     padding: 0;
     background: none;
