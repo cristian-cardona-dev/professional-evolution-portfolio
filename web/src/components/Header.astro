@@ -34,9 +34,11 @@ interface Props {
   locale: Locale;
   /** Currently visible home section, used for the active nav indicator. */
   active?: 'projects' | 'evolution' | 'evidence' | 'contact';
+  /** Locale-relative path, used by the language switch to link to the same page in the other locale. */
+  path?: string;
 }
 
-const { copy, locale, active } = Astro.props;
+const { copy, locale, active, path } = Astro.props;
 const pathname = Astro.url.pathname;
 const root = localeRoot(locale);
 
@@ -118,7 +120,7 @@ const isCurrent = (id: NavId): boolean =>
           <span class="visually-hidden">{copy.palette.open}</span>
           <kbd class="site-header__palette-keys">⌘K</kbd>
         </button>
-        <LangSwitch copy={copy} locale={locale} />
+        <LangSwitch copy={copy} locale={locale} path={path} />
         <ThemeToggle copy={copy} />
       </div>
     </div>

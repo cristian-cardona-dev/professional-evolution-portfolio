@@ -8,6 +8,8 @@
  *   - required fields and types for profile, projects, evolution, evidence,
  *     case-studies
  *   - optional project `summary_es`, when present, is a non-empty string
+ *   - every milestone has non-empty static Spanish narrative content; git
+ *     candidates are visibly marked unreviewed in both locales
  *   - optional milestone `titleEs`, when present, is a non-empty string
  *   - project status and milestone status/source/phase enums
  *   - unique project slugs and unique milestone ids
@@ -51,7 +53,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const DATA_DIR = join(ROOT, 'data');
+const DATA_DIR = process.env.PORTFOLIO_DATA_DIR ?? join(ROOT, 'data');
 
 const REPO_OWNER = 'cristian-cardona-dev';
 const REJECTED_OWNERS = ['hunterprox', 'tuuser'];
@@ -311,6 +313,12 @@ function validateEvolution(data, projectSlugs) {
     for (const field of ['id', 'date', 'title', 'narrative']) {
       if (!isNonEmptyString(milestone[field])) fail(`${label}: "${field}" must be a non-empty string`);
     }
+    // Every milestone has static Spanish narrative content. Git-derived
+    // candidates are explicitly unreviewed; they are never silently presented
+    // as reviewed editorial copy or allowed to fall back to English.
+    if (!isNonEmptyString(milestone.narrativeEs)) {
+      fail(`${label}: "narrativeEs" must be a non-empty static Spanish narrative`);
+    }
     // Optional reviewed Spanish translation of `title`; when present it must be
     // a non-empty string so the es locale never renders an empty heading. An
     // absent `titleEs` is valid — the renderer falls back to the English title.
@@ -330,6 +338,16 @@ function validateEvolution(data, projectSlugs) {
     }
     if (!MILESTONE_SOURCES.has(milestone.source)) {
       fail(`${label}: "source" must be one of ${[...MILESTONE_SOURCES].join(', ')}`);
+    }
+    // `source` is the editorial contract, not just provenance: generated git
+    // narratives remain visibly unreviewed candidates in both static locales.
+    if (milestone.source === 'git') {
+      if (!/\bcandidate\b/i.test(milestone.narrative ?? '')) {
+        fail(`${label}: git-derived "narrative" must identify itself as a candidate, never reviewed editorial`);
+      }
+      if (!/\bcandidat[oa]\b/i.test(milestone.narrativeEs ?? '')) {
+        fail(`${label}: git-derived "narrativeEs" must identify itself as a candidate, never reviewed editorial`);
+      }
     }
     if (milestone.phase !== undefined) {
       if (!MILESTONE_PHASES.has(milestone.phase)) {

@@ -1,0 +1,393 @@
+---
+/**
+ * Milestone detail view — a single, shareable blog-like entry for one
+ * evolution milestone.
+ *
+ * Editorial content is intentionally static: it renders the canonical,
+ * locale-reviewed milestone fields and stable evidence anchors. Live comments
+ * and reactions are separate visitor interactions; only visitor-authored
+ * comments can request an on-demand machine translation.
+ *
+ * Heading order: h1 (milestone title) → h2 (related projects, evidence) so no
+ * level is skipped.
+ */
+import type { Copy, Locale } from '../i18n/copy';
+import type { Milestone } from '../lib/data';
+import { milestoneNarrative, milestoneProjects, milestoneTitle, milestonesByDateDesc } from '../lib/data';
+import { canonicalUrl, route } from '../lib/urls';
+import ShareRow from '../components/ShareRow.astro';
+import CopyAnchor from '../components/CopyAnchor.astro';
+import MilestoneReactions from '../components/MilestoneReactions.astro';
+import Comments from '../components/Comments.astro';
+
+interface Props {
+  milestone: Milestone;
+  locale: Locale;
+  copy: Copy;
+}
+
+const { milestone, locale, copy } = Astro.props;
+
+const dateFormat = new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  timeZone: 'UTC',
+});
+
+const statusVariant: Record<Milestone['status'], string> = {
+  shipped: 'chip--success',
+  'in-progress': 'chip--warn',
+  planned: 'chip--neutral',
+};
+
+const statusLabel: Record<Milestone['status'], string> = {
+  shipped: copy.evolution.shipped,
+  'in-progress': copy.evolution.inProgress,
+  planned: copy.evolution.planned,
+};
+
+const related = milestoneProjects(milestone);
+const pageCanonical = canonicalUrl(locale, `evolution/${milestone.id}/`);
+
+/* Adjacent milestones in the same chronological order the timeline uses. */
+const ordered = milestonesByDateDesc;
+const index = ordered.findIndex((m) => m.id === milestone.id);
+const previous = index > 0 ? ordered[index - 1] : undefined;
+const next = index < ordered.length - 1 ? ordered[index + 1] : undefined;
+
+/** Short, readable evidence labels; the full URL stays in the title. */
+function evidenceLabel(url: string): string {
+  try {
+    const segments = new URL(url).pathname.split('/').filter(Boolean);
+    const last = segments[segments.length - 1] ?? '';
+    if (/^[0-9a-f]{7,40}$/i.test(last)) return last.slice(0, 7);
+    return last.replace(/\.[a-z0-9]+$/i, '') || url;
+  } catch {
+    return url;
+  }
+}
+---
+
+<article class="milestone-post">
+  <header class="milestone-post__hero">
+    <div class="shell shell--narrow">
+      <p class="milestone-post__back reveal">
+        <a href={route(locale, 'evolution/')}>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M19 12H5M11 6l-6 6 6 6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            ></path>
+          </svg>
+          {copy.evolution.backToTimeline}
+        </a>
+      </p>
+
+      <div class="milestone-post__intro reveal">
+        <p class="eyebrow">{copy.evolution.eyebrow}</p>
+        <h1>{milestoneTitle(milestone, locale)}</h1>
+
+        <div class="milestone-post__meta">
+          <time class="tabular" datetime={milestone.date}>
+            {dateFormat.format(new Date(`${milestone.date}T00:00:00Z`))}
+          </time>
+          {milestone.source !== 'git' && (
+            <span class={`chip ${statusVariant[milestone.status]}`}>
+              {statusLabel[milestone.status]}
+            </span>
+          )}
+          <span class="chip chip--neutral">{copy.evolution.sourceLabel[milestone.source]}</span>
+          {
+            milestone.phase && (
+              <span class="chip chip--neutral">{copy.evolution.phaseLabel[milestone.phase]}</span>
+            )
+          }
+        </div>
+
+        <div class="milestone-post__share">
+          <ShareRow copy={copy} url={pageCanonical?.href} />
+        </div>
+
+        <p class="lead">{milestoneNarrative(milestone, locale)}</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="milestone-post__body shell shell--narrow">
+    {
+      related.length > 0 && (
+        <section class="milestone-post__related" aria-labelledby="milestone-related-heading">
+          <h2 id="milestone-related-heading">{copy.evolution.relatedLabel}</h2>
+          <ul class="milestone-post__related-list">
+            {related.map((project) => (
+              <li>
+                <a href={route(locale, `work/${project.slug}/`)}>{project.name}</a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    <section class="milestone-post__evidence" aria-labelledby="milestone-evidence-heading">
+      <h2 id="milestone-evidence-heading">{copy.evolution.evidenceHeading}</h2>
+      <p class="milestone-post__evidence-count">
+        {copy.evolution.evidenceLinks(milestone.evidence.length)}
+      </p>
+
+      <ol class="milestone-post__evidence-list">
+        {
+          milestone.evidence.map((url, index) => {
+            const anchorId = `evidence-${index + 1}`;
+            return (
+              <li id={anchorId} class="milestone-post__evidence-item">
+                <div class="milestone-post__evidence-card">
+                  <a
+                    class="milestone-post__evidence-link"
+                    href={url}
+                    title={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {evidenceLabel(url)}
+                    <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
+                  </a>
+                  <CopyAnchor copy={copy} sectionId={anchorId} />
+                  <a
+                    class="milestone-post__evidence-discuss"
+                    href="#comments"
+                    data-evidence-anchor={anchorId}
+                    data-comments-trigger
+                  >
+                    {copy.evolution.discussEvidence || 'Discuss'}
+                  </a>
+                </div>
+              </li>
+            );
+          })
+        }
+      </ol>
+    </section>
+  </div>
+
+  {
+    (previous || next) && (
+      <nav
+        class="milestone-post__adjacent shell shell--narrow"
+        aria-label={copy.evolution.timelineHeading}
+      >
+        {previous && (
+          <a
+            class="milestone-post__adjacent-link milestone-post__adjacent-link--prev"
+            href={route(locale, `evolution/${previous.id}/`)}
+          >
+            <span class="milestone-post__adjacent-label">{copy.evolution.previousMilestone}</span>
+            <span class="milestone-post__adjacent-title">{milestoneTitle(previous, locale)}</span>
+          </a>
+        )}
+        {next && (
+          <a
+            class="milestone-post__adjacent-link milestone-post__adjacent-link--next"
+            href={route(locale, `evolution/${next.id}/`)}
+          >
+            <span class="milestone-post__adjacent-label">{copy.evolution.nextMilestone}</span>
+            <span class="milestone-post__adjacent-title">{milestoneTitle(next, locale)}</span>
+          </a>
+        )}
+      </nav>
+    )
+  }
+
+  <div class="milestone-post__interactions shell shell--narrow">
+    <MilestoneReactions locale={locale} copy={copy} milestoneId={milestone.id} />
+  </div>
+
+  <Comments
+    locale={locale}
+    copy={copy}
+    path={`evolution/${milestone.id}/`}
+    enableReadingTranslation
+  />
+</article>
+
+<style>
+  .milestone-post__hero {
+    padding-block: var(--space-16) var(--space-12);
+    scroll-margin-top: var(--header-height);
+  }
+
+  .milestone-post__back {
+    margin-block-end: var(--space-6);
+  }
+
+  .milestone-post__back a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .milestone-post__back a:hover {
+    text-decoration: underline;
+  }
+
+  .milestone-post__back svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .milestone-post__intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .milestone-post__intro h1 {
+    margin-block: var(--space-2) var(--space-3);
+  }
+
+  .milestone-post__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+
+  .milestone-post__share {
+    margin-block-start: var(--space-2);
+  }
+
+  .milestone-post__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+    padding-block-end: var(--space-16);
+  }
+
+  .milestone-post__related h2,
+  .milestone-post__evidence h2 {
+    font-size: var(--text-xl);
+    line-height: var(--leading-xl);
+    margin-block-end: var(--space-3);
+  }
+
+  .milestone-post__related-list,
+  .milestone-post__evidence-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .milestone-post__evidence-count {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    margin-block-end: var(--space-4);
+  }
+
+  .milestone-post__evidence-item {
+    max-width: none;
+  }
+
+  .milestone-post__evidence-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  .milestone-post__evidence-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    word-break: break-all;
+  }
+
+  .milestone-post__evidence-discuss {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--color-accent);
+    font: inherit;
+    font-size: var(--text-sm);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .milestone-post__adjacent {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    padding-block: var(--space-8);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .milestone-post__interactions {
+    padding-block-start: var(--space-8);
+    border-top: 1px solid var(--color-border);
+  }
+
+  @media (max-width: 640px) {
+    .milestone-post__adjacent {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .milestone-post__adjacent-link {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+  }
+
+  .milestone-post__adjacent-link:hover {
+    border-color: var(--color-accent);
+  }
+
+  .milestone-post__adjacent-link--next {
+    text-align: right;
+  }
+
+  @media (max-width: 640px) {
+    .milestone-post__adjacent-link--next {
+      text-align: left;
+    }
+  }
+
+  .milestone-post__adjacent-label {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .milestone-post__adjacent-title {
+    font-weight: 600;
+  }
+</style>

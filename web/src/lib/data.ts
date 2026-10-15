@@ -16,7 +16,11 @@ import experienceJson from '../../../data/experience.json';
 import skillsJson from '../../../data/skills.json';
 import roadmapJson from '../../../data/roadmap.json';
 import type { AssistantEntry } from './assistant-search';
-import { buildAssistantEntries, resolveMilestoneTitle } from './assistant-corpus.ts';
+import {
+  buildAssistantEntries,
+  resolveMilestoneNarrative,
+  resolveMilestoneTitle,
+} from './assistant-corpus.ts';
 import { route } from './urls';
 import type { Copy, Locale } from '../i18n/copy';
 
@@ -85,21 +89,32 @@ export interface Project {
   screenshots: string[];
 }
 
-export interface Milestone {
+interface MilestoneFields {
   id: string;
   date: string;
   title: string;
   /** Optional reviewed Spanish translation of `title`, used on the es locale. */
   titleEs?: string;
   narrative: string;
+  /** Required static Spanish narrative; git source marks unreviewed candidates. */
+  narrativeEs: string;
   evidence: string[];
   status: MilestoneStatus;
-  source: MilestoneSource;
   /** Roadmap phase; absent when the milestone is not part of the roadmap. */
   phase?: MilestonePhase;
   /** Project slugs this milestone belongs to; absent means "no project link". */
   projects?: string[];
 }
+
+/**
+ * `source` is also the editorial review boundary: git-derived entries are
+ * candidates, while curated and snapshot entries are treated as reviewed.
+ * Keep this discriminated so callers can make candidate state explicit without
+ * duplicating a second review-status field in the canonical data.
+ */
+export type GitCandidateMilestone = MilestoneFields & { source: 'git' };
+export type ReviewedMilestone = MilestoneFields & { source: 'curated' | 'snapshot' };
+export type Milestone = GitCandidateMilestone | ReviewedMilestone;
 
 export interface EvidenceItem {
   label: string;
@@ -241,6 +256,11 @@ export const curatedMilestonesByDateDesc: Milestone[] = milestonesByDateDesc.fil
  */
 export function milestoneTitle(milestone: Milestone, lang: Locale): string {
   return resolveMilestoneTitle(milestone, lang);
+}
+
+/** Static editorial narrative for a detail route in the requested locale. */
+export function milestoneNarrative(milestone: Milestone, lang: Locale): string {
+  return resolveMilestoneNarrative(milestone, lang);
 }
 
 /** Projects a milestone links to, in `projects.json` order, unknown slugs dropped. */

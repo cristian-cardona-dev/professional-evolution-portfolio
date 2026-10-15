@@ -92,10 +92,10 @@ export function printModel(copy: Copy, locale: Locale): PrintModel {
     // `milestonesByDateDesc` is already newest-first, so both groups keep the
     // canonical ordering without a second sort.
     shipped: milestonesByDateDesc
-      .filter((milestone) => milestone.status !== 'planned')
+      .filter((milestone) => milestone.source !== 'git' && milestone.status !== 'planned')
       .map(toRow),
     planned: milestonesByDateDesc
-      .filter((milestone) => milestone.status === 'planned')
+      .filter((milestone) => milestone.source !== 'git' && milestone.status === 'planned')
       .map(toRow),
     evidence: evidence.items.map((item) => ({
       label: item.label,

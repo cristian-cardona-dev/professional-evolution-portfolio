@@ -60,6 +60,7 @@ test('llama-guard output is parsed strictly, fail-closed', () => {
 test('the mock translation seam is deterministic and exercises both failure paths', async () => {
   const env = { ENVIRONMENT: 'test', AI_MOCK: '1' };
   assert.equal(await translate(env, 'hola', 'es', 'en'), '[en] hola');
+  await assert.rejects(() => translate(env, 'hola [[fail-reading-translate]]', 'en', 'es', 'reading'));
   assert.equal(await translate(env, 'hola', 'es', 'en').then(() => true), true);
   await assert.rejects(() => translate(env, 'x [[fail-translate]]', 'es', 'en'));
   const disagreement = await translate(env, 'neutral [[disagree]]', 'es', 'en');

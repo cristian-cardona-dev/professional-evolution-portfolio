@@ -180,6 +180,9 @@ export interface Copy {
     completedHeading: string;
     /** One line under `completedHeading`. */
     completedNote: string;
+    /** Heading and note for generated, unreviewed candidate narratives. */
+    candidateHeading: string;
+    candidateNote: string;
     /** Heading of the timeline half that covers planned, not-yet-delivered work. */
     directionAheadHeading: string;
     /**
@@ -191,6 +194,16 @@ export interface Copy {
     relatedLabel: string;
     /** Preview note used when the subset is "curated entries only". */
     curatedPreviewNote: string;
+    /** Back link from a milestone detail page to the full timeline. */
+    backToTimeline: string;
+    /** Heading above the evidence list on a milestone detail page. */
+    evidenceHeading: string;
+    /** Button that moves to the milestone thread with the evidence anchor preserved. */
+    discussEvidence: string;
+    /** Accessible label of the previous milestone link on a detail page. */
+    previousMilestone: string;
+    /** Accessible label of the next milestone link on a detail page. */
+    nextMilestone: string;
     /** Heading of the roadmap table on the evolution page. */
     roadmapHeading: string;
     /** One line under the roadmap heading. */
@@ -688,12 +701,16 @@ export interface Copy {
     anonymous: string;
     report: string;
     pendingBadge: string;
-    /** `Translated from {language}` — the language name is passed in. */
-    translatedFrom: (language: string) => string;
     viewOriginal: string;
     viewTranslation: string;
     translationUnavailable: string;
-    translationPaused: string;
+    machineTranslated: string;
+    translationLoading: string;
+    translationError: string;
+    translationFallback: string;
+    translationReady: string;
+    originalShown: string;
+    translationNoJs: string;
     unavailableHeading: string;
     unavailableNote: string;
     turnstileBlocked: string;
@@ -715,6 +732,59 @@ export interface Copy {
     statusReported: string;
     statusReportError: string;
     statusUnavailable: string;
+    /** Reply button label on each top-level comment. */
+    reply: string;
+    /** Composer context: "Replying to {name}" — the name token is filled client-side. */
+    replyingTo: string;
+    /** Composer context when the reply is tied to an evidence anchor. */
+    replyingToEvidence: string;
+    /** Cancel button for the reply composer. */
+    cancelReply: string;
+    /** Submit button for the reply composer. */
+    submitReply: string;
+    /** Status after a reply is published immediately. */
+    replyPosted: string;
+    /** Status after a reply is queued for review. */
+    replyQueued: string;
+    /** Tombstone shown when a removed parent still has visible replies. */
+    removedParent: string;
+    /** Hint that replies cannot be nested deeper than one level. */
+    replyDepthHint: string;
+  };
+  /**
+   * Milestone reactions — one anonymous ❤️ per milestone detail page.
+   *
+   * Counts are aggregate and shared between the EN and ES routes of the same
+   * canonical milestone id. The control is honest about its own availability:
+   * `loading` is the initial fetch, `unavailable` a deployment without a
+   * reaction API, `error`/`rateLimited` the two failing responses. `countOne`
+   * and `countMany` are templates because the client script fills the count.
+   */
+  reactions: {
+    /** Accessible group label announcing the control. */
+    group: string;
+    /** Button label: useful-support copy, never "like". */
+    useful: string;
+    /** Count when exactly one person reacted. */
+    countOne: string;
+    /** Count otherwise; `{n}` is filled client-side. */
+    countMany: string;
+    /** Status while the initial count loads. */
+    loading: string;
+    /** Live announcement after a reaction is added. */
+    added: string;
+    /** Live announcement after a reaction is removed. */
+    removed: string;
+    /** Status when the API answers with an error. */
+    error: string;
+    /** Status when the abuse guard refuses the request. */
+    rateLimited: string;
+    /** Status when the reaction API is not reachable on this deployment. */
+    unavailable: string;
+    /** Honest note: lightweight feedback, not a verdict on the evidence. */
+    note: string;
+    /** No-JS fallback: reactions need JavaScript; nothing is sent without it. */
+    noJs: string;
   };
 }
 
@@ -836,7 +906,7 @@ export const en: Copy = {
     planned: 'Planned',
     sourceLabel: {
       curated: 'Curated',
-      git: 'Derived from git',
+      git: 'Git candidate · unreviewed',
       snapshot: 'Snapshot',
     },
     sourcesNote: 'How to read the source badge',
@@ -851,12 +921,20 @@ export const en: Copy = {
     completedHeading: 'Completed & ongoing',
     completedNote:
       'Work that is published or in flight. Every entry links to the commits and artifacts behind it.',
+    candidateHeading: 'Git-derived candidates · not reviewed',
+    candidateNote:
+      'These entries come from commit subjects. Their narratives are placeholders, not reviewed editorial history or verified milestone claims.',
     directionAheadHeading: 'Direction ahead',
     directionAheadNote:
       'Not achievements. These entries record intent only: no artifact exists yet, and the links point at what would be extended.',
     relatedLabel: 'Related',
     curatedPreviewNote:
       'Showing the most recent hand-written milestones, delivered work first; unreviewed git candidates are on the full timeline.',
+    backToTimeline: 'Back to the timeline',
+    evidenceHeading: 'Evidence',
+    discussEvidence: 'Discuss this evidence',
+    previousMilestone: 'Previous milestone',
+    nextMilestone: 'Next milestone',
     roadmapHeading: 'Roadmap by phase',
     roadmapNote:
       'Derived from the milestones themselves: each phase lists the focus it covered and the projects that supported it. Phases describe what happened; only "Direction ahead" describes what is intended.',
@@ -1172,7 +1250,7 @@ submitFrom: 'Portfolio contact form',
     bodyLabel: 'Comment',
     bodyHint: 'Plain text, up to 2000 characters.',
     langLabel: 'Comment language',
-    langHint: 'Used to translate your comment for readers of this page.',
+    langHint: 'Used for moderation checks and optional reading translations.',
     langEn: 'English',
     langEs: 'Spanish',
     langOther: 'Another language',
@@ -1186,12 +1264,16 @@ submitFrom: 'Portfolio contact form',
     anonymous: 'Anonymous',
     report: 'Report',
     pendingBadge: 'In review',
-    translatedFrom: (language) => `Translated from ${language}`,
-    viewOriginal: 'View original',
-    viewTranslation: 'View translation',
-    translationUnavailable: 'Translation not available.',
-    translationPaused:
-      'Automatic translation is paused for today; comments in other languages are held for human review.',
+    viewOriginal: 'Show original',
+    viewTranslation: 'Translate',
+    translationUnavailable: 'Translation is not available for this source language.',
+    machineTranslated: 'Machine translated',
+    translationLoading: 'Translating comment…',
+    translationError: 'Could not translate this comment.',
+    translationFallback: 'The original text is still shown. Try again later.',
+    translationReady: 'Machine-translated version shown.',
+    originalShown: 'Original comment shown.',
+    translationNoJs: 'Comments stay in their original language unless you explicitly choose Translate; that control needs JavaScript.',
     unavailableHeading: 'Comments are temporarily unavailable.',
     unavailableNote:
       'The comment service is not configured on this deployment, so the form stays disabled — nothing typed here would be sent.',
@@ -1213,6 +1295,29 @@ submitFrom: 'Portfolio contact form',
     statusReported: 'Reported. Thank you.',
     statusReportError: 'Could not send the report. Please try again.',
     statusUnavailable: 'Comments are temporarily unavailable.',
+    reply: 'Reply',
+    replyingTo: 'Replying to {name}',
+    replyingToEvidence: 'Discussing {anchor}',
+    cancelReply: 'Cancel',
+    submitReply: 'Post reply',
+    replyPosted: 'Reply published.',
+    replyQueued: 'Thanks — your reply is waiting for review.',
+    removedParent: 'Comment removed',
+    replyDepthHint: 'Replies are limited to one level.',
+  },
+  reactions: {
+    group: 'Reaction',
+    useful: 'This was useful',
+    countOne: '1 person found this useful',
+    countMany: '{n} people found this useful',
+    loading: 'Loading reactions…',
+    added: 'Thanks — your reaction was counted.',
+    removed: 'Your reaction was removed.',
+    error: 'Could not save your reaction. Please try again.',
+    rateLimited: 'Too many reactions in a short time. Please try again later.',
+    unavailable: 'Reactions are temporarily unavailable.',
+    note: 'Lightweight feedback, not a verdict on the evidence.',
+    noJs: 'Reactions need JavaScript; nothing is sent without it.',
   },
 };
 
@@ -1334,7 +1439,7 @@ export const es: Copy = {
     planned: 'Planificado',
     sourceLabel: {
       curated: 'Curado',
-      git: 'Derivado de git',
+      git: 'Candidato de git · sin revisar',
       snapshot: 'Instantánea',
     },
     sourcesNote: 'Cómo leer la insignia de origen',
@@ -1350,12 +1455,20 @@ export const es: Copy = {
     completedHeading: 'Completado y en curso',
     completedNote:
       'Trabajo publicado o en marcha. Cada entrada enlaza con los commits y artefactos que lo respaldan.',
+    candidateHeading: 'Candidatos derivados de git · sin revisar',
+    candidateNote:
+      'Estas entradas proceden de asuntos de commits. Sus narraciones son borradores, no historia editorial revisada ni afirmaciones de hitos verificadas.',
     directionAheadHeading: 'Dirección por delante',
     directionAheadNote:
       'No son logros. Estas entradas solo registran intención: todavía no existe ningún artefacto y los enlaces apuntan a lo que se ampliaría.',
     relatedLabel: 'Relacionado',
     curatedPreviewNote:
       'Se muestran los hitos escritos a mano más recientes, con lo entregado primero; los candidatos de git sin revisar están en la línea de tiempo completa.',
+    backToTimeline: 'Volver a la línea de tiempo',
+    evidenceHeading: 'Evidencia',
+    discussEvidence: 'Comentar esta evidencia',
+    previousMilestone: 'Hito anterior',
+    nextMilestone: 'Hito siguiente',
     roadmapHeading: 'Hoja de ruta por fase',
     roadmapNote:
       'Derivada de los propios hitos: cada fase muestra el foco que cubrió y los proyectos que lo respaldaron. Las fases describen lo que ocurrió; solo «Dirección por delante» describe lo que se pretende.',
@@ -1673,7 +1786,7 @@ submitFrom: 'Formulario de contacto del portafolio',
     bodyLabel: 'Comentario',
     bodyHint: 'Texto plano, hasta 2000 caracteres.',
     langLabel: 'Idioma del comentario',
-    langHint: 'Se usa para traducir tu comentario para quienes lean esta página.',
+    langHint: 'Se usa en las comprobaciones de moderación y las traducciones opcionales para leer.',
     langEn: 'Inglés',
     langEs: 'Español',
     langOther: 'Otro idioma',
@@ -1687,12 +1800,16 @@ submitFrom: 'Formulario de contacto del portafolio',
     anonymous: 'Anónimo',
     report: 'Denunciar',
     pendingBadge: 'En revisión',
-    translatedFrom: (language) => `Traducido del ${language}`,
-    viewOriginal: 'Ver original',
-    viewTranslation: 'Ver traducción',
-    translationUnavailable: 'Traducción no disponible.',
-    translationPaused:
-      'La traducción automática está en pausa por hoy; los comentarios en otros idiomas quedan a la espera de revisión humana.',
+    viewOriginal: 'Mostrar original',
+    viewTranslation: 'Traducir',
+    translationUnavailable: 'No hay traducción disponible para este idioma de origen.',
+    machineTranslated: 'Traducción automática',
+    translationLoading: 'Traduciendo comentario…',
+    translationError: 'No se ha podido traducir este comentario.',
+    translationFallback: 'Se sigue mostrando el texto original. Inténtalo más tarde.',
+    translationReady: 'Se muestra la versión traducida automáticamente.',
+    originalShown: 'Se muestra el comentario original.',
+    translationNoJs: 'Los comentarios se mantienen en su idioma original salvo que elijas Traducir; ese control necesita JavaScript.',
     unavailableHeading: 'Los comentarios no están disponibles temporalmente.',
     unavailableNote:
       'El servicio de comentarios no está configurado en este despliegue, así que el formulario permanece desactivado: nada de lo que escribas aquí se enviaría.',
@@ -1714,6 +1831,29 @@ submitFrom: 'Formulario de contacto del portafolio',
     statusReported: 'Denunciado. Gracias.',
     statusReportError: 'No se ha podido enviar la denuncia. Inténtalo de nuevo.',
     statusUnavailable: 'Los comentarios no están disponibles temporalmente.',
+    reply: 'Responder',
+    replyingTo: 'Respondiendo a {name}',
+    replyingToEvidence: 'Comentando sobre {anchor}',
+    cancelReply: 'Cancelar',
+    submitReply: 'Publicar respuesta',
+    replyPosted: 'Respuesta publicada.',
+    replyQueued: 'Gracias: tu respuesta está pendiente de revisión.',
+    removedParent: 'Comentario eliminado',
+    replyDepthHint: 'Solo se permite un nivel de respuestas.',
+  },
+  reactions: {
+    group: 'Reacción',
+    useful: 'Me resultó útil',
+    countOne: 'A 1 persona le resultó útil',
+    countMany: 'A {n} personas les resultó útil',
+    loading: 'Cargando reacciones…',
+    added: 'Gracias: tu reacción se ha contado.',
+    removed: 'Tu reacción se ha eliminado.',
+    error: 'No se ha podido guardar tu reacción. Inténtalo de nuevo.',
+    rateLimited: 'Demasiadas reacciones en poco tiempo. Inténtalo más tarde.',
+    unavailable: 'Las reacciones no están disponibles temporalmente.',
+    note: 'Una señal ligera, no un veredicto sobre la evidencia.',
+    noJs: 'Las reacciones necesitan JavaScript; sin él no se envía nada.',
   },
 };
 

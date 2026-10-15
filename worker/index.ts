@@ -12,11 +12,15 @@
  *   GET  /api/comments/:page/ws         realtime socket upgrade (the DO accepts it)
  *   GET  /api/moderation/queue          admin (Bearer COMMENTS_ADMIN_TOKEN)
  *   POST /api/moderation/:id            admin { approve | remove } — also the GDPR delete path
+ *   GET    /api/milestones/:id/reaction  public count + caller's anonymous state
+ *   PUT    /api/milestones/:id/reaction  idempotent anonymous ❤️
+ *   DELETE /api/milestones/:id/reaction  idempotent removal
  *
  * `/api/comments/*` responses carry CORS headers for exactly the two real site
  * origins (`worker/origins.ts`), never `*`, so the canonical GitHub Pages host
- * can reach the Worker mirror. The WebSocket upgrade validates Origin in the
- * Durable Object (browsers do not enforce CORS on WebSockets).
+ * can reach the Worker mirror. The reaction route uses the same allowlist and
+ * only widens its own allowed methods/headers. The WebSocket upgrade validates
+ * Origin in the Durable Object (browsers do not enforce CORS on WebSockets).
  *
  * `:page` is a single URL-encoded path segment (e.g. `es%2Fwork%2Fcloud-dashboard%2F`)
  * so the spec's `/api/comments/:page` shape holds even though page ids contain
@@ -33,10 +37,14 @@ import {
   MODERATION_ROOM_NAME,
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
+  REACTION_NONCE_MIN_LENGTH,
+  REACTION_NONCE_MAX_LENGTH,
 } from './comments-room';
 import type { CommentStatus, ModerationAction } from './comments-room';
 import { normalizePage } from './language';
+import { isKnownMilestoneId, normalizeMilestoneId } from './milestones';
 import { corsHeaders } from './origins';
+import type { CorsOptions } from './origins';
 import { verifyTurnstile } from './turnstile';
 
 export { CommentsRoom };
@@ -59,14 +67,25 @@ function fail(code: string, status: number): Response {
 }
 
 /**
+ * The reaction route needs three methods and one custom request header (the
+ * anonymous nonce, which must never travel in a URL). It keeps the shared
+ * origin allowlist; only its own `Access-Control-Allow-*` values are widened.
+ */
+const REACTION_CORS: CorsOptions = {
+  methods: 'GET, PUT, DELETE, OPTIONS',
+  headers: 'content-type, x-reaction-nonce',
+};
+
+/**
  * Add the CORS headers for the request's Origin to a Worker response. A 101
  * upgrade is returned untouched: it carries the socket, and CORS does not
- * apply to WebSockets anyway.
+ * apply to WebSockets anyway. `options` widens the allowed methods/headers for
+ * one route only; the origin allowlist is shared and never relaxed.
  */
-function withCors(response: Response, origin: string | null): Response {
+function withCors(response: Response, origin: string | null, options?: CorsOptions): Response {
   if (response.status === 101) return response;
   const headers = new Headers(response.headers);
-  for (const [key, value] of Object.entries(corsHeaders(origin))) headers.set(key, value);
+  for (const [key, value] of Object.entries(corsHeaders(origin, options))) headers.set(key, value);
   return new Response(response.body, { status: response.status, headers });
 }
 
@@ -88,7 +107,11 @@ function adminAuthorized(request: Request, env: Env): boolean {
   return timingSafeEqual(header.slice('Bearer '.length), expected);
 }
 
-function clientIp(request: Request): string {
+function clientIp(request: Request, env?: Env): string {
+  // Simulate distinct callers in the local integration suite only. Production
+  // always uses Cloudflare's connection IP, never a client-controlled header.
+  const testIp = env?.ENVIRONMENT === 'test' ? request.headers.get('x-test-client-ip') : null;
+  if (testIp) return testIp;
   const direct = request.headers.get('cf-connecting-ip');
   if (direct) return direct;
   const forwarded = request.headers.get('x-forwarded-for');
@@ -125,6 +148,10 @@ export default {
 
     if (pathname === '/api/comments' || pathname.startsWith('/api/comments/')) {
       return handleComments(request, env, url);
+    }
+
+    if (pathname === '/api/milestones' || pathname.startsWith('/api/milestones/')) {
+      return handleReactions(request, env, url);
     }
 
     if (pathname.startsWith('/api/')) return fail('not_found', 404);
@@ -164,9 +191,46 @@ async function routeComments(request: Request, env: Env, url: URL): Promise<Resp
     const id = decodeURIComponent(parts[1] ?? '');
     if (request.method !== 'POST') return fail('method_not_allowed', 405);
     if (!id) return fail('invalid_id', 400);
-    const result = await pageRoom(env, page).report(id);
+    const result = await pageRoom(env, page).report(id, clientIp(request, env));
     if (!result.found) return fail('not_found', 404);
     return json(result);
+  }
+
+  // Explicit reading translation is only available for a known milestone page.
+  // It uses a separate DO cache and never reads `comments.translation`, which
+  // remains private to the fail-closed moderation pipeline.
+  if (parts.length === 3 && parts[2] === 'translate') {
+    if (request.method !== 'POST') return fail('method_not_allowed', 405);
+    let id: string;
+    try {
+      id = decodeURIComponent(parts[1] ?? '');
+    } catch {
+      return fail('invalid_id', 400);
+    }
+    if (!id) return fail('invalid_id', 400);
+    const milestoneLocale = milestonePageLocale(page);
+    if (!milestoneLocale) return fail('not_found', 404);
+    const payload = await readJson(request);
+    if (!payload) return fail('invalid_payload', 400);
+    if (payload.targetLocale !== 'en' && payload.targetLocale !== 'es') {
+      return fail('invalid_target_locale', 400);
+    }
+    if (payload.targetLocale !== milestoneLocale) return fail('invalid_target_locale', 400);
+    const room = pageRoom(env, page);
+    if (!(await room.consumeReadingTranslationAllowance(clientIp(request, env)))) {
+      return fail('rate_limited', 429);
+    }
+    const result = await room.translateForReading({
+      page,
+      commentId: id,
+      targetLocale: payload.targetLocale,
+    });
+    if (result.status === 'not_found') return fail('not_found', 404);
+    if (result.status === 'unsupported_source') return fail('unsupported_language', 422);
+    if (result.status === 'paused' || result.status === 'unavailable') {
+      return fail('translation_unavailable', 503);
+    }
+    return json({ translation: result.translation, cached: result.cached });
   }
 
   if (parts.length !== 1) return fail('not_found', 404);
@@ -189,6 +253,17 @@ async function routeComments(request: Request, env: Env, url: URL): Promise<Resp
   return fail('method_not_allowed', 405);
 }
 
+/** Return the locale only for an exact, canonical milestone comment page id. */
+function milestonePageLocale(page: string): 'en' | 'es' | null {
+  const segments = page.split('/').filter(Boolean);
+  const id = segments.length === 2 && segments[0] === 'evolution'
+    ? segments[1]
+    : segments.length === 3 && segments[0] === 'es' && segments[1] === 'evolution'
+      ? segments[2]
+      : null;
+  return id && isKnownMilestoneId(id) ? (segments[0] === 'es' ? 'es' : 'en') : null;
+}
+
 async function handleCreate(request: Request, env: Env, page: string): Promise<Response> {
   const payload = await readJson(request);
   if (!payload) return fail('invalid_payload', 400);
@@ -201,15 +276,26 @@ async function handleCreate(request: Request, env: Env, page: string): Promise<R
   const honeypot = typeof payload.website === 'string' ? payload.website.trim() : '';
   if (honeypot.length > 0) return fail('rejected', 400);
 
-  const remoteIp = clientIp(request);
+  const remoteIp = clientIp(request, env);
   const turnstile = await verifyTurnstile(env, payload.turnstileToken, remoteIp);
   if (turnstile === 'unconfigured') return fail('comments_unavailable', 503);
   if (turnstile === 'failed') return fail('turnstile_failed', 403);
 
   const name = typeof payload.name === 'string' ? payload.name : null;
   const lang = typeof payload.lang === 'string' ? payload.lang : '';
+  const parentId = typeof payload.parentId === 'string' ? payload.parentId : null;
+  const evidenceAnchor = typeof payload.evidenceAnchor === 'string' ? payload.evidenceAnchor : null;
 
-  const result = await pageRoom(env, page).create({ page, name, body, lang, ip: remoteIp });
+  const result = await pageRoom(env, page).create({
+    page,
+    name,
+    body,
+    lang,
+    ip: remoteIp,
+    parentId,
+    evidenceAnchor,
+  });
+  if (result.status === 'rejected') return fail(result.reason, 400);
   if (result.reason === 'invalid_body') return fail('invalid_body', 400);
   if (result.reason === 'rate_limited') return fail('rate_limited', 429);
   return json({ status: result.status, comment: result.comment, reason: result.reason }, 201);
@@ -218,6 +304,19 @@ async function handleCreate(request: Request, env: Env, page: string): Promise<R
 async function handleModeration(request: Request, env: Env, pathname: string): Promise<Response> {
   if (!env.COMMENTS_ADMIN_TOKEN) return fail('admin_unconfigured', 503);
   if (!adminAuthorized(request, env)) return fail('unauthorized', 401);
+
+  // Storage-level erasure assertion used only by the local integration suite.
+  // Production cannot activate it, and the result contains booleans/counts only.
+  const testErasurePrefix = '/api/moderation/__test-erasure/';
+  if (pathname.startsWith(testErasurePrefix)) {
+    if (env.ENVIRONMENT !== 'test' || request.method !== 'GET') return fail('not_found', 404);
+    const id = decodeURIComponent(pathname.slice(testErasurePrefix.length));
+    if (!id || id.includes('/')) return fail('invalid_id', 400);
+    const page = await moderationRoom(env).pageOf(id);
+    if (!page) return fail('not_found', 404);
+    const erased = await pageRoom(env, page).inspectErasureForTest(id);
+    return erased ? json(erased) : fail('not_found', 404);
+  }
 
   if (pathname === '/api/moderation/queue') {
     if (request.method !== 'GET') return fail('method_not_allowed', 405);
@@ -245,4 +344,94 @@ async function handleModeration(request: Request, env: Env, pathname: string): P
 
 function budgetRoom(env: Env): CommentsRoom {
   return env.COMMENTS.get<CommentsRoom>(env.COMMENTS.idFromName(BUDGET_ROOM_NAME));
+}
+
+// --- Milestone reactions (one anonymous ❤️ per milestone) --------------------
+
+async function handleReactions(request: Request, env: Env, url: URL): Promise<Response> {
+  const response = await routeReactions(request, env, url);
+  return withCors(response, request.headers.get('origin'), REACTION_CORS);
+}
+
+/**
+ * `/api/milestones/:milestoneId/reaction`.
+ *
+ * The id is the CANONICAL milestone id from `data/evolution.json`, never the
+ * locale-prefixed page id, so the EN and ES routes of one milestone share a
+ * single counter and a single idempotency space.
+ *
+ *   GET    -> public count + whether the caller's nonce holds a reaction
+ *   PUT    -> idempotent add (repeat PUT never increments twice)
+ *   DELETE -> idempotent remove (safe when nothing was there)
+ *
+ * The opaque anonymous nonce travels in the `x-reaction-nonce` header — never
+ * in the URL, so it cannot leak through logs, referrers or share previews — and
+ * is hashed with a per-room secret before it touches storage. No response ever
+ * echoes the nonce, the IP or the stored hash.
+ */
+async function routeReactions(request: Request, env: Env, url: URL): Promise<Response> {
+  const rest = url.pathname.slice('/api/milestones/'.length);
+  const parts = rest.split('/');
+
+  let rawId = parts[0] ?? '';
+  try {
+    rawId = decodeURIComponent(rawId);
+  } catch {
+    return fail('invalid_milestone', 400);
+  }
+  const milestone = normalizeMilestoneId(rawId);
+  if (!milestone) return fail('invalid_milestone', 400);
+  if (parts.length !== 2 || parts[1] !== 'reaction') return fail('not_found', 404);
+  // Existence gate (Phase 0): a well-formed slug that is not a canonical
+  // milestone must not mint a reaction room. The static detail route already
+  // 404s for an unknown id, so the API answers the same 404 rather than
+  // returning a fabricated `count: 0` for a page that does not exist.
+  if (!isKnownMilestoneId(milestone)) return fail('unknown_milestone', 404);
+
+  // CORS preflight. The nonce header makes the cross-origin request non-simple,
+  // so the browser preflights it; `withCors` attaches the widened headers.
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204 });
+
+  const room = reactionRoom(env, milestone);
+  const nonce = readNonce(request);
+
+  if (request.method === 'GET') {
+    const state = await room.reactionState({ milestone, nonce });
+    return json({ milestone, count: state.count, reacted: state.reacted });
+  }
+
+  if (request.method === 'PUT') {
+    if (!nonce) return fail('invalid_nonce', 400);
+    const result = await room.react({ milestone, nonce, ip: clientIp(request, env) });
+    if (result.rateLimited) return fail('rate_limited', 429);
+    return json({ milestone, count: result.count, reacted: result.reacted });
+  }
+
+  if (request.method === 'DELETE') {
+    if (!nonce) return fail('invalid_nonce', 400);
+    const result = await room.unreact({ nonce });
+    return json({ milestone, count: result.count, reacted: result.reacted });
+  }
+
+  return fail('method_not_allowed', 405);
+}
+
+/**
+ * The anonymous nonce, validated but never trusted. A well-formed opaque token
+ * is returned for hashing; an absent or malformed one is treated as absent (a
+ * GET still answers the count, a PUT/DELETE is refused as `invalid_nonce`).
+ */
+function readNonce(request: Request): string | null {
+  const raw = request.headers.get('x-reaction-nonce');
+  if (!raw) return null;
+  const nonce = raw.trim();
+  if (nonce.length < REACTION_NONCE_MIN_LENGTH || nonce.length > REACTION_NONCE_MAX_LENGTH) {
+    return null;
+  }
+  return /^[A-Za-z0-9_-]+$/.test(nonce) ? nonce : null;
+}
+
+/** One room per canonical milestone id, shared by every locale. */
+function reactionRoom(env: Env, milestone: string): CommentsRoom {
+  return env.COMMENTS.get<CommentsRoom>(env.COMMENTS.idFromName(`reactions:${milestone}`));
 }

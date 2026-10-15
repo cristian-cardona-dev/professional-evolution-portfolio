@@ -23,7 +23,7 @@
  */
 import type { Copy, Locale } from '../i18n/copy';
 import type { Milestone } from '../lib/data';
-import { milestoneProjects, milestonesByDateDesc, milestoneTitle } from '../lib/data';
+import { milestoneProjects, milestoneNarrative, milestonesByDateDesc, milestoneTitle } from '../lib/data';
 import { route } from '../lib/urls';
 
 interface Props {
@@ -62,22 +62,29 @@ function groupByYear(entries: Milestone[]) {
   return [...years.entries()].map(([year, items]) => ({ year, items }));
 }
 
-/* The two halves of the timeline. `id` is only used to build the aria hook of
-   each heading, so the two can never collide in one document. */
+/* Keep unreviewed git candidates outside the completed/planned groups. `id` is
+   only used to build the aria hook of each heading. */
 const sections = [
   {
     id: 'completed',
     heading: copy.evolution.completedHeading,
     note: copy.evolution.completedNote,
     modifier: 'timeline__section--done',
-    milestones: visible.filter((milestone) => milestone.status !== 'planned'),
+    milestones: visible.filter((milestone) => milestone.source !== 'git' && milestone.status !== 'planned'),
+  },
+  {
+    id: 'candidates',
+    heading: copy.evolution.candidateHeading,
+    note: copy.evolution.candidateNote,
+    modifier: 'timeline__section--candidate',
+    milestones: visible.filter((milestone) => milestone.source === 'git'),
   },
   {
     id: 'ahead',
     heading: copy.evolution.directionAheadHeading,
     note: copy.evolution.directionAheadNote,
     modifier: 'timeline__section--ahead',
-    milestones: visible.filter((milestone) => milestone.status === 'planned'),
+    milestones: visible.filter((milestone) => milestone.source !== 'git' && milestone.status === 'planned'),
   },
 ].filter((section) => section.milestones.length > 0);
 
@@ -143,19 +150,26 @@ function evidenceLabel(url: string): string {
                           <time class="timeline__date tabular" datetime={milestone.date}>
                             {dateFormat.format(new Date(`${milestone.date}T00:00:00Z`))}
                           </time>
-                          <span class={`chip ${statusVariant[milestone.status]}`}>
-                            {statusLabel[milestone.status]}
-                          </span>
+                          {milestone.source !== 'git' && (
+                            <span class={`chip ${statusVariant[milestone.status]}`}>
+                              {statusLabel[milestone.status]}
+                            </span>
+                          )}
                           <span class="chip chip--neutral timeline__source">
                             {copy.evolution.sourceLabel[milestone.source]}
                           </span>
                         </div>
 
                         <h4 class="timeline__title" id={`${milestone.id}-title`}>
-                          {milestoneTitle(milestone, locale)}
+                          <a
+                            class="timeline__title-link"
+                            href={route(locale, `evolution/${milestone.id}/`)}
+                          >
+                            {milestoneTitle(milestone, locale)}
+                          </a>
                         </h4>
 
-                        <p class="timeline__narrative">{milestone.narrative}</p>
+                        <p class="timeline__narrative">{milestoneNarrative(milestone, locale)}</p>
 
                         {related.length > 0 && (
                           <p class="timeline__related">
@@ -382,6 +396,20 @@ function evidenceLabel(url: string): string {
   .timeline__title {
     font-size: var(--text-lg);
     line-height: var(--leading-lg);
+  }
+
+  .timeline__title-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .timeline__title-link:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+  }
+
+  .timeline__section--ahead .timeline__title-link {
+    color: inherit;
   }
 
   .timeline__narrative {

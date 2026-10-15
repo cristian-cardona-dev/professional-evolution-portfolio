@@ -1,11 +1,12 @@
 ---
 /**
- * Comment UI (spec 9) — form, list, translation badge, report link, GDPR note.
+ * Comment UI (spec 9) — form, list, translation badge, report link, GDPR note,
+ * and one-level threaded replies.
  *
  * Rendered by the content views (`Work`, `Career`, `Evolution`, `BuildNotes`,
- * `CaseStudy`) for the routes `config/comments.json` enables; for every other
- * route the component renders nothing at all, so a page without comments is
- * byte-identical to before this feature.
+ * `CaseStudy`, `MilestonePost`) for the routes `config/comments.json` enables;
+ * for every other route the component renders nothing at all, so a page without
+ * comments is byte-identical to before this feature.
  *
  * Honest degradation, in this order:
  *   1. `comments.json` does not list the route -> nothing is rendered.
@@ -34,9 +35,14 @@ interface Props {
   copy: Copy;
   /** Locale-less route path, e.g. `work/cloud-dashboard/`. */
   path: string;
+  /** Optional evidence anchor context (e.g. "evidence-2") for the composer. */
+  evidenceAnchor?: string;
+  /** On-demand reading translations are restricted to milestone discussion pages. */
+  enableReadingTranslation?: boolean;
 }
 
-const { locale, copy, path } = Astro.props;
+const { locale, copy, path, evidenceAnchor, enableReadingTranslation = false } = Astro.props;
+const evidenceContext = evidenceAnchor ? copy.comments.replyingToEvidence.replace('{anchor}', evidenceAnchor) : '';
 
 const enabled = commentsEnabled(path);
 const pageId = commentsPageId(locale, path);
@@ -48,12 +54,6 @@ const endpoint = `${apiBase}/api/comments/${encodeURIComponent(pageId)}`;
 const mailtoSubject = locale === 'es' ? 'Comentario sobre tu portfolio' : 'Comment on your portfolio';
 const mailto = `mailto:${profile.email}?subject=${encodeURIComponent(mailtoSubject)}`;
 
-/** The three rendered "translated from <language>" labels the client picks from. */
-const translatedFrom = {
-  en: copy.comments.translatedFrom(copy.comments.langEn),
-  es: copy.comments.translatedFrom(copy.comments.langEs),
-  other: copy.comments.translatedFrom(copy.comments.langOther),
-};
 ---
 
 {
@@ -70,13 +70,16 @@ const translatedFrom = {
       data-max-length="2000"
       data-anonymous={copy.comments.anonymous}
       data-report={copy.comments.report}
+      data-reading-translation={enableReadingTranslation ? 'true' : 'false'}
+      data-translate={copy.comments.viewTranslation}
       data-view-original={copy.comments.viewOriginal}
-      data-view-translation={copy.comments.viewTranslation}
       data-translation-unavailable={copy.comments.translationUnavailable}
-      data-translation-paused={copy.comments.translationPaused}
-      data-translated-from-en={translatedFrom.en}
-      data-translated-from-es={translatedFrom.es}
-      data-translated-from-other={translatedFrom.other}
+      data-machine-translated={copy.comments.machineTranslated}
+      data-translation-loading={copy.comments.translationLoading}
+      data-translation-error={copy.comments.translationError}
+      data-translation-fallback={copy.comments.translationFallback}
+      data-translation-ready={copy.comments.translationReady}
+      data-original-shown={copy.comments.originalShown}
       data-submit={copy.comments.submit}
       data-submitting={copy.comments.submitting}
       data-turnstile-blocked={copy.comments.turnstileBlocked}
@@ -92,6 +95,17 @@ const translatedFrom = {
       data-presence-template={copy.comments.presenceTemplate}
       data-reconnecting={copy.comments.reconnecting}
       data-new-comment={copy.comments.newComment}
+      data-reply={copy.comments.reply}
+      data-replying-to={copy.comments.replyingTo}
+      data-replying-to-evidence={copy.comments.replyingToEvidence}
+      data-cancel-reply={copy.comments.cancelReply}
+      data-submit-reply={copy.comments.submitReply}
+      data-reply-posted={copy.comments.replyPosted}
+      data-reply-queued={copy.comments.replyQueued}
+      data-removed-parent={copy.comments.removedParent}
+      data-reply-depth-hint={copy.comments.replyDepthHint}
+      data-evidence-anchor={evidenceAnchor || ''}
+      data-evidence-context={evidenceContext}
     >
       <div class="shell shell--narrow comments__inner">
         <header class="comments__head reveal">
@@ -116,10 +130,10 @@ const translatedFrom = {
           <p class="comments__empty" data-comments-empty hidden={!configured}>
             {copy.comments.empty}
           </p>
+          <noscript>
+            <p class="comments__translation-nojs">{copy.comments.translationNoJs}</p>
+          </noscript>
           <ul class="comments__list" data-comments-list aria-labelledby="comments-list-heading" />
-          <p class="comments__paused" data-comments-paused hidden>
-            {copy.comments.translationPaused}
-          </p>
         </div>
 
         <div class="comments__form-block">
@@ -138,6 +152,14 @@ const translatedFrom = {
             data-endpoint={endpoint}
           >
             <fieldset class="comments__fieldset" data-comments-fieldset disabled>
+              {evidenceContext && (
+                <p class="comments__evidence-context" data-comments-evidence-context>
+                  {evidenceContext}
+                </p>
+              )}
+              {!evidenceContext && (
+                <p class="comments__evidence-context" data-comments-evidence-context hidden />
+              )}
               {/* Honeypot: hidden from people, tempting to bots. */}
               <div class="comments__honeypot" aria-hidden="true">
                 <label for="comments-website">{copy.comments.honeypot}</label>
@@ -239,11 +261,22 @@ const translatedFrom = {
     const apiBase = root.dataset.apiBase || '';
     const page = root.dataset.page || '';
     const locale = root.dataset.locale === 'es' ? 'es' : 'en';
+    const readingTranslationEnabled = root.dataset.readingTranslation === 'true';
     const maxLength = Number(root.dataset.maxLength || '2000');
     const configured = root.dataset.configured === 'true';
     const presenceTemplate = root.dataset.presenceTemplate || '';
     const reconnectingText = root.dataset.reconnecting || '';
     const newCommentText = root.dataset.newComment || '';
+    const replyLabel = root.dataset.reply || 'Reply';
+    const replyingToTemplate = root.dataset.replyingTo || 'Replying to {name}';
+    const replyingToEvidenceTemplate = root.dataset.replyingToEvidence || 'Discussing {anchor}';
+    const cancelReplyLabel = root.dataset.cancelReply || 'Cancel';
+    const submitReplyLabel = root.dataset.submitReply || 'Post reply';
+    const replyPostedText = root.dataset.replyPosted || 'Reply published.';
+    const replyQueuedText = root.dataset.replyQueued || 'Thanks — your reply is waiting for review.';
+    const removedParentText = root.dataset.removedParent || 'Comment removed';
+    const replyDepthHint = root.dataset.replyDepthHint || 'Replies are limited to one level.';
+    let evidenceAnchor = root.dataset.evidenceAnchor || '';
 
     const form = root.querySelector('[data-comments-form]');
     const fieldset = root.querySelector('[data-comments-fieldset]');
@@ -257,7 +290,6 @@ const translatedFrom = {
     const langSelect = root.querySelector('[data-comments-lang]');
     const submit = root.querySelector('[data-comments-submit]');
     const unavailable = root.querySelector('[data-comments-unavailable]');
-    const paused = root.querySelector('[data-comments-paused]');
     const turnstileSlot = root.querySelector('[data-comments-turnstile]');
     const presenceEl = root.querySelector('[data-comments-presence]');
     const reconnectEl = root.querySelector('[data-comments-reconnect]');
@@ -302,71 +334,108 @@ const translatedFrom = {
       reconnectEl.hidden = !on;
     };
 
-    const translatedFromLabel = (lang) => {
-      if (lang === 'en') return root.dataset.translatedFromEn;
-      if (lang === 'es') return root.dataset.translatedFromEs;
-      return root.dataset.translatedFromOther;
+    const formatDate = (timestamp) => {
+      const date = new Date(timestamp);
+      return date.toLocaleString(locale === 'es' ? 'es-ES' : 'en-GB');
     };
 
-    const renderComment = (comment) => {
-      const item = document.createElement('li');
-      item.className = 'comment';
-      item.dataset.commentId = comment.id;
-
-      const head = document.createElement('div');
-      head.className = 'comment__head';
-
-      const who = document.createElement('span');
-      who.className = 'comment__name';
-      who.textContent = comment.name || root.dataset.anonymous;
-
-      const when = document.createElement('time');
-      when.className = 'comment__time';
-      const date = new Date(comment.created_at);
-      when.dateTime = date.toISOString();
-      when.textContent = date.toLocaleString(locale === 'es' ? 'es-ES' : 'en-GB');
-
-      head.append(who, when);
-
+    /**
+     * Render source text by default and an explicit on-demand translation
+     * control. The same behavior is reused for top-level comments and replies.
+     */
+    const renderCommentBody = (comment) => {
       const text = document.createElement('p');
       text.className = 'comment__body';
       const original = String(comment.body || '');
-      const translation = typeof comment.translation === 'string' ? comment.translation : '';
-      text.textContent = translation || original;
+      text.textContent = original;
 
-      item.append(head, text);
+      const meta = document.createElement('p');
+      meta.className = 'comment__meta';
+      const live = document.createElement('p');
+      live.className = 'comment__translation-status';
+      live.setAttribute('role', 'status');
+      live.setAttribute('aria-live', 'polite');
+      live.setAttribute('aria-atomic', 'true');
+      live.hidden = true;
 
-      if (comment.source_lang && comment.source_lang !== locale) {
-        const meta = document.createElement('p');
-        meta.className = 'comment__meta';
-        if (translation) {
-          const badge = document.createElement('span');
-          badge.className = 'chip chip--neutral comment__badge';
-          badge.textContent = translatedFromLabel(comment.source_lang);
+      if (
+        readingTranslationEnabled &&
+        comment.source_lang &&
+        comment.source_lang !== locale
+      ) {
+        if (comment.source_lang === 'en' || comment.source_lang === 'es') {
+          const machineLabel = document.createElement('span');
+          machineLabel.className = 'chip chip--neutral comment__badge';
+          machineLabel.textContent = root.dataset.machineTranslated || '';
+          machineLabel.hidden = true;
 
           const toggle = document.createElement('button');
           toggle.type = 'button';
           toggle.className = 'comment__toggle';
-          let showingTranslation = true;
-          toggle.textContent = root.dataset.viewOriginal;
-          toggle.addEventListener('click', () => {
-            showingTranslation = !showingTranslation;
-            text.textContent = showingTranslation ? translation : original;
-            toggle.textContent = showingTranslation
-              ? root.dataset.viewOriginal
-              : root.dataset.viewTranslation;
+          toggle.textContent = root.dataset.translate || 'Translate';
+          let translation = '';
+          let showingTranslation = false;
+
+          toggle.addEventListener('click', async () => {
+            if (translation) {
+              showingTranslation = !showingTranslation;
+              text.textContent = showingTranslation ? translation : original;
+              machineLabel.hidden = !showingTranslation;
+              toggle.textContent = showingTranslation
+                ? root.dataset.viewOriginal
+                : root.dataset.translate;
+              live.textContent = showingTranslation
+                ? root.dataset.translationReady
+                : root.dataset.originalShown;
+              live.hidden = false;
+              return;
+            }
+
+            toggle.disabled = true;
+            toggle.textContent = root.dataset.translationLoading || '';
+            live.textContent = root.dataset.translationLoading || '';
+            live.hidden = false;
+            try {
+              const response = await fetch(
+                `${endpoint}/${encodeURIComponent(comment.id)}/translate`,
+                {
+                  method: 'POST',
+                  headers: { 'content-type': 'application/json', accept: 'application/json' },
+                  body: JSON.stringify({ targetLocale: locale }),
+                },
+              );
+              if (!response.ok) throw new Error('translation unavailable');
+              const data = await response.json();
+              if (typeof data.translation !== 'string' || data.translation.trim().length === 0) {
+                throw new Error('empty translation');
+              }
+              translation = data.translation;
+              showingTranslation = true;
+              text.textContent = translation;
+              machineLabel.hidden = false;
+              toggle.textContent = root.dataset.viewOriginal || '';
+              live.textContent = root.dataset.translationReady || '';
+            } catch {
+              text.textContent = original;
+              machineLabel.hidden = true;
+              toggle.textContent = root.dataset.translate || 'Translate';
+              live.textContent = `${root.dataset.translationError || ''} ${root.dataset.translationFallback || ''}`.trim();
+            } finally {
+              toggle.disabled = false;
+            }
           });
 
-          meta.append(badge, toggle);
+          meta.append(toggle, machineLabel);
         } else {
           meta.classList.add('comment__meta--notice');
           meta.textContent = root.dataset.translationUnavailable;
         }
-        item.append(meta);
       }
 
-      const actions = document.createElement('p');
-      actions.className = 'comment__actions';
+      return { text, meta, live };
+    };
+
+    const renderReportButton = (comment) => {
       const report = document.createElement('button');
       report.type = 'button';
       report.className = 'comment__report';
@@ -386,21 +455,268 @@ const translatedFrom = {
           setStatus(root.dataset.statusReportError);
         }
       });
-      actions.append(report);
+      return report;
+    };
+
+    /**
+     * Render one comment node. `depth` is 0 for roots, 1 for replies. Replies
+     * do not get a reply button: the UI enforces one level.
+     */
+    const renderComment = (comment, depth = 0) => {
+      const item = document.createElement('li');
+      item.className = `comment ${depth === 1 ? 'comment--reply' : 'comment--root'}`;
+      item.dataset.commentId = comment.id;
+      if (comment.parent_id) item.dataset.parentId = comment.parent_id;
+
+      const head = document.createElement('div');
+      head.className = 'comment__head';
+
+      const who = document.createElement('span');
+      who.className = 'comment__name';
+      who.textContent = comment.name || root.dataset.anonymous;
+
+      const when = document.createElement('time');
+      when.className = 'comment__time';
+      when.dateTime = new Date(comment.created_at).toISOString();
+      when.textContent = formatDate(comment.created_at);
+
+      head.append(who, when);
+
+      const body = renderCommentBody(comment);
+
+      const actions = document.createElement('p');
+      actions.className = 'comment__actions';
+      actions.append(renderReportButton(comment));
+
+      item.append(head, body.text);
+      if (body.meta.childNodes.length > 0 || body.meta.textContent) item.append(body.meta);
+      item.append(body.live);
       item.append(actions);
+
+      if (depth === 0) {
+        const replyBlock = document.createElement('div');
+        replyBlock.className = 'comment__reply-block';
+
+        const replyBtn = document.createElement('button');
+        replyBtn.type = 'button';
+        replyBtn.className = 'comment__reply';
+        replyBtn.textContent = replyLabel;
+        replyBtn.setAttribute('aria-expanded', 'false');
+        replyBtn.setAttribute('aria-controls', `reply-composer-${comment.id}`);
+
+        const composer = document.createElement('div');
+        composer.className = 'comment__composer';
+        composer.id = `reply-composer-${comment.id}`;
+        composer.hidden = true;
+
+        const context = document.createElement('p');
+        context.className = 'comment__reply-context';
+        context.textContent = replyingToTemplate.replace('{name}', comment.name || root.dataset.anonymous);
+
+        const hint = document.createElement('p');
+        hint.className = 'comment__reply-hint';
+        hint.textContent = replyDepthHint;
+
+        const textarea = document.createElement('textarea');
+        textarea.className = 'comments__input comments__input--textarea';
+        textarea.rows = 3;
+        textarea.maxLength = maxLength;
+        textarea.setAttribute('aria-label', replyingToTemplate.replace('{name}', comment.name || root.dataset.anonymous));
+
+        const footer = document.createElement('div');
+        footer.className = 'comment__reply-footer';
+
+        const cancel = document.createElement('button');
+        cancel.type = 'button';
+        cancel.className = 'button button--ghost';
+        cancel.textContent = cancelReplyLabel;
+
+        const post = document.createElement('button');
+        post.type = 'button';
+        post.className = 'button button--primary';
+        post.textContent = submitReplyLabel;
+
+        footer.append(cancel, post);
+        composer.append(context, hint, textarea, footer);
+        replyBlock.append(replyBtn, composer);
+        item.append(replyBlock);
+
+        const closeComposer = () => {
+          composer.hidden = true;
+          replyBtn.setAttribute('aria-expanded', 'false');
+          textarea.value = '';
+        };
+        const openComposer = () => {
+          composer.hidden = false;
+          replyBtn.setAttribute('aria-expanded', 'true');
+          textarea.focus();
+        };
+
+        replyBtn.addEventListener('click', openComposer);
+        cancel.addEventListener('click', closeComposer);
+
+        const submitReply = async () => {
+          const text = textarea.value.trim();
+          if (text.length === 0 || text.length > maxLength) {
+            setStatus(root.dataset.statusInvalidBody);
+            textarea.focus();
+            return;
+          }
+          if (!turnstileToken) {
+            setStatus(root.dataset.turnstileBlocked);
+            return;
+          }
+          post.disabled = true;
+          post.textContent = root.dataset.submitting;
+          setStatus('');
+          try {
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', accept: 'application/json' },
+              body: JSON.stringify({
+                body: text,
+                name: nameInput ? nameInput.value : '',
+                lang: langSelect ? langSelect.value : '',
+                website: (root.querySelector('[name="website"]') || {}).value || '',
+                turnstileToken,
+                parentId: comment.id,
+              }),
+            });
+            if (response.status === 429) {
+              setStatus(root.dataset.statusRateLimited);
+              return;
+            }
+            if (response.status === 400) {
+              // The client already validated body length; a 400 here is almost
+              // always a parent validation error (removed, too deep, etc.).
+              setStatus(root.dataset.statusLoadError);
+              return;
+            }
+            if (response.status === 403 || response.status === 503) {
+              setStatus(root.dataset.statusInvalidToken);
+              return;
+            }
+            if (!response.ok) throw new Error('post failed');
+            const data = await response.json();
+            if (data.status === 'published' && data.comment) {
+              addComment(data.comment, false);
+              setStatus(replyPostedText);
+              setLive(replyPostedText);
+            } else {
+              setStatus(replyQueuedText);
+            }
+            closeComposer();
+            turnstileToken = '';
+            if (window.turnstile && turnstileSlot) {
+              try {
+                window.turnstile.reset(turnstileSlot);
+              } catch {
+                /* a stale widget must not block the next submission */
+              }
+            }
+          } catch {
+            setStatus(root.dataset.statusLoadError);
+          } finally {
+            post.disabled = false;
+            post.textContent = submitReplyLabel;
+          }
+        };
+        post.addEventListener('click', submitReply);
+      }
+
+      const repliesList = document.createElement('ul');
+      repliesList.className = 'comment__replies';
+      repliesList.setAttribute('aria-label', `${replyLabel}: ${comment.name || root.dataset.anonymous}`);
+      item.append(repliesList);
 
       return item;
     };
 
+    const renderTombstone = (replies) => {
+      const item = document.createElement('li');
+      item.className = 'comment comment--tombstone';
+
+      const notice = document.createElement('p');
+      notice.className = 'comment__tombstone';
+      notice.textContent = removedParentText;
+
+      const repliesList = document.createElement('ul');
+      repliesList.className = 'comment__replies';
+      for (const reply of replies) {
+        repliesList.append(renderComment(reply, 1));
+      }
+
+      item.append(notice, repliesList);
+      return item;
+    };
+
     /**
-     * Add one comment to the top of the list. Returns false when the comment is
+     * Build a threaded view from a flat list. Replies whose parent is missing
+     * (removed, pending or flagged) are gathered under an honest tombstone so
+     * the conversation does not silently lose context.
+     */
+    const renderThread = (comments) => {
+      if (!list) return;
+      const byId = new Map();
+      for (const comment of comments) byId.set(comment.id, comment);
+      const children = new Map();
+      const orphans = [];
+      for (const comment of comments) {
+        if (comment.parent_id) {
+          if (byId.has(comment.parent_id)) {
+            if (!children.has(comment.parent_id)) children.set(comment.parent_id, []);
+            children.get(comment.parent_id).push(comment);
+          } else {
+            orphans.push(comment);
+          }
+        }
+      }
+      list.replaceChildren();
+      for (const comment of comments) {
+        if (comment.parent_id) continue;
+        const rootItem = renderComment(comment, 0);
+        const replies = children.get(comment.id) || [];
+        const replyList = rootItem.querySelector('.comment__replies');
+        for (const reply of replies) {
+          replyList.append(renderComment(reply, 1));
+        }
+        list.append(rootItem);
+      }
+      if (orphans.length > 0) {
+        list.append(renderTombstone(orphans));
+      }
+      if (empty) empty.hidden = comments.length > 0;
+    };
+
+    /**
+     * Add one comment to the live list. Returns false when the comment is
      * already rendered, so a comment that arrives both by REST and by the socket
      * is never shown twice. `announce` writes to the polite live region.
      */
     const addComment = (comment, announce) => {
       if (!list || !comment || typeof comment.id !== 'string') return false;
       if (list.querySelector(`[data-comment-id="${comment.id}"]`)) return false;
-      list.prepend(renderComment(comment));
+
+      if (!comment.parent_id) {
+        list.prepend(renderComment(comment, 0));
+        if (empty) empty.hidden = true;
+        if (announce && newCommentText) setLive(newCommentText);
+        return true;
+      }
+
+      const parent = list.querySelector(`[data-comment-id="${comment.parent_id}"]`);
+      if (parent) {
+        const replyList = parent.querySelector('.comment__replies');
+        if (replyList) {
+          replyList.prepend(renderComment(comment, 1));
+          if (announce && newCommentText) setLive(newCommentText);
+          return true;
+        }
+      }
+
+      // Reply to a parent that is not currently visible: render a tombstone.
+      const tombstone = renderTombstone([comment]);
+      list.prepend(tombstone);
       if (empty) empty.hidden = true;
       if (announce && newCommentText) setLive(newCommentText);
       return true;
@@ -418,10 +734,8 @@ const translatedFrom = {
         if (!response.ok) throw new Error('list failed');
         const data = await response.json();
         if (Array.isArray(data.comments)) {
-          list.replaceChildren(...data.comments.map(renderComment));
-          if (empty) empty.hidden = data.comments.length > 0;
+          renderThread(data.comments);
         }
-        if (paused) paused.hidden = !data.translation_paused;
         if (typeof data.presence === 'number') setPresence(data.presence);
         if (!silent) enableForm();
         return true;
@@ -469,76 +783,104 @@ const translatedFrom = {
       });
     }
 
-    if (form) {
-      form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const body = (bodyInput ? bodyInput.value : '').trim();
-        if (body.length === 0 || body.length > maxLength) {
+    const submitMainForm = async (event) => {
+      event.preventDefault();
+      const body = (bodyInput ? bodyInput.value : '').trim();
+      if (body.length === 0 || body.length > maxLength) {
+        setStatus(root.dataset.statusInvalidBody);
+        if (bodyInput) bodyInput.focus();
+        return;
+      }
+      if (!turnstileToken) {
+        setStatus(root.dataset.turnstileBlocked);
+        return;
+      }
+      if (submit) {
+        submit.disabled = true;
+        submit.textContent = root.dataset.submitting;
+      }
+      setStatus('');
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', accept: 'application/json' },
+          body: JSON.stringify({
+            body,
+            name: nameInput ? nameInput.value : '',
+            lang: langSelect ? langSelect.value : '',
+            website: (root.querySelector('[name="website"]') || {}).value || '',
+            turnstileToken,
+            evidenceAnchor: evidenceAnchor || undefined,
+          }),
+        });
+        if (response.status === 429) {
+          setStatus(root.dataset.statusRateLimited);
+          return;
+        }
+        if (response.status === 400) {
           setStatus(root.dataset.statusInvalidBody);
-          if (bodyInput) bodyInput.focus();
           return;
         }
-        if (!turnstileToken) {
-          setStatus(root.dataset.turnstileBlocked);
+        if (response.status === 403 || response.status === 503) {
+          setStatus(root.dataset.statusInvalidToken);
           return;
         }
+        if (!response.ok) throw new Error('post failed');
+        const data = await response.json();
+        if (data.status === 'published' && data.comment) {
+          addComment(data.comment, false);
+          setStatus(root.dataset.statusPosted);
+          setLive(root.dataset.statusPosted);
+        } else {
+          setStatus(root.dataset.statusQueued);
+        }
+        if (bodyInput) bodyInput.value = '';
+        if (counter) counter.textContent = `0/${maxLength}`;
+        turnstileToken = '';
+        if (window.turnstile && turnstileSlot) {
+          try {
+            window.turnstile.reset(turnstileSlot);
+          } catch {
+            /* a stale widget must not block the next submission */
+          }
+        }
+      } catch {
+        setStatus(root.dataset.statusLoadError);
+      } finally {
         if (submit) {
-          submit.disabled = true;
-          submit.textContent = root.dataset.submitting;
+          submit.disabled = false;
+          submit.textContent = root.dataset.submit;
         }
-        setStatus('');
-        try {
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json', accept: 'application/json' },
-            body: JSON.stringify({
-              body,
-              name: nameInput ? nameInput.value : '',
-              lang: langSelect ? langSelect.value : '',
-              website: (root.querySelector('[name="website"]') || {}).value || '',
-              turnstileToken,
-            }),
-          });
-          if (response.status === 429) {
-            setStatus(root.dataset.statusRateLimited);
-            return;
-          }
-          if (response.status === 400) {
-            setStatus(root.dataset.statusInvalidBody);
-            return;
-          }
-          if (response.status === 403 || response.status === 503) {
-            setStatus(root.dataset.statusInvalidToken);
-            return;
-          }
-          if (!response.ok) throw new Error('post failed');
-          const data = await response.json();
-          if (data.status === 'published' && data.comment) {
-            addComment(data.comment, false);
-            setStatus(root.dataset.statusPosted);
-            setLive(root.dataset.statusPosted);
-          } else {
-            setStatus(root.dataset.statusQueued);
-          }
-          if (bodyInput) bodyInput.value = '';
-          if (counter) counter.textContent = `0/${maxLength}`;
-          turnstileToken = '';
-          if (window.turnstile && turnstileSlot) {
-            try {
-              window.turnstile.reset(turnstileSlot);
-            } catch {
-              /* a stale widget must not block the next submission */
-            }
-          }
-        } catch {
-          setStatus(root.dataset.statusLoadError);
-        } finally {
-          if (submit) {
-            submit.disabled = false;
-            submit.textContent = root.dataset.submit;
-          }
-        }
-      });
+      }
+    };
+
+    const setEvidenceContext = (anchor) => {
+      if (!form) return;
+      evidenceAnchor = anchor;
+      let context = form.querySelector('[data-comments-evidence-context]');
+      if (!context) {
+        context = document.createElement('p');
+        context.className = 'comments__evidence-context';
+        context.dataset.commentsEvidenceContext = '';
+        form.insertBefore(context, form.firstElementChild);
+      }
+      context.textContent = replyingToEvidenceTemplate.replace('{anchor}', anchor);
+      context.hidden = false;
+    };
+
+    document.addEventListener('click', (event) => {
+      const trigger = event.target.closest('[data-comments-trigger][data-evidence-anchor]');
+      if (!trigger) return;
+      event.preventDefault();
+      const anchor = trigger.dataset.evidenceAnchor;
+      if (!anchor) return;
+      setEvidenceContext(anchor);
+      root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (bodyInput) bodyInput.focus();
+    });
+
+    if (form) {
+      form.addEventListener('submit', submitMainForm);
     }
 
     // --- Realtime (F-B, spec 7) --------------------------------------------
@@ -622,7 +964,7 @@ const translatedFrom = {
           return;
         }
         if (!frame || typeof frame !== 'object') return;
-        if (frame.type === 'comment') {
+        if (frame.type === 'comment' || frame.type === 'reply') {
           if (frame.comment) addComment(frame.comment, true);
           if (typeof frame.presence === 'number') setPresence(frame.presence);
         } else if (frame.type === 'presence' && typeof frame.count === 'number') {
@@ -707,7 +1049,6 @@ const translatedFrom = {
   }
 
   .comments__empty,
-  .comments__paused,
   .comments__presence,
   .comments__reconnect {
     color: var(--color-text-muted);
@@ -721,13 +1062,6 @@ const translatedFrom = {
   .comments__reconnect {
     margin: 0;
     color: var(--color-warn);
-  }
-
-  .comments__paused {
-    padding: var(--space-3);
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
   }
 
   .comments__list {
@@ -744,6 +1078,31 @@ const translatedFrom = {
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
+  }
+
+  .comment--reply {
+    margin-inline-start: var(--space-6);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+  }
+
+  @media (max-width: 640px) {
+    .comment--reply {
+      margin-inline-start: var(--space-3);
+    }
+  }
+
+  .comment--tombstone {
+    padding: var(--space-3);
+    background-color: var(--color-surface);
+    border-style: dashed;
+  }
+
+  .comment__tombstone {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-style: italic;
+    font-size: var(--text-sm);
   }
 
   .comment__head {
@@ -781,8 +1140,16 @@ const translatedFrom = {
     color: var(--color-text-muted);
   }
 
+  .comment__translation-status,
+  .comments__translation-nojs {
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+
   .comment__toggle,
-  .comment__report {
+  .comment__report,
+  .comment__reply {
     min-height: 44px;
     padding: 0;
     background: none;
@@ -800,6 +1167,54 @@ const translatedFrom = {
 
   .comment__report {
     color: var(--color-text-muted);
+  }
+
+  .comment__reply-block {
+    margin-top: var(--space-3);
+  }
+
+  .comment__reply {
+    text-decoration: none;
+  }
+
+  .comment__reply[aria-expanded='true'] {
+    font-weight: 600;
+  }
+
+  .comment__composer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+    padding: var(--space-3);
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+
+  .comment__reply-context,
+  .comment__reply-hint {
+    margin: 0;
+    font-size: var(--text-sm);
+  }
+
+  .comment__reply-hint {
+    color: var(--color-text-muted);
+  }
+
+  .comment__reply-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .comment__replies {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: var(--space-3) 0 0;
+    padding: 0;
+    list-style: none;
   }
 
   .comments__unavailable {
@@ -909,5 +1324,16 @@ const translatedFrom = {
 
   .comments__nojs-heading {
     font-weight: 600;
+  }
+
+  .comments__evidence-context {
+    margin: 0;
+    padding: var(--space-3);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
   }
 </style>

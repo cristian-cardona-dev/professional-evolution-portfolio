@@ -21,3 +21,14 @@
   opacity: 1 !important;
   transform: none !important;
 }
+
+/*
+ * Milestone reactions: the count is live data fetched at runtime, so a
+ * full-page capture must not bake a particular number into a baseline. Only
+ * the dynamic count text is hidden here — the control itself stays in the DOM
+ * (this file is injected during screenshots only, never for the a11y gate),
+ * which is exactly the "exclude the dynamic area, not the control" contract.
+ */
+[data-reactions-count] {
+  visibility: hidden !important;
+}

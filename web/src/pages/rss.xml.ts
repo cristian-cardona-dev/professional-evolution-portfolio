@@ -54,7 +54,7 @@ export const GET: APIRoute = ({ site }) => {
     return [
       '    <item>',
       `      <title>${esc(milestone.title)}</title>`,
-      `      <link>${esc(`${evolutionUrl}#${milestone.id}-title`)}</link>`,
+      `      <link>${esc(absolute(`${base}evolution/${milestone.id}/`))}</link>`,
       `      <guid isPermaLink="false">${esc(milestone.id)}</guid>`,
       `      <pubDate>${pubDate(milestone.date)}</pubDate>`,
       `      <description><![CDATA[${cdata}]]></description>`,

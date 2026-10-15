@@ -9,7 +9,7 @@
  *
  *   work index · career · evolution · the three published case studies
  *   (work/ai-automation-workflow-lab/, work/ai-chat-app/, work/cloud-dashboard/)
- *   x 2 locales = 12 images
+ *   · and every evolution milestone x 2 locales
  *
  * The naming rule is `ogCardPath()` in `web/src/lib/urls.ts` — the pages pass
  * the same path to `BaseLayout`, and the check at the bottom of this script
@@ -52,6 +52,11 @@ const ROOT = resolve(SCRIPT_DIR, '..');
 const DIST = resolve(ROOT, 'web', 'dist');
 const OUT_DIR = resolve(DIST, 'og');
 
+const evolutionData = JSON.parse(readFileSync(resolve(ROOT, 'data', 'evolution.json'), 'utf8'));
+const MILESTONE_ROUTES = (evolutionData.milestones || []).map(
+  (milestone) => `evolution/${milestone.id}/`,
+);
+
 const WIDTH = 1200;
 const HEIGHT = 630;
 const MIN_BYTES = 2 * 1024;
@@ -75,6 +80,7 @@ const ROUTES = [
   'work/ai-automation-workflow-lab/',
   'work/ai-chat-app/',
   'work/cloud-dashboard/',
+  ...MILESTONE_ROUTES,
 ];
 
 /** `work/ai-chat-app/` -> `work-ai-chat-app`; mirrors `ogCardPath()`. */
