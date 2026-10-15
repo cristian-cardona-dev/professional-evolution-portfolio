@@ -1,0 +1,43 @@
+---
+/**
+ * Milestone detail route (en) — one static page per milestone in
+ * `data/evolution.json`, rendered by the shared `MilestonePost` view.
+ */
+import type { Locale } from '../../i18n/copy';
+import { getCopy } from '../../i18n/copy';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MilestonePost from '../../views/MilestonePost.astro';
+import { milestones, milestoneTitle } from '../../lib/data';
+import type { Milestone } from '../../lib/data';
+import { ogCardPath } from '../../lib/urls';
+
+interface Props {
+  milestone: Milestone;
+}
+
+export function getStaticPaths() {
+  return milestones.map((milestone) => ({
+    params: { id: milestone.id },
+    props: { milestone },
+  }));
+}
+
+const { milestone } = Astro.props;
+
+const locale: Locale = 'en';
+const copy = getCopy(locale);
+const title = milestoneTitle(milestone, locale);
+const description = milestone.narrative;
+---
+
+<BaseLayout
+  locale={locale}
+  title={title}
+  description={description}
+  ogType="article"
+  path={`evolution/${milestone.id}/`}
+  ogImagePath={ogCardPath(locale, `evolution/${milestone.id}/`)}
+  activeNav="evolution"
+>
+  <MilestonePost milestone={milestone} locale={locale} copy={copy} />
+</BaseLayout>

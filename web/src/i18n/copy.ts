@@ -191,6 +191,14 @@ export interface Copy {
     relatedLabel: string;
     /** Preview note used when the subset is "curated entries only". */
     curatedPreviewNote: string;
+    /** Back link from a milestone detail page to the full timeline. */
+    backToTimeline: string;
+    /** Heading above the evidence list on a milestone detail page. */
+    evidenceHeading: string;
+    /** Accessible label of the previous milestone link on a detail page. */
+    previousMilestone: string;
+    /** Accessible label of the next milestone link on a detail page. */
+    nextMilestone: string;
     /** Heading of the roadmap table on the evolution page. */
     roadmapHeading: string;
     /** One line under the roadmap heading. */
@@ -857,6 +865,10 @@ export const en: Copy = {
     relatedLabel: 'Related',
     curatedPreviewNote:
       'Showing the most recent hand-written milestones, delivered work first; unreviewed git candidates are on the full timeline.',
+    backToTimeline: 'Back to the timeline',
+    evidenceHeading: 'Evidence',
+    previousMilestone: 'Previous milestone',
+    nextMilestone: 'Next milestone',
     roadmapHeading: 'Roadmap by phase',
     roadmapNote:
       'Derived from the milestones themselves: each phase lists the focus it covered and the projects that supported it. Phases describe what happened; only "Direction ahead" describes what is intended.',
@@ -1356,6 +1368,10 @@ export const es: Copy = {
     relatedLabel: 'Relacionado',
     curatedPreviewNote:
       'Se muestran los hitos escritos a mano más recientes, con lo entregado primero; los candidatos de git sin revisar están en la línea de tiempo completa.',
+    backToTimeline: 'Volver a la línea de tiempo',
+    evidenceHeading: 'Evidencia',
+    previousMilestone: 'Hito anterior',
+    nextMilestone: 'Hito siguiente',
     roadmapHeading: 'Hoja de ruta por fase',
     roadmapNote:
       'Derivada de los propios hitos: cada fase muestra el foco que cubrió y los proyectos que lo respaldaron. Las fases describen lo que ocurrió; solo «Dirección por delante» describe lo que se pretende.',

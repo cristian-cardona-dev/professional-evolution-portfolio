@@ -202,7 +202,7 @@ const ogImageAlt = ogImagePath ? (title ?? copy.meta.title) : copy.meta.title;
   <body>
     <a class="skip-link" href="#main">{copy.a11y.skipToContent}</a>
 
-    <Header copy={copy} locale={locale} active={activeNav} />
+    <Header copy={copy} locale={locale} active={activeNav} path={path} />
 
     <main id="main">
       <slot />
