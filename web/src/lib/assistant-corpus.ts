@@ -12,10 +12,12 @@
  * and the two data-layer values the builder needs — `route` and
  * `milestoneTitle` — are injected through `AssistantCorpusEnv`.
  *
- * Nothing here is new behaviour: it is the v1 corpus exactly as it shipped, so
- * the assistant index bytes are unchanged. The extraction is verified by
- * diffing the serialized `data-assistant-index` of the built pages before and
- * after the move.
+ * English entries retain the v1 corpus behavior. Spanish milestone rows use
+ * their reviewed static narrative for weak-text matching and snippets, while
+ * keeping English title words in the strong-token list for canonical queries.
+ *
+ * The original extraction was verified by diffing serialized
+ * `data-assistant-index` values on built pages before and after the move.
  *
  * Everything below only ever *reads* the caller's data; the assistant has no
  * data of its own. The two additions to the raw fields are documented keyword
@@ -60,6 +62,14 @@ export function resolveMilestoneTitle(
   locale: Locale,
 ): string {
   return locale === 'es' && milestone.titleEs ? milestone.titleEs : milestone.title;
+}
+
+/** Selects the published static milestone narrative; it never translates at runtime. */
+export function resolveMilestoneNarrative(
+  milestone: Pick<Milestone, 'narrative' | 'narrativeEs'>,
+  locale: Locale,
+): string {
+  return locale === 'es' ? milestone.narrativeEs : milestone.narrative;
 }
 
 /** Badge chip variant per project status — mirrors `ProjectCard.astro`. */
@@ -240,9 +250,9 @@ export function buildAssistantEntries(
         ...KIND_TERMS.evolution,
         ...(STATUS_TERMS[milestone.status] ?? []),
       ]),
-      we: fold(milestone.narrative),
+      we: fold(resolveMilestoneNarrative(milestone, locale)),
       ti: title,
-      sn: clip(milestone.narrative),
+      sn: clip(resolveMilestoneNarrative(milestone, locale)),
       hr: env.route(locale, 'evolution/'),
       ba: copy.evolution[MILESTONE_LABEL_KEY[milestone.status]],
       bv: MILESTONE_BADGE[milestone.status],

@@ -34,6 +34,13 @@ function decodeHtml(value) {
     .replaceAll('&amp;', '&');
 }
 
+function excerpt(text, max = 160) {
+  if (text.length <= max) return text;
+  const head = text.slice(0, max);
+  const lastSpace = head.lastIndexOf(' ');
+  return `${(lastSpace > 0 ? head.slice(0, lastSpace) : head).trimEnd()}…`;
+}
+
 test('every milestone has EN and ES detail pages in the build output', () => {
   const missing = [];
   for (const milestone of milestones) {
@@ -60,6 +67,21 @@ test('milestone detail pages render their canonical static narrative in each loc
     }
   }
   assert.deepEqual(failures, [], failures.join('\n'));
+});
+
+test('Spanish home notes feed renders the reviewed Spanish milestone excerpt', () => {
+  const latestCurated = milestones
+    .filter((milestone) => milestone.source === 'curated')
+    .sort((a, b) =>
+      a.date === b.date ? a.id.localeCompare(b.id) : a.date < b.date ? 1 : -1,
+    )[0];
+  const html = readFileSync(join(DIST, 'es', 'index.html'), 'utf8');
+  const excerptRaw = html.match(/<p class="notes__excerpt"[^>]*>([\s\S]*?)<\/p>/)?.[1];
+
+  assert.ok(excerptRaw, 'Spanish home page contains a notes feed excerpt');
+  const actual = decodeHtml(excerptRaw);
+  assert.equal(actual, excerpt(latestCurated.narrativeEs));
+  assert.notEqual(actual, excerpt(latestCurated.narrative), 'English narrative must not leak into ES');
 });
 
 test('milestone comments explain the explicit translation and source-text no-JS fallback', () => {

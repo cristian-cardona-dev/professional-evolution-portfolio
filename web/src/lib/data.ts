@@ -16,7 +16,11 @@ import experienceJson from '../../../data/experience.json';
 import skillsJson from '../../../data/skills.json';
 import roadmapJson from '../../../data/roadmap.json';
 import type { AssistantEntry } from './assistant-search';
-import { buildAssistantEntries, resolveMilestoneTitle } from './assistant-corpus.ts';
+import {
+  buildAssistantEntries,
+  resolveMilestoneNarrative,
+  resolveMilestoneTitle,
+} from './assistant-corpus.ts';
 import { route } from './urls';
 import type { Copy, Locale } from '../i18n/copy';
 
@@ -247,7 +251,7 @@ export function milestoneTitle(milestone: Milestone, lang: Locale): string {
 
 /** Static editorial narrative for a detail route in the requested locale. */
 export function milestoneNarrative(milestone: Milestone, lang: Locale): string {
-  return lang === 'es' ? milestone.narrativeEs : milestone.narrative;
+  return resolveMilestoneNarrative(milestone, lang);
 }
 
 /** Projects a milestone links to, in `projects.json` order, unknown slugs dropped. */

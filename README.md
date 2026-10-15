@@ -91,5 +91,6 @@ contribution feed. Validate it with `npm run activity:check`.
 
 | Date | Version | Summary |
 |---|---|---|
+| 2026-10-15 | 0.2.1 | Use reviewed Spanish milestone narratives in home and assistant snippets. |
 | 2026-10-08 | 0.1.1 | Localize controlled labels and strengthen accessibility regressions. |
 | 2026-10-09 | 0.2.0 | Astro redesign pipeline, canonical data, assistant, SEO. |
