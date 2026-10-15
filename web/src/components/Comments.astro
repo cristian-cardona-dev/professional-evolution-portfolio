@@ -37,9 +37,11 @@ interface Props {
   path: string;
   /** Optional evidence anchor context (e.g. "evidence-2") for the composer. */
   evidenceAnchor?: string;
+  /** On-demand reading translations are restricted to milestone discussion pages. */
+  enableReadingTranslation?: boolean;
 }
 
-const { locale, copy, path, evidenceAnchor } = Astro.props;
+const { locale, copy, path, evidenceAnchor, enableReadingTranslation = false } = Astro.props;
 const evidenceContext = evidenceAnchor ? copy.comments.replyingToEvidence.replace('{anchor}', evidenceAnchor) : '';
 
 const enabled = commentsEnabled(path);
@@ -52,12 +54,6 @@ const endpoint = `${apiBase}/api/comments/${encodeURIComponent(pageId)}`;
 const mailtoSubject = locale === 'es' ? 'Comentario sobre tu portfolio' : 'Comment on your portfolio';
 const mailto = `mailto:${profile.email}?subject=${encodeURIComponent(mailtoSubject)}`;
 
-/** The three rendered "translated from <language>" labels the client picks from. */
-const translatedFrom = {
-  en: copy.comments.translatedFrom(copy.comments.langEn),
-  es: copy.comments.translatedFrom(copy.comments.langEs),
-  other: copy.comments.translatedFrom(copy.comments.langOther),
-};
 ---
 
 {
@@ -74,13 +70,16 @@ const translatedFrom = {
       data-max-length="2000"
       data-anonymous={copy.comments.anonymous}
       data-report={copy.comments.report}
+      data-reading-translation={enableReadingTranslation ? 'true' : 'false'}
+      data-translate={copy.comments.viewTranslation}
       data-view-original={copy.comments.viewOriginal}
-      data-view-translation={copy.comments.viewTranslation}
       data-translation-unavailable={copy.comments.translationUnavailable}
-      data-translation-paused={copy.comments.translationPaused}
-      data-translated-from-en={translatedFrom.en}
-      data-translated-from-es={translatedFrom.es}
-      data-translated-from-other={translatedFrom.other}
+      data-machine-translated={copy.comments.machineTranslated}
+      data-translation-loading={copy.comments.translationLoading}
+      data-translation-error={copy.comments.translationError}
+      data-translation-fallback={copy.comments.translationFallback}
+      data-translation-ready={copy.comments.translationReady}
+      data-original-shown={copy.comments.originalShown}
       data-submit={copy.comments.submit}
       data-submitting={copy.comments.submitting}
       data-turnstile-blocked={copy.comments.turnstileBlocked}
@@ -131,10 +130,10 @@ const translatedFrom = {
           <p class="comments__empty" data-comments-empty hidden={!configured}>
             {copy.comments.empty}
           </p>
+          <noscript>
+            <p class="comments__translation-nojs">{copy.comments.translationNoJs}</p>
+          </noscript>
           <ul class="comments__list" data-comments-list aria-labelledby="comments-list-heading" />
-          <p class="comments__paused" data-comments-paused hidden>
-            {copy.comments.translationPaused}
-          </p>
         </div>
 
         <div class="comments__form-block">
@@ -262,6 +261,7 @@ const translatedFrom = {
     const apiBase = root.dataset.apiBase || '';
     const page = root.dataset.page || '';
     const locale = root.dataset.locale === 'es' ? 'es' : 'en';
+    const readingTranslationEnabled = root.dataset.readingTranslation === 'true';
     const maxLength = Number(root.dataset.maxLength || '2000');
     const configured = root.dataset.configured === 'true';
     const presenceTemplate = root.dataset.presenceTemplate || '';
@@ -290,7 +290,6 @@ const translatedFrom = {
     const langSelect = root.querySelector('[data-comments-lang]');
     const submit = root.querySelector('[data-comments-submit]');
     const unavailable = root.querySelector('[data-comments-unavailable]');
-    const paused = root.querySelector('[data-comments-paused]');
     const turnstileSlot = root.querySelector('[data-comments-turnstile]');
     const presenceEl = root.querySelector('[data-comments-presence]');
     const reconnectEl = root.querySelector('[data-comments-reconnect]');
@@ -335,58 +334,105 @@ const translatedFrom = {
       reconnectEl.hidden = !on;
     };
 
-    const translatedFromLabel = (lang) => {
-      if (lang === 'en') return root.dataset.translatedFromEn;
-      if (lang === 'es') return root.dataset.translatedFromEs;
-      return root.dataset.translatedFromOther;
-    };
-
     const formatDate = (timestamp) => {
       const date = new Date(timestamp);
       return date.toLocaleString(locale === 'es' ? 'es-ES' : 'en-GB');
     };
 
     /**
-     * Render the body text and translation toggle. The same markup is reused
-     * for top-level comments and replies.
+     * Render source text by default and an explicit on-demand translation
+     * control. The same behavior is reused for top-level comments and replies.
      */
     const renderCommentBody = (comment) => {
       const text = document.createElement('p');
       text.className = 'comment__body';
       const original = String(comment.body || '');
-      const translation = typeof comment.translation === 'string' ? comment.translation : '';
-      text.textContent = translation || original;
+      text.textContent = original;
 
       const meta = document.createElement('p');
       meta.className = 'comment__meta';
+      const live = document.createElement('p');
+      live.className = 'comment__translation-status';
+      live.setAttribute('role', 'status');
+      live.setAttribute('aria-live', 'polite');
+      live.setAttribute('aria-atomic', 'true');
+      live.hidden = true;
 
-      if (comment.source_lang && comment.source_lang !== locale) {
-        if (translation) {
-          const badge = document.createElement('span');
-          badge.className = 'chip chip--neutral comment__badge';
-          badge.textContent = translatedFromLabel(comment.source_lang);
+      if (
+        readingTranslationEnabled &&
+        comment.source_lang &&
+        comment.source_lang !== locale
+      ) {
+        if (comment.source_lang === 'en' || comment.source_lang === 'es') {
+          const machineLabel = document.createElement('span');
+          machineLabel.className = 'chip chip--neutral comment__badge';
+          machineLabel.textContent = root.dataset.machineTranslated || '';
+          machineLabel.hidden = true;
 
           const toggle = document.createElement('button');
           toggle.type = 'button';
           toggle.className = 'comment__toggle';
-          let showingTranslation = true;
-          toggle.textContent = root.dataset.viewOriginal;
-          toggle.addEventListener('click', () => {
-            showingTranslation = !showingTranslation;
-            text.textContent = showingTranslation ? translation : original;
-            toggle.textContent = showingTranslation
-              ? root.dataset.viewOriginal
-              : root.dataset.viewTranslation;
+          toggle.textContent = root.dataset.translate || 'Translate';
+          let translation = '';
+          let showingTranslation = false;
+
+          toggle.addEventListener('click', async () => {
+            if (translation) {
+              showingTranslation = !showingTranslation;
+              text.textContent = showingTranslation ? translation : original;
+              machineLabel.hidden = !showingTranslation;
+              toggle.textContent = showingTranslation
+                ? root.dataset.viewOriginal
+                : root.dataset.translate;
+              live.textContent = showingTranslation
+                ? root.dataset.translationReady
+                : root.dataset.originalShown;
+              live.hidden = false;
+              return;
+            }
+
+            toggle.disabled = true;
+            toggle.textContent = root.dataset.translationLoading || '';
+            live.textContent = root.dataset.translationLoading || '';
+            live.hidden = false;
+            try {
+              const response = await fetch(
+                `${endpoint}/${encodeURIComponent(comment.id)}/translate`,
+                {
+                  method: 'POST',
+                  headers: { 'content-type': 'application/json', accept: 'application/json' },
+                  body: JSON.stringify({ targetLocale: locale }),
+                },
+              );
+              if (!response.ok) throw new Error('translation unavailable');
+              const data = await response.json();
+              if (typeof data.translation !== 'string' || data.translation.trim().length === 0) {
+                throw new Error('empty translation');
+              }
+              translation = data.translation;
+              showingTranslation = true;
+              text.textContent = translation;
+              machineLabel.hidden = false;
+              toggle.textContent = root.dataset.viewOriginal || '';
+              live.textContent = root.dataset.translationReady || '';
+            } catch {
+              text.textContent = original;
+              machineLabel.hidden = true;
+              toggle.textContent = root.dataset.translate || 'Translate';
+              live.textContent = `${root.dataset.translationError || ''} ${root.dataset.translationFallback || ''}`.trim();
+            } finally {
+              toggle.disabled = false;
+            }
           });
 
-          meta.append(badge, toggle);
+          meta.append(toggle, machineLabel);
         } else {
           meta.classList.add('comment__meta--notice');
           meta.textContent = root.dataset.translationUnavailable;
         }
       }
 
-      return { text, meta };
+      return { text, meta, live };
     };
 
     const renderReportButton = (comment) => {
@@ -444,6 +490,7 @@ const translatedFrom = {
 
       item.append(head, body.text);
       if (body.meta.childNodes.length > 0 || body.meta.textContent) item.append(body.meta);
+      item.append(body.live);
       item.append(actions);
 
       if (depth === 0) {
@@ -689,7 +736,6 @@ const translatedFrom = {
         if (Array.isArray(data.comments)) {
           renderThread(data.comments);
         }
-        if (paused) paused.hidden = !data.translation_paused;
         if (typeof data.presence === 'number') setPresence(data.presence);
         if (!silent) enableForm();
         return true;
@@ -1002,7 +1048,6 @@ const translatedFrom = {
   }
 
   .comments__empty,
-  .comments__paused,
   .comments__presence,
   .comments__reconnect {
     color: var(--color-text-muted);
@@ -1016,13 +1061,6 @@ const translatedFrom = {
   .comments__reconnect {
     margin: 0;
     color: var(--color-warn);
-  }
-
-  .comments__paused {
-    padding: var(--space-3);
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
   }
 
   .comments__list {
@@ -1099,6 +1137,13 @@ const translatedFrom = {
 
   .comment__meta--notice {
     color: var(--color-text-muted);
+  }
+
+  .comment__translation-status,
+  .comments__translation-nojs {
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
   }
 
   .comment__toggle,

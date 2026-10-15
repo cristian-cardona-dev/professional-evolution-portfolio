@@ -41,6 +41,8 @@ import type { Verdict } from './ai';
 import { normalizePage, normalizeSourceLang, pageLocale, utcDay } from './language';
 import type { PageLocale, SourceLang } from './language';
 import { isAllowedOrigin } from './origins';
+import { ReadingTranslationCache } from './reading-translation-cache';
+import type { ReadingLocale, ReadingTranslationKey } from './reading-translation-cache';
 
 export const MAX_BODY_LENGTH = 2000;
 export const MAX_NAME_LENGTH = 80;
@@ -183,7 +185,9 @@ function toPublicComment(row: CommentRow): PublicComment {
     name: row.name ?? null,
     body: row.body,
     source_lang: row.source_lang as SourceLang,
-    translation: row.translation ?? null,
+    // Compatibility field only. The stored value is an invisible moderation
+    // gate, never public reading content; readers use the separate explicit API.
+    translation: null,
     created_at: row.created_at,
     reports: row.reports ?? 0,
     parent_id: row.parent_id ?? null,
@@ -220,6 +224,7 @@ async function sha256Hex(value: string): Promise<string> {
 
 export class CommentsRoom extends DurableObject<Env> {
   private readonly sql: SqlStorage;
+  private readonly readingTranslationCache: ReadingTranslationCache;
 
   /**
    * Serializes reaction mutations inside this room. A Durable Object is
@@ -244,6 +249,62 @@ export class CommentsRoom extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.sql = ctx.storage.sql;
+    this.readingTranslationCache = new ReadingTranslationCache({
+      invalidateStale: async (commentId, bodyHash) => {
+        this.sql.exec(
+          `DELETE FROM comment_reading_translations WHERE comment_id = ? AND body_hash <> ?`,
+          commentId,
+          bodyHash,
+        );
+      },
+      get: async (key: ReadingTranslationKey) =>
+        this.sql
+          .exec<{ translation: string }>(
+            `SELECT translation FROM comment_reading_translations
+              WHERE comment_id = ? AND body_hash = ? AND source_locale = ? AND target_locale = ?`,
+            key.commentId,
+            key.bodyHash,
+            key.sourceLocale,
+            key.targetLocale,
+          )
+          .toArray()[0]?.translation ?? null,
+      putIfAbsent: async (key: ReadingTranslationKey, translation: string) => {
+        const existing = this.sql
+          .exec<{ translation: string }>(
+            `SELECT translation FROM comment_reading_translations
+              WHERE comment_id = ? AND body_hash = ? AND source_locale = ? AND target_locale = ?`,
+            key.commentId,
+            key.bodyHash,
+            key.sourceLocale,
+            key.targetLocale,
+          )
+          .toArray()[0];
+        if (existing) return { translation: existing.translation, inserted: false };
+        this.sql.exec(
+          `INSERT OR IGNORE INTO comment_reading_translations
+             (comment_id, body_hash, source_locale, target_locale, translation, created_at)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          key.commentId,
+          key.bodyHash,
+          key.sourceLocale,
+          key.targetLocale,
+          translation,
+          Date.now(),
+        );
+        const saved = this.sql
+          .exec<{ translation: string }>(
+            `SELECT translation FROM comment_reading_translations
+              WHERE comment_id = ? AND body_hash = ? AND source_locale = ? AND target_locale = ?`,
+            key.commentId,
+            key.bodyHash,
+            key.sourceLocale,
+            key.targetLocale,
+          )
+          .toArray()[0];
+        if (!saved) throw new Error('reading translation cache write failed');
+        return { translation: saved.translation, inserted: true };
+      },
+    });
     // Idempotent: the constructor re-runs on every wake, so this must stay cheap.
     this.sql.exec(
       `CREATE TABLE IF NOT EXISTS comments (
@@ -279,6 +340,20 @@ export class CommentsRoom extends DurableObject<Env> {
     this.sql.exec(
       `CREATE INDEX IF NOT EXISTS idx_comments_page_parent_status
          ON comments(page, parent_id, status, created_at DESC)`,
+    );
+    // Additive, separate storage: the legacy `comments.translation` column
+    // remains the private moderation translation. This cache is only populated
+    // after an explicit public request for an already-published comment.
+    this.sql.exec(
+      `CREATE TABLE IF NOT EXISTS comment_reading_translations (
+         comment_id    TEXT NOT NULL,
+         body_hash     TEXT NOT NULL,
+         source_locale TEXT NOT NULL CHECK (source_locale IN ('en', 'es')),
+         target_locale TEXT NOT NULL CHECK (target_locale IN ('en', 'es')),
+         translation   TEXT NOT NULL,
+         created_at    INTEGER NOT NULL,
+         PRIMARY KEY (comment_id, body_hash, source_locale, target_locale)
+       )`,
     );
     // Reactions share the per-room SQLite pattern but live in their own table,
     // in their own `reactions:<milestone>` room, so they can never touch the
@@ -463,6 +538,96 @@ export class CommentsRoom extends DurableObject<Env> {
     };
   }
 
+  /**
+   * Translate a public comment for this milestone page on explicit request.
+   * Moderation-only rows and comments from any other page return the same
+   * not-found result, preventing queue-state disclosure.
+   */
+  async translateForReading(input: {
+    page: string;
+    commentId: string;
+    targetLocale: ReadingLocale;
+  }): Promise<
+    | { status: 'translated'; translation: string; cached: boolean }
+    | { status: 'not_found' }
+    | { status: 'unsupported_source' }
+    | { status: 'paused' }
+    | { status: 'unavailable' }
+  > {
+    const row = this.sql
+      .exec<CommentRow>(
+        `SELECT id, page, body, source_lang, status, created_at, translation, reports,
+                name, parent_id, evidence_anchor
+           FROM comments WHERE id = ? AND page = ? AND status = 'published'`,
+        input.commentId,
+        input.page,
+      )
+      .toArray()[0];
+    if (!row) return { status: 'not_found' };
+    if (row.source_lang !== 'en' && row.source_lang !== 'es') {
+      return { status: 'unsupported_source' };
+    }
+    const sourceLocale = row.source_lang as ReadingLocale;
+    if (sourceLocale === input.targetLocale) return { status: 'unsupported_source' };
+
+    let bodyHash: string;
+    try {
+      bodyHash = await sha256Hex(row.body);
+      const key: ReadingTranslationKey = {
+        commentId: row.id,
+        bodyHash,
+        sourceLocale,
+        targetLocale: input.targetLocale,
+      };
+      const result = await this.readingTranslationCache.getOrCreate(key, async () => {
+        // Reader translations share the existing site-wide neuron guard. The
+        // invisible moderation translation above remains independent and still
+        // fails closed when it cannot provide its second safety gate.
+        if ((await this.budgetState()).paused) throw new Error('reading-translation-paused');
+        const translated = await translate(
+          this.env,
+          row.body,
+          sourceLocale,
+          input.targetLocale,
+          'reading',
+        );
+        const current = this.sql
+          .exec<{ body: string; status: string }>(
+            `SELECT body, status FROM comments WHERE id = ? AND page = ?`,
+            row.id,
+            input.page,
+          )
+          .toArray()[0];
+        if (!current || current.status !== 'published' || current.body !== row.body) {
+          throw new Error('comment-no-longer-public');
+        }
+        await this.spendNeurons(NEURONS_PER_TRANSLATION);
+        return translated;
+      });
+      // A report/removal can race a cache hit too. Recheck before returning any
+      // translation so a comment that is no longer public is not served.
+      const current = this.sql
+        .exec<{ body: string; status: string }>(
+          `SELECT body, status FROM comments WHERE id = ? AND page = ?`,
+          row.id,
+          input.page,
+        )
+        .toArray()[0];
+      if (!current || current.status !== 'published' || current.body !== row.body) {
+        return { status: 'not_found' };
+      }
+      return { status: 'translated', ...result };
+    } catch (error) {
+      if (error instanceof Error && error.message === 'reading-translation-paused') {
+        return { status: 'paused' };
+      }
+      if (error instanceof Error && error.message === 'comment-no-longer-public') {
+        return { status: 'not_found' };
+      }
+      return { status: 'unavailable' };
+    }
+  }
+
   /** Presence = open WebSockets in this room (spec 7). Best-effort by design. */
   presence(): number {
     return this.ctx.getWebSockets().length;
@@ -612,7 +777,9 @@ export class CommentsRoom extends DurableObject<Env> {
       name,
       body,
       source_lang: sourceLang,
-      translation,
+      // Keep the property for response-shape compatibility, but never expose
+      // the internal moderation translation to readers.
+      translation: null,
       created_at: createdAt,
       reports: 0,
       parent_id: parentId,

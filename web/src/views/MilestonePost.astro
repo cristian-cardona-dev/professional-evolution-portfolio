@@ -3,17 +3,17 @@
  * Milestone detail view — a single, shareable blog-like entry for one
  * evolution milestone.
  *
- * The page is intentionally static in Phase 1: it renders the canonical
- * milestone data, exposes stable anchors for every evidence item, and provides
- * the same copy/share affordances the case-study pages use. It does not mount
- * the live comment component; that is Phase 2.
+ * Editorial content is intentionally static: it renders the canonical,
+ * locale-reviewed milestone fields and stable evidence anchors. Live comments
+ * and reactions are separate visitor interactions; only visitor-authored
+ * comments can request an on-demand machine translation.
  *
  * Heading order: h1 (milestone title) → h2 (related projects, evidence) so no
  * level is skipped.
  */
 import type { Copy, Locale } from '../i18n/copy';
 import type { Milestone } from '../lib/data';
-import { milestoneProjects, milestoneTitle, milestonesByDateDesc } from '../lib/data';
+import { milestoneNarrative, milestoneProjects, milestoneTitle, milestonesByDateDesc } from '../lib/data';
 import { canonicalUrl, route } from '../lib/urls';
 import ShareRow from '../components/ShareRow.astro';
 import CopyAnchor from '../components/CopyAnchor.astro';
@@ -111,7 +111,7 @@ function evidenceLabel(url: string): string {
           <ShareRow copy={copy} url={pageCanonical?.href} />
         </div>
 
-        <p class="lead">{milestone.narrative}</p>
+        <p class="lead">{milestoneNarrative(milestone, locale)}</p>
       </div>
     </div>
   </header>
@@ -205,7 +205,12 @@ function evidenceLabel(url: string): string {
     <MilestoneReactions locale={locale} copy={copy} milestoneId={milestone.id} />
   </div>
 
-  <Comments locale={locale} copy={copy} path={`evolution/${milestone.id}/`} />
+  <Comments
+    locale={locale}
+    copy={copy}
+    path={`evolution/${milestone.id}/`}
+    enableReadingTranslation
+  />
 </article>
 
 <style>

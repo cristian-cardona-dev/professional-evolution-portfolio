@@ -25,6 +25,15 @@ function pageUrl(locale, id) {
   return `${BASE_PATH}/${suffix}`;
 }
 
+function decodeHtml(value) {
+  return value
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', "'")
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&amp;', '&');
+}
+
 test('every milestone has EN and ES detail pages in the build output', () => {
   const missing = [];
   for (const milestone of milestones) {
@@ -35,6 +44,33 @@ test('every milestone has EN and ES detail pages in the build output', () => {
     }
   }
   assert.deepEqual(missing, [], `Missing milestone detail pages: ${missing.join(', ')}`);
+});
+
+test('milestone detail pages render their canonical static narrative in each locale', () => {
+  const failures = [];
+  for (const milestone of milestones) {
+    for (const locale of ['en', 'es']) {
+      const html = readFileSync(pagePath(locale, milestone.id), 'utf8');
+      const leadRaw = html.match(/<p class="lead"[^>]*>([\s\S]*?)<\/p>/)?.[1];
+      const lead = leadRaw === undefined ? undefined : decodeHtml(leadRaw);
+      const expected = locale === 'es' ? milestone.narrativeEs : milestone.narrative;
+      if (lead !== expected) {
+        failures.push(`${locale}/evolution/${milestone.id}/ rendered ${JSON.stringify(lead)}`);
+      }
+    }
+  }
+  assert.deepEqual(failures, [], failures.join('\n'));
+});
+
+test('milestone comments explain the explicit translation and source-text no-JS fallback', () => {
+  for (const locale of ['en', 'es']) {
+    const html = readFileSync(pagePath(locale, milestones[0].id), 'utf8');
+    const expected = locale === 'es'
+      ? 'Los comentarios se mantienen en su idioma original salvo que elijas Traducir'
+      : 'Comments stay in their original language unless you explicitly choose Translate';
+    assert.ok(html.includes(expected), `${locale} route explains its source-language fallback`);
+    assert.ok(html.includes('data-reading-translation="true"'));
+  }
 });
 
 test('RSS feed links every milestone to its detail route', () => {

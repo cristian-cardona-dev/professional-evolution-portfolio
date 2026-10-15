@@ -121,6 +121,14 @@ function getComments(page) {
   return api(`/api/comments/${encodeURIComponent(page)}`);
 }
 
+function translateComment(page, id, targetLocale) {
+  return api(`/api/comments/${encodeURIComponent(page)}/${encodeURIComponent(id)}/translate`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ targetLocale }),
+  });
+}
+
 function adminQueue() {
   return api('/api/moderation/queue', {
     headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
@@ -213,14 +221,14 @@ test('an unsafe comment is never auto-published (fail-closed)', async () => {
   assert.deepEqual(list.body.comments, [], 'pending comments are not published');
 });
 
-test('a comment in another language is translated once and cached', async () => {
+test('moderation translation stays private while the cross-locale comment is published', async () => {
   const { status, body } = await postComment('work/translate/', 'hola mundo', { lang: 'es' });
   assert.equal(status, 201);
   assert.equal(body.status, 'published');
   assert.equal(body.comment.source_lang, 'es');
-  assert.equal(body.comment.translation, '[en] hola mundo');
+  assert.equal(body.comment.translation, null, 'the moderation translation is never public');
   const list = await getComments('work/translate/');
-  assert.equal(list.body.comments[0].translation, '[en] hola mundo');
+  assert.equal(list.body.comments[0].translation, null, 'the list does not expose moderation output');
 });
 
 test('a comment with no declared language is double-gated and translated best-effort', async () => {
@@ -230,7 +238,90 @@ test('a comment with no declared language is double-gated and translated best-ef
   assert.equal(status, 201);
   assert.equal(body.status, 'published');
   assert.equal(body.comment.source_lang, 'other');
-  assert.equal(body.comment.translation, '[en] bonjour tout le monde');
+  assert.equal(body.comment.translation, null);
+});
+
+test('reading translation is explicit, cached and available only for published milestone comments', async () => {
+  const page = 'evolution/2026-10-03-initial-portfolio-build/';
+  const created = await postComment(page, 'hola para leer', { lang: 'es' });
+  assert.equal(created.body.status, 'published');
+  const id = created.body.comment.id;
+
+  const translated = await translateComment(page, id, 'en');
+  assert.equal(translated.status, 200);
+  assert.equal(translated.body.translation, '[en] hola para leer');
+  assert.equal(translated.body.cached, false);
+
+  const cached = await translateComment(page, id, 'en');
+  assert.equal(cached.status, 200);
+  assert.deepEqual(cached.body, { translation: '[en] hola para leer', cached: true });
+
+  const wrongPage = await translateComment('evolution/2026-10-03-evidence-boundary-contract/', id, 'en');
+  assert.equal(wrongPage.status, 404);
+  const nonMilestone = await translateComment('work/translate/', id, 'en');
+  assert.equal(nonMilestone.status, 404);
+});
+
+test('reading translation validates target locale, source locale and page locale', async () => {
+  const enPage = 'evolution/2026-10-03-evidence-boundary-contract/';
+  const spanish = await postComment(enPage, 'texto en español', { lang: 'es' });
+  const invalid = await translateComment(enPage, spanish.body.comment.id, 'fr');
+  assert.equal(invalid.status, 400);
+  assert.equal(invalid.body.error, 'invalid_target_locale');
+  const wrongTarget = await translateComment(enPage, spanish.body.comment.id, 'es');
+  assert.equal(wrongTarget.status, 400);
+
+  const unknownLanguage = await postComment(enPage, 'bonjour reader', { lang: 'fr' });
+  const unsupported = await translateComment(enPage, unknownLanguage.body.comment.id, 'en');
+  assert.equal(unsupported.status, 422);
+  assert.equal(unsupported.body.error, 'unsupported_language');
+
+  const pending = await postComment(enPage, 'unsafe [[unsafe]] content', { lang: 'en' });
+  assert.equal(pending.body.status, 'pending');
+  const hidden = await translateComment(enPage, pending.body.comment.id, 'en');
+  assert.equal(hidden.status, 404);
+});
+
+test('concurrent reading requests share one translation result', async () => {
+  const page = 'evolution/2026-10-07-dark-first-theme-foundation/';
+  const created = await postComment(page, 'hola simultáneo', { lang: 'es' });
+  const id = created.body.comment.id;
+  const responses = await Promise.all([
+    translateComment(page, id, 'en'),
+    translateComment(page, id, 'en'),
+  ]);
+  assert.deepEqual(responses.map((response) => response.status), [200, 200]);
+  assert.deepEqual(responses.map((response) => response.body.translation), [
+    '[en] hola simultáneo',
+    '[en] hola simultáneo',
+  ]);
+  assert.deepEqual(
+    responses.map((response) => response.body.cached).sort(),
+    [false, true],
+    'one request generates while the concurrent duplicate joins its in-flight result',
+  );
+});
+
+test('translation model failure keeps the source published and returns a safe fallback error', async () => {
+  const page = 'es/evolution/2026-10-09-portfolio-10x-launch/';
+  const created = await postComment(page, 'text [[fail-reading-translate]]', { lang: 'en' });
+  assert.equal(created.body.status, 'published');
+  const result = await translateComment(page, created.body.comment.id, 'es');
+  assert.equal(result.status, 503);
+  assert.equal(result.body.error, 'translation_unavailable');
+  const list = await getComments(page);
+  assert.equal(list.body.comments[0].body, 'text [[fail-reading-translate]]');
+  assert.equal(list.body.comments[0].translation, null);
+});
+
+test('replies can be translated with the same explicit endpoint', async () => {
+  const page = 'es/evolution/2026-10-09-agentic-workflow-lab-public-iterations/';
+  const root = await postComment(page, 'parent comment', { lang: 'en' });
+  const reply = await postComment(page, 'reply comment', { lang: 'en', parentId: root.body.comment.id });
+  assert.equal(reply.body.status, 'published');
+  const result = await translateComment(page, reply.body.comment.id, 'es');
+  assert.equal(result.status, 200);
+  assert.equal(result.body.translation, '[es] reply comment');
 });
 
 test('disagreeing gates (source safe, translation unsafe) go to the queue', async () => {

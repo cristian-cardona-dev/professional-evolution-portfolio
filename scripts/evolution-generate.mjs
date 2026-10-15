@@ -191,6 +191,7 @@ function toMilestone(candidate, hashes) {
     date: candidate.date,
     title: candidate.title,
     narrative: `Derived from commit ${hashes[0].slice(0, 7)}: "${candidate.subject}". Candidate entry — review the narrative before promoting it to a curated milestone.`,
+    narrativeEs: `Derivado del commit ${hashes[0].slice(0, 7)}: "${candidate.subject}". Entrada candidata: revisa la narración antes de promoverla a un hito curado.`,
     evidence: hashes.map((hash) => `${REPO_URL}/commit/${hash}`),
     status: 'shipped',
     source: 'git',

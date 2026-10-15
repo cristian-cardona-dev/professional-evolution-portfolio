@@ -8,6 +8,7 @@
  *   - required fields and types for profile, projects, evolution, evidence,
  *     case-studies
  *   - optional project `summary_es`, when present, is a non-empty string
+ *   - every milestone has a non-empty reviewed Spanish narrative (`narrativeEs`)
  *   - optional milestone `titleEs`, when present, is a non-empty string
  *   - project status and milestone status/source/phase enums
  *   - unique project slugs and unique milestone ids
@@ -51,7 +52,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const DATA_DIR = join(ROOT, 'data');
+const DATA_DIR = process.env.PORTFOLIO_DATA_DIR ?? join(ROOT, 'data');
 
 const REPO_OWNER = 'cristian-cardona-dev';
 const REJECTED_OWNERS = ['hunterprox', 'tuuser'];
@@ -310,6 +311,11 @@ function validateEvolution(data, projectSlugs) {
     }
     for (const field of ['id', 'date', 'title', 'narrative']) {
       if (!isNonEmptyString(milestone[field])) fail(`${label}: "${field}" must be a non-empty string`);
+    }
+    // Every milestone has a reviewed static Spanish narrative. Detail pages
+    // must never silently fall back to canonical English copy.
+    if (!isNonEmptyString(milestone.narrativeEs)) {
+      fail(`${label}: "narrativeEs" must be a non-empty reviewed Spanish narrative`);
     }
     // Optional reviewed Spanish translation of `title`; when present it must be
     // a non-empty string so the es locale never renders an empty heading. An

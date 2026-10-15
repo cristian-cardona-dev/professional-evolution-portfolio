@@ -698,12 +698,16 @@ export interface Copy {
     anonymous: string;
     report: string;
     pendingBadge: string;
-    /** `Translated from {language}` — the language name is passed in. */
-    translatedFrom: (language: string) => string;
     viewOriginal: string;
     viewTranslation: string;
     translationUnavailable: string;
-    translationPaused: string;
+    machineTranslated: string;
+    translationLoading: string;
+    translationError: string;
+    translationFallback: string;
+    translationReady: string;
+    originalShown: string;
+    translationNoJs: string;
     unavailableHeading: string;
     unavailableNote: string;
     turnstileBlocked: string;
@@ -1240,7 +1244,7 @@ submitFrom: 'Portfolio contact form',
     bodyLabel: 'Comment',
     bodyHint: 'Plain text, up to 2000 characters.',
     langLabel: 'Comment language',
-    langHint: 'Used to translate your comment for readers of this page.',
+    langHint: 'Used for moderation checks and optional reading translations.',
     langEn: 'English',
     langEs: 'Spanish',
     langOther: 'Another language',
@@ -1254,12 +1258,16 @@ submitFrom: 'Portfolio contact form',
     anonymous: 'Anonymous',
     report: 'Report',
     pendingBadge: 'In review',
-    translatedFrom: (language) => `Translated from ${language}`,
-    viewOriginal: 'View original',
-    viewTranslation: 'View translation',
-    translationUnavailable: 'Translation not available.',
-    translationPaused:
-      'Automatic translation is paused for today; comments in other languages are held for human review.',
+    viewOriginal: 'Show original',
+    viewTranslation: 'Translate',
+    translationUnavailable: 'Translation is not available for this source language.',
+    machineTranslated: 'Machine translated',
+    translationLoading: 'Translating comment…',
+    translationError: 'Could not translate this comment.',
+    translationFallback: 'The original text is still shown. Try again later.',
+    translationReady: 'Machine-translated version shown.',
+    originalShown: 'Original comment shown.',
+    translationNoJs: 'Comments stay in their original language unless you explicitly choose Translate; that control needs JavaScript.',
     unavailableHeading: 'Comments are temporarily unavailable.',
     unavailableNote:
       'The comment service is not configured on this deployment, so the form stays disabled — nothing typed here would be sent.',
@@ -1769,7 +1777,7 @@ submitFrom: 'Formulario de contacto del portafolio',
     bodyLabel: 'Comentario',
     bodyHint: 'Texto plano, hasta 2000 caracteres.',
     langLabel: 'Idioma del comentario',
-    langHint: 'Se usa para traducir tu comentario para quienes lean esta página.',
+    langHint: 'Se usa en las comprobaciones de moderación y las traducciones opcionales para leer.',
     langEn: 'Inglés',
     langEs: 'Español',
     langOther: 'Otro idioma',
@@ -1783,12 +1791,16 @@ submitFrom: 'Formulario de contacto del portafolio',
     anonymous: 'Anónimo',
     report: 'Denunciar',
     pendingBadge: 'En revisión',
-    translatedFrom: (language) => `Traducido del ${language}`,
-    viewOriginal: 'Ver original',
-    viewTranslation: 'Ver traducción',
-    translationUnavailable: 'Traducción no disponible.',
-    translationPaused:
-      'La traducción automática está en pausa por hoy; los comentarios en otros idiomas quedan a la espera de revisión humana.',
+    viewOriginal: 'Mostrar original',
+    viewTranslation: 'Traducir',
+    translationUnavailable: 'No hay traducción disponible para este idioma de origen.',
+    machineTranslated: 'Traducción automática',
+    translationLoading: 'Traduciendo comentario…',
+    translationError: 'No se ha podido traducir este comentario.',
+    translationFallback: 'Se sigue mostrando el texto original. Inténtalo más tarde.',
+    translationReady: 'Se muestra la versión traducida automáticamente.',
+    originalShown: 'Se muestra el comentario original.',
+    translationNoJs: 'Los comentarios se mantienen en su idioma original salvo que elijas Traducir; ese control necesita JavaScript.',
     unavailableHeading: 'Los comentarios no están disponibles temporalmente.',
     unavailableNote:
       'El servicio de comentarios no está configurado en este despliegue, así que el formulario permanece desactivado: nada de lo que escribas aquí se enviaría.',

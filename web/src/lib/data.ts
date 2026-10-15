@@ -92,6 +92,8 @@ export interface Milestone {
   /** Optional reviewed Spanish translation of `title`, used on the es locale. */
   titleEs?: string;
   narrative: string;
+  /** Required reviewed Spanish narrative; detail routes do not fall back to English. */
+  narrativeEs: string;
   evidence: string[];
   status: MilestoneStatus;
   source: MilestoneSource;
@@ -241,6 +243,11 @@ export const curatedMilestonesByDateDesc: Milestone[] = milestonesByDateDesc.fil
  */
 export function milestoneTitle(milestone: Milestone, lang: Locale): string {
   return resolveMilestoneTitle(milestone, lang);
+}
+
+/** Static editorial narrative for a detail route in the requested locale. */
+export function milestoneNarrative(milestone: Milestone, lang: Locale): string {
+  return lang === 'es' ? milestone.narrativeEs : milestone.narrative;
 }
 
 /** Projects a milestone links to, in `projects.json` order, unknown slugs dropped. */

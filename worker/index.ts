@@ -192,6 +192,39 @@ async function routeComments(request: Request, env: Env, url: URL): Promise<Resp
     return json(result);
   }
 
+  // Explicit reading translation is only available for a known milestone page.
+  // It uses a separate DO cache and never reads `comments.translation`, which
+  // remains private to the fail-closed moderation pipeline.
+  if (parts.length === 3 && parts[2] === 'translate') {
+    if (request.method !== 'POST') return fail('method_not_allowed', 405);
+    let id: string;
+    try {
+      id = decodeURIComponent(parts[1] ?? '');
+    } catch {
+      return fail('invalid_id', 400);
+    }
+    if (!id) return fail('invalid_id', 400);
+    const milestoneLocale = milestonePageLocale(page);
+    if (!milestoneLocale) return fail('not_found', 404);
+    const payload = await readJson(request);
+    if (!payload) return fail('invalid_payload', 400);
+    if (payload.targetLocale !== 'en' && payload.targetLocale !== 'es') {
+      return fail('invalid_target_locale', 400);
+    }
+    if (payload.targetLocale !== milestoneLocale) return fail('invalid_target_locale', 400);
+    const result = await pageRoom(env, page).translateForReading({
+      page,
+      commentId: id,
+      targetLocale: payload.targetLocale,
+    });
+    if (result.status === 'not_found') return fail('not_found', 404);
+    if (result.status === 'unsupported_source') return fail('unsupported_language', 422);
+    if (result.status === 'paused' || result.status === 'unavailable') {
+      return fail('translation_unavailable', 503);
+    }
+    return json({ translation: result.translation, cached: result.cached });
+  }
+
   if (parts.length !== 1) return fail('not_found', 404);
 
   if (request.method === 'GET') {
@@ -210,6 +243,17 @@ async function routeComments(request: Request, env: Env, url: URL): Promise<Resp
   if (request.method === 'POST') return handleCreate(request, env, page);
 
   return fail('method_not_allowed', 405);
+}
+
+/** Return the locale only for an exact, canonical milestone comment page id. */
+function milestonePageLocale(page: string): 'en' | 'es' | null {
+  const segments = page.split('/').filter(Boolean);
+  const id = segments.length === 2 && segments[0] === 'evolution'
+    ? segments[1]
+    : segments.length === 3 && segments[0] === 'es' && segments[1] === 'evolution'
+      ? segments[2]
+      : null;
+  return id && isKnownMilestoneId(id) ? (segments[0] === 'es' ? 'es' : 'en') : null;
 }
 
 async function handleCreate(request: Request, env: Env, page: string): Promise<Response> {
