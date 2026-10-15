@@ -10,6 +10,10 @@
  *     one count and one idempotency space (a locale header cannot partition it);
  *   - PUT is idempotent for the same anonymous nonce; DELETE is idempotent;
  *   - a malformed milestone id and a missing nonce are rejected;
+ *   - a well-formed but UNKNOWN milestone id is rejected with a 404 and mints no
+ *     room or count (the runtime mirrors the static "unknown id -> 404" contract);
+ *   - concurrent duplicate PUTs for one nonce count once and spend the per-IP
+ *     allowance once;
  *   - the abuse guard refuses NEW nonces past the per-IP hourly limit, while a
  *     duplicate PUT of an existing nonce still succeeds (no quota spent);
  *   - no response ever leaks the nonce, the IP or the stored hash;
@@ -36,7 +40,10 @@ const PERSIST_DIR = join(tmpdir(), `reactions-api-test-${process.pid}`);
 
 const ALLOWED_ORIGIN = 'https://cristian-cardona-dev.github.io';
 const MILESTONE = '2026-10-09-portfolio-10x-rebuild';
-const RATE_MILESTONE = 'rate-limit-milestone';
+const RATE_MILESTONE = '2026-10-09-portfolio-10x-launch';
+const OTHER_MILESTONE = '2026-10-03-initial-portfolio-build';
+const CONCURRENT_MILESTONE = '2026-10-09-ai-engineering-evidence-build-out';
+const UNKNOWN_MILESTONE = 'this-milestone-does-not-exist';
 
 /** A well-formed opaque nonce (16-128 chars, URL-safe). */
 function nonce(seed) {
@@ -188,7 +195,7 @@ test('EN and ES share one counter: a locale header cannot partition it', async (
   assert.equal(spanish.body.milestone, MILESTONE);
 
   // A different canonical id has its own, independent room and count.
-  const other = await call('some-other-milestone');
+  const other = await call(OTHER_MILESTONE);
   assert.equal(other.body.count, 0);
 });
 
@@ -222,6 +229,32 @@ test('a malformed milestone id is rejected before it can name a Durable Object',
   assert.equal(tooLong.body.error, 'invalid_milestone');
 });
 
+test('a well-formed but unknown milestone id is rejected with a 404, never a fabricated count', async () => {
+  // Syntactically valid slug, but not present in `data/evolution.json`.
+  const unknownGet = await call(UNKNOWN_MILESTONE);
+  assert.equal(unknownGet.status, 404);
+  assert.equal(unknownGet.body.error, 'unknown_milestone');
+
+  // No method may mint a room/count for an id the site does not publish.
+  const unknownPut = await call(UNKNOWN_MILESTONE, 'PUT', {
+    headers: { 'x-reaction-nonce': nonce(1) },
+  });
+  assert.equal(unknownPut.status, 404);
+  assert.equal(unknownPut.body.error, 'unknown_milestone');
+
+  const unknownDelete = await call(UNKNOWN_MILESTONE, 'DELETE', {
+    headers: { 'x-reaction-nonce': nonce(1) },
+  });
+  assert.equal(unknownDelete.status, 404);
+  assert.equal(unknownDelete.body.error, 'unknown_milestone');
+
+  // Repeating the GET proves no room was created behind the rejection: it still
+  // answers 404, not `count: 0` from a fresh room.
+  const repeated = await call(UNKNOWN_MILESTONE);
+  assert.equal(repeated.status, 404);
+  assert.equal(repeated.body.error, 'unknown_milestone');
+});
+
 test('PUT and DELETE require a well-formed nonce', async () => {
   const noNonce = await call(MILESTONE, 'PUT');
   assert.equal(noNonce.status, 400);
@@ -252,6 +285,38 @@ test('the abuse guard refuses NEW nonces past the hourly limit, but not duplicat
   const duplicate = await react(RATE_MILESTONE, 1001);
   assert.equal(duplicate.status, 200);
   assert.equal(duplicate.body.count, 30);
+});
+
+test('concurrent duplicate PUTs count once and spend the allowance once', async () => {
+  const seed = 4242;
+
+  // Fire a burst of PUTs for the SAME nonce at once and assert the invariant
+  // that must hold however the Durable Object interleaves: the nonce counts
+  // once and spends exactly one allowance. The DO yields on every storage
+  // await, so without the room's serialization lock a duplicate can slip past
+  // the initial check while the first PUT is awaiting the allowance store, and
+  // (if two salts raced) the nonce could even land twice.
+  const burst = await Promise.all(
+    Array.from({ length: 25 }, () => react(CONCURRENT_MILESTONE, seed)),
+  );
+  for (const { status } of burst) assert.equal(status, 200);
+
+  const state = await call(CONCURRENT_MILESTONE);
+  assert.equal(state.body.count, 1, 'one nonce must count exactly once under concurrency');
+
+  // The burst must have spent exactly ONE allowance: 29 more NEW nonces fit the
+  // 30/hour budget, and the 30th additional one is refused. If the burst had
+  // spent the budget, the loop below would be refused early.
+  for (let i = 1; i <= 29; i += 1) {
+    const { status } = await react(CONCURRENT_MILESTONE, 5000 + i);
+    assert.equal(status, 200, `distinct reaction ${i} should fit the remaining allowance`);
+  }
+  const overBudget = await react(CONCURRENT_MILESTONE, 9999);
+  assert.equal(overBudget.status, 429);
+  assert.equal(overBudget.body.error, 'rate_limited');
+
+  const final = await call(CONCURRENT_MILESTONE);
+  assert.equal(final.body.count, 30, 'the burst contributed exactly one to the final count');
 });
 
 test('no response leaks the nonce, the IP or the stored hash', async () => {

@@ -42,6 +42,7 @@ import {
 } from './comments-room';
 import type { CommentStatus, ModerationAction } from './comments-room';
 import { normalizePage } from './language';
+import { isKnownMilestoneId, normalizeMilestoneId } from './milestones';
 import { corsHeaders } from './origins';
 import type { CorsOptions } from './origins';
 import { verifyTurnstile } from './turnstile';
@@ -316,6 +317,11 @@ async function routeReactions(request: Request, env: Env, url: URL): Promise<Res
   const milestone = normalizeMilestoneId(rawId);
   if (!milestone) return fail('invalid_milestone', 400);
   if (parts.length !== 2 || parts[1] !== 'reaction') return fail('not_found', 404);
+  // Existence gate (Phase 0): a well-formed slug that is not a canonical
+  // milestone must not mint a reaction room. The static detail route already
+  // 404s for an unknown id, so the API answers the same 404 rather than
+  // returning a fabricated `count: 0` for a page that does not exist.
+  if (!isKnownMilestoneId(milestone)) return fail('unknown_milestone', 404);
 
   // CORS preflight. The nonce header makes the cross-origin request non-simple,
   // so the browser preflights it; `withCors` attaches the widened headers.
@@ -343,17 +349,6 @@ async function routeReactions(request: Request, env: Env, url: URL): Promise<Res
   }
 
   return fail('method_not_allowed', 405);
-}
-
-/**
- * Canonical milestone id: a lowercase slug. Uppercase, dots, slashes, path
- * traversal and overlong values are rejected before they can name a Durable
- * Object, so a malformed id can never reach storage.
- */
-function normalizeMilestoneId(raw: string): string | null {
-  const id = typeof raw === 'string' ? raw.trim() : '';
-  if (id.length === 0 || id.length > 200) return null;
-  return /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(id) ? id : null;
 }
 
 /**

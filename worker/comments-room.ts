@@ -221,6 +221,26 @@ async function sha256Hex(value: string): Promise<string> {
 export class CommentsRoom extends DurableObject<Env> {
   private readonly sql: SqlStorage;
 
+  /**
+   * Serializes reaction mutations inside this room. A Durable Object is
+   * single-threaded, but every `await` on storage yields the instance, so two
+   * concurrent PUTs for the same nonce could both observe "no reaction" before
+   * either spends its allowance. Chaining the whole read-check-spend-insert
+   * sequence on one promise makes the duplicate check and the quota spend
+   * atomic for a nonce: a duplicate never spends quota and never double-counts.
+   * The room is single-instance per milestone, so this serializes exactly the
+   * callers that must not interleave.
+   */
+  private reactionChain: Promise<unknown> = Promise.resolve();
+
+  /**
+   * The per-room secret, cached as a promise so two concurrent first-time
+   * callers cannot mint two different salts for one room. A split salt would
+   * hash one nonce into two different rows and could double-count it; caching
+   * the in-flight load keeps a single salt for the room's lifetime.
+   */
+  private rateSaltPromise: Promise<string> | null = null;
+
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.sql = ctx.storage.sql;
@@ -263,13 +283,18 @@ export class CommentsRoom extends DurableObject<Env> {
     // Reactions share the per-room SQLite pattern but live in their own table,
     // in their own `reactions:<milestone>` room, so they can never touch the
     // comments or moderation rows and can never be addressed by a page id.
-    // `CREATE TABLE IF NOT EXISTS` is the idempotent, non-destructive migration
-    // for both a fresh room and an already-deployed one. The nonce is stored
-    // ONLY as a salted hash; the row count is the public count.
+    // The reaction table is brand new in this feature (no deployed room
+    // predates it), so `CREATE TABLE IF NOT EXISTS` is the idempotent,
+    // non-destructive migration for a fresh room. The nonce is stored ONLY as a
+    // salted hash; the row count is the public count.
+    //
+    // The table is intentionally room-scoped: the room name
+    // (`reactions:<milestone>`) is the milestone identity, so no `milestone`
+    // column is stored. The public count is `SELECT COUNT(*)` with no filter,
+    // and the column carried no query value.
     this.sql.exec(
       `CREATE TABLE IF NOT EXISTS reactions (
          nonce_hash TEXT PRIMARY KEY,
-         milestone  TEXT NOT NULL,
          created_at INTEGER NOT NULL
        )`,
     );
@@ -678,45 +703,51 @@ export class CommentsRoom extends DurableObject<Env> {
 
   /**
    * Idempotent add. A nonce that already reacted is a no-op: no increment and
-   * no quota spent. Only a NEW reaction consumes the abuse allowance. There is
-   * no `await` between the post-quota re-check and the insert, so two
-   * concurrent PUTs for one nonce cannot both count.
+   * no quota spent. Only a NEW reaction consumes the abuse allowance.
+   *
+   * The whole read-check-spend-insert sequence runs inside the room's reaction
+   * lock, so a duplicate PUT cannot slip past the initial check while the first
+   * PUT is awaiting the allowance store and spend a second allowance. Inside the
+   * lock there is no interleaving, so the duplicate check and the quota spend
+   * are atomic for a nonce and the count can never double.
    */
   async react(input: ReactionInput): Promise<ReactionResult> {
-    const hash = await this.reactionHash(input.nonce);
-    if (this.hasReaction(hash)) {
+    return this.withReactionLock(async () => {
+      const hash = await this.reactionHash(input.nonce);
+      if (this.hasReaction(hash)) {
+        return { count: this.reactionCount(), reacted: true, rateLimited: false };
+      }
+
+      if (!(await this.consumeReactionAllowance(input.ip))) {
+        return {
+          count: this.reactionCount(),
+          reacted: this.hasReaction(hash),
+          rateLimited: true,
+        };
+      }
+
+      // No await below: the DO completes this synchronously, so a duplicate
+      // that somehow reached here cannot double-count.
+      if (!this.hasReaction(hash)) {
+        this.sql.exec(
+          `INSERT OR IGNORE INTO reactions (nonce_hash, created_at) VALUES (?, ?)`,
+          hash,
+          Date.now(),
+        );
+      }
       return { count: this.reactionCount(), reacted: true, rateLimited: false };
-    }
-
-    if (!(await this.consumeReactionAllowance(input.ip))) {
-      return {
-        count: this.reactionCount(),
-        reacted: this.hasReaction(hash),
-        rateLimited: true,
-      };
-    }
-
-    // No await below: the DO completes this synchronously, so a duplicate that
-    // slipped past the first check cannot double-count.
-    if (!this.hasReaction(hash)) {
-      this.sql.exec(
-        `INSERT OR IGNORE INTO reactions (nonce_hash, milestone, created_at)
-         VALUES (?, ?, ?)`,
-        hash,
-        input.milestone,
-        Date.now(),
-      );
-    }
-    return { count: this.reactionCount(), reacted: true, rateLimited: false };
+    });
   }
 
   /** Idempotent remove: deleting an absent reaction is a successful no-op. */
   async unreact(input: { nonce: string }): Promise<ReactionResult> {
-    const hash = await this.reactionHash(input.nonce);
-    if (this.hasReaction(hash)) {
-      this.sql.exec(`DELETE FROM reactions WHERE nonce_hash = ?`, hash);
-    }
-    return { count: this.reactionCount(), reacted: false, rateLimited: false };
+    return this.withReactionLock(async () => {
+      const hash = await this.reactionHash(input.nonce);
+      if (this.hasReaction(hash)) {
+        this.sql.exec(`DELETE FROM reactions WHERE nonce_hash = ?`, hash);
+      }
+      return { count: this.reactionCount(), reacted: false, rateLimited: false };
+    });
   }
 
   // --- Global moderation index (role: __moderation__) ------------------------
@@ -829,12 +860,45 @@ export class CommentsRoom extends DurableObject<Env> {
     return true;
   }
 
-  private async rateSalt(): Promise<string> {
+  /**
+   * The per-room secret, loaded once and cached as a promise. Caching the
+   * in-flight load (not just the value) is what makes it race-free: two
+   * concurrent callers share one `storage.get`/`put` pair instead of each
+   * minting a salt, which would split one nonce across two hashes.
+   */
+  private rateSalt(): Promise<string> {
+    if (!this.rateSaltPromise) {
+      this.rateSaltPromise = this.loadOrCreateRateSalt();
+      // Never cache a rejected load: the next caller must retry storage.
+      this.rateSaltPromise.catch(() => {
+        this.rateSaltPromise = null;
+      });
+    }
+    return this.rateSaltPromise;
+  }
+
+  private async loadOrCreateRateSalt(): Promise<string> {
     const existing = await this.ctx.storage.get<string>('rl-salt');
     if (existing) return existing;
     const salt = crypto.randomUUID();
     await this.ctx.storage.put('rl-salt', salt);
     return salt;
+  }
+
+  /**
+   * Run a reaction mutation on the room's serial chain. The chain is stored on
+   * the instance (one instance per milestone), so concurrent requests interleave
+   * only between whole operations, never inside the read-check-spend-insert
+   * sequence. Both branches are chained so one failed call cannot stall the
+   * next.
+   */
+  private withReactionLock<T>(operation: () => Promise<T>): Promise<T> {
+    const run = this.reactionChain.then(operation, operation);
+    this.reactionChain = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
   }
 
   // --- Reaction internals ----------------------------------------------------
