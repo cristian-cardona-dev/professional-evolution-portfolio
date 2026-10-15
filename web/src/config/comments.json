@@ -1,5 +1,5 @@
 {
   "$comment": "Which routes render the comment UI, as a glob pattern list over the locale-less route path. Enabling comments on a page is a one-line edit here. `apiBase` is the origin of the comments Worker; an empty string means same-origin. It points at the Worker mirror so the canonical GitHub Pages host can reach the API cross-origin (the Worker allowlists exactly that Pages origin).",
-  "enabled": ["work/**", "career", "evolution", "build", "guestbook"],
+  "enabled": ["work/**", "career", "evolution/**", "build", "guestbook"],
   "apiBase": "https://professional-evolution-portfolio.crisss198.workers.dev"
 }

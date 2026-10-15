@@ -61,6 +61,8 @@ export interface PublicComment {
   translation: string | null;
   created_at: number;
   reports: number;
+  parent_id: string | null;
+  evidence_anchor: string | null;
 }
 
 export interface CommentListInput {
@@ -83,10 +85,14 @@ export interface CreateCommentInput {
   lang: string;
   /** Transient: used for rate limiting, hashed before it touches storage. */
   ip: string;
+  /** Optional parent comment id; must be a published top-level comment on the same page. */
+  parentId?: string | null;
+  /** Optional evidence anchor context (e.g. "evidence-2") preserved for display. */
+  evidenceAnchor?: string | null;
 }
 
 export interface CreateCommentResult {
-  status: 'published' | 'pending';
+  status: 'published' | 'pending' | 'rejected';
   comment: PublicComment | null;
   /** Machine-readable explanation of the outcome (never shown raw to visitors). */
   reason: string;
@@ -111,6 +117,8 @@ export interface ModerationEntry {
   source_lang: SourceLang;
   status: CommentStatus;
   created_at: number;
+  parent_id: string | null;
+  evidence_anchor: string | null;
 }
 
 export interface BudgetState {
@@ -130,6 +138,8 @@ interface CommentRow {
   created_at: number;
   translation: string | null;
   reports: number;
+  parent_id: string | null;
+  evidence_anchor: string | null;
 }
 
 function toPublicComment(row: CommentRow): PublicComment {
@@ -141,6 +151,8 @@ function toPublicComment(row: CommentRow): PublicComment {
     translation: row.translation ?? null,
     created_at: row.created_at,
     reports: row.reports ?? 0,
+    parent_id: row.parent_id ?? null,
+    evidence_anchor: row.evidence_anchor ?? null,
   };
 }
 
@@ -189,12 +201,29 @@ export class CommentsRoom extends DurableObject<Env> {
          created_at     INTEGER NOT NULL,
          translation    TEXT,
          reports        INTEGER DEFAULT 0,
-         last_report_at INTEGER
+         last_report_at INTEGER,
+         parent_id      TEXT,
+         evidence_anchor TEXT
        )`,
     );
     this.sql.exec(
       `CREATE INDEX IF NOT EXISTS idx_comments_page_status
          ON comments(page, status, created_at DESC)`,
+    );
+    // Idempotent migration for deployed DOs that already have the original
+    // table. `PRAGMA table_info` is portable across SQLite versions, unlike
+    // `ADD COLUMN IF NOT EXISTS` which older builds reject.
+    const columns = this.sql.exec<{ name: string }>(`PRAGMA table_info(comments)`).toArray();
+    const hasColumn = (name: string) => columns.some((col) => col.name === name);
+    if (!hasColumn('parent_id')) {
+      this.sql.exec(`ALTER TABLE comments ADD COLUMN parent_id TEXT`);
+    }
+    if (!hasColumn('evidence_anchor')) {
+      this.sql.exec(`ALTER TABLE comments ADD COLUMN evidence_anchor TEXT`);
+    }
+    this.sql.exec(
+      `CREATE INDEX IF NOT EXISTS idx_comments_page_parent_status
+         ON comments(page, parent_id, status, created_at DESC)`,
     );
   }
 
@@ -329,7 +358,8 @@ export class CommentsRoom extends DurableObject<Env> {
     const rows = before
       ? this.sql
           .exec<CommentRow>(
-            `SELECT id, page, name, body, source_lang, status, created_at, translation, reports
+            `SELECT id, page, name, body, source_lang, status, created_at, translation, reports,
+                    parent_id, evidence_anchor
                FROM comments
               WHERE page = ? AND status = 'published' AND created_at < ?
               ORDER BY created_at DESC, id DESC
@@ -341,7 +371,8 @@ export class CommentsRoom extends DurableObject<Env> {
           .toArray()
       : this.sql
           .exec<CommentRow>(
-            `SELECT id, page, name, body, source_lang, status, created_at, translation, reports
+            `SELECT id, page, name, body, source_lang, status, created_at, translation, reports,
+                    parent_id, evidence_anchor
                FROM comments
               WHERE page = ? AND status = 'published'
               ORDER BY created_at DESC, id DESC
@@ -373,6 +404,42 @@ export class CommentsRoom extends DurableObject<Env> {
     }
     const rawName = (input.name ?? '').trim();
     const name = rawName.length > 0 ? rawName.slice(0, MAX_NAME_LENGTH) : null;
+
+    // Parent validation: reject before spending quota on replies that cannot be
+    // published. A parent must exist on this page, be published, and be a root.
+    let parentId: string | null = null;
+    if (input.parentId) {
+      const parent = this.sql
+        .exec<{ page: string; status: string; parent_id: string | null }>(
+          `SELECT page, status, parent_id FROM comments WHERE id = ?`,
+          input.parentId,
+        )
+        .toArray()[0];
+      if (!parent) {
+        // Distinguish a parent that lives on another page from one that never
+        // existed. The shared moderation index stores every comment id -> page.
+        const parentPage = await this.moderationStub().pageOf(input.parentId);
+        return {
+          status: 'rejected',
+          comment: null,
+          reason: parentPage ? 'cross_page_parent' : 'invalid_parent',
+        };
+      }
+      if (parent.page !== input.page) {
+        return { status: 'rejected', comment: null, reason: 'cross_page_parent' };
+      }
+      if (parent.status !== 'published') {
+        return { status: 'rejected', comment: null, reason: 'parent_removed' };
+      }
+      if (parent.parent_id) {
+        return { status: 'rejected', comment: null, reason: 'too_deep' };
+      }
+      parentId = input.parentId;
+    }
+
+    const rawEvidenceAnchor = (input.evidenceAnchor ?? '').trim();
+    const evidenceAnchor =
+      rawEvidenceAnchor.length > 0 && rawEvidenceAnchor.length <= 80 ? rawEvidenceAnchor : null;
 
     // Turnstile and honeypot already passed in the Worker; the rate limit is
     // the first stateful gate, so only verified attempts consume quota.
@@ -452,8 +519,9 @@ export class CommentsRoom extends DurableObject<Env> {
     const createdAt = Date.now();
     this.sql.exec(
       `INSERT INTO comments
-         (id, page, name, body, source_lang, status, created_at, translation, reports, last_report_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NULL)`,
+         (id, page, name, body, source_lang, status, created_at, translation, reports,
+          last_report_at, parent_id, evidence_anchor)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, ?)`,
       id,
       input.page,
       name,
@@ -462,6 +530,8 @@ export class CommentsRoom extends DurableObject<Env> {
       status,
       createdAt,
       translation,
+      parentId,
+      evidenceAnchor,
     );
 
     const comment: PublicComment = {
@@ -472,6 +542,8 @@ export class CommentsRoom extends DurableObject<Env> {
       translation,
       created_at: createdAt,
       reports: 0,
+      parent_id: parentId,
+      evidence_anchor: evidenceAnchor,
     };
 
     await this.registerInModeration({
@@ -482,12 +554,16 @@ export class CommentsRoom extends DurableObject<Env> {
       source_lang: sourceLang,
       status,
       created_at: createdAt,
+      parent_id: parentId,
+      evidence_anchor: evidenceAnchor,
     });
 
     // Broadcast on publish (spec 7): one batched frame carrying the comment and
     // the current presence, so a viewer gets both facts in a single message.
+    // Replies use a deterministic `reply` type so clients can thread them.
     if (status === 'published') {
-      this.broadcast({ type: 'comment', comment, presence: this.presence() });
+      const frameType = parentId ? 'reply' : 'comment';
+      this.broadcast({ type: frameType, comment, presence: this.presence() });
     }
 
     return { status: status === 'published' ? 'published' : 'pending', comment, reason };
@@ -515,6 +591,8 @@ export class CommentsRoom extends DurableObject<Env> {
         source_lang: row.source_lang as SourceLang,
         status,
         created_at: row.created_at,
+        parent_id: row.parent_id ?? null,
+        evidence_anchor: row.evidence_anchor ?? null,
       });
     }
     return { found: true, reports, status };
@@ -528,7 +606,9 @@ export class CommentsRoom extends DurableObject<Env> {
     this.sql.exec(`UPDATE comments SET status = ? WHERE id = ?`, status, id);
     // `approve` runs the publish path (spec 5), so it broadcasts like any publish.
     if (status === 'published') {
-      this.broadcast({ type: 'comment', comment: toPublicComment(row), presence: this.presence() });
+      const comment = toPublicComment(row);
+      const frameType = comment.parent_id ? 'reply' : 'comment';
+      this.broadcast({ type: frameType, comment, presence: this.presence() });
     }
     return { ok: true, status };
   }

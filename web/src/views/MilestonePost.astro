@@ -17,6 +17,7 @@ import { milestoneProjects, milestoneTitle, milestonesByDateDesc } from '../lib/
 import { canonicalUrl, route } from '../lib/urls';
 import ShareRow from '../components/ShareRow.astro';
 import CopyAnchor from '../components/CopyAnchor.astro';
+import Comments from '../components/Comments.astro';
 
 interface Props {
   milestone: Milestone;
@@ -154,6 +155,14 @@ function evidenceLabel(url: string): string {
                     <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
                   </a>
                   <CopyAnchor copy={copy} sectionId={anchorId} />
+                  <button
+                    class="milestone-post__evidence-discuss"
+                    type="button"
+                    data-evidence-anchor={anchorId}
+                    data-comments-trigger
+                  >
+                    {copy.evolution.discussEvidence || 'Discuss'}
+                  </button>
                 </div>
               </li>
             );
@@ -190,6 +199,8 @@ function evidenceLabel(url: string): string {
       </nav>
     )
   }
+
+  <Comments locale={locale} copy={copy} path={`evolution/${milestone.id}/`} />
 </article>
 
 <style>
@@ -296,6 +307,18 @@ function evidenceLabel(url: string): string {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     word-break: break-all;
+  }
+
+  .milestone-post__evidence-discuss {
+    min-height: 44px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--color-accent);
+    font: inherit;
+    font-size: var(--text-sm);
+    text-decoration: underline;
+    cursor: pointer;
   }
 
   .milestone-post__adjacent {

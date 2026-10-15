@@ -460,3 +460,31 @@ test('approving a queued comment broadcasts it like a publish', async () => {
 
   await closeSocket(ws);
 });
+
+test('a reply broadcast uses the deterministic reply type', async () => {
+  const page = 'work/ws-reply/';
+  const path = `/api/comments/${encodeURIComponent(page)}/ws`;
+
+  const ws = connectSocket(path, ALLOWED);
+  await waitForOpen(ws);
+  await waitForFrame(ws, (f) => f.type === 'presence' && f.count === 1);
+
+  const root = await postComment(page, 'websocket root');
+  assert.equal(root.status, 201);
+  const rootId = root.body.comment.id;
+
+  const rootFrame = await waitForFrame(ws, (f) => f.type === 'comment');
+  assert.equal(rootFrame.comment.id, rootId);
+  assert.equal(rootFrame.comment.parent_id, null);
+
+  const reply = await postComment(page, 'websocket reply', { parentId: rootId });
+  assert.equal(reply.status, 201);
+  const replyId = reply.body.comment.id;
+
+  const replyFrame = await waitForFrame(ws, (f) => f.type === 'reply');
+  assert.equal(replyFrame.comment.id, replyId);
+  assert.equal(replyFrame.comment.parent_id, rootId);
+  assert.equal(typeof replyFrame.presence, 'number');
+
+  await closeSocket(ws);
+});

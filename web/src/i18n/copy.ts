@@ -195,6 +195,8 @@ export interface Copy {
     backToTimeline: string;
     /** Heading above the evidence list on a milestone detail page. */
     evidenceHeading: string;
+    /** Button that moves to the milestone thread with the evidence anchor preserved. */
+    discussEvidence: string;
     /** Accessible label of the previous milestone link on a detail page. */
     previousMilestone: string;
     /** Accessible label of the next milestone link on a detail page. */
@@ -723,6 +725,24 @@ export interface Copy {
     statusReported: string;
     statusReportError: string;
     statusUnavailable: string;
+    /** Reply button label on each top-level comment. */
+    reply: string;
+    /** Composer context: "Replying to {name}" — the name token is filled client-side. */
+    replyingTo: string;
+    /** Composer context when the reply is tied to an evidence anchor. */
+    replyingToEvidence: string;
+    /** Cancel button for the reply composer. */
+    cancelReply: string;
+    /** Submit button for the reply composer. */
+    submitReply: string;
+    /** Status after a reply is published immediately. */
+    replyPosted: string;
+    /** Status after a reply is queued for review. */
+    replyQueued: string;
+    /** Tombstone shown when a removed parent still has visible replies. */
+    removedParent: string;
+    /** Hint that replies cannot be nested deeper than one level. */
+    replyDepthHint: string;
   };
 }
 
@@ -867,6 +887,7 @@ export const en: Copy = {
       'Showing the most recent hand-written milestones, delivered work first; unreviewed git candidates are on the full timeline.',
     backToTimeline: 'Back to the timeline',
     evidenceHeading: 'Evidence',
+    discussEvidence: 'Discuss this evidence',
     previousMilestone: 'Previous milestone',
     nextMilestone: 'Next milestone',
     roadmapHeading: 'Roadmap by phase',
@@ -1225,6 +1246,15 @@ submitFrom: 'Portfolio contact form',
     statusReported: 'Reported. Thank you.',
     statusReportError: 'Could not send the report. Please try again.',
     statusUnavailable: 'Comments are temporarily unavailable.',
+    reply: 'Reply',
+    replyingTo: 'Replying to {name}',
+    replyingToEvidence: 'Discussing {anchor}',
+    cancelReply: 'Cancel',
+    submitReply: 'Post reply',
+    replyPosted: 'Reply published.',
+    replyQueued: 'Thanks — your reply is waiting for review.',
+    removedParent: 'Comment removed',
+    replyDepthHint: 'Replies are limited to one level.',
   },
 };
 
@@ -1370,6 +1400,7 @@ export const es: Copy = {
       'Se muestran los hitos escritos a mano más recientes, con lo entregado primero; los candidatos de git sin revisar están en la línea de tiempo completa.',
     backToTimeline: 'Volver a la línea de tiempo',
     evidenceHeading: 'Evidencia',
+    discussEvidence: 'Comentar esta evidencia',
     previousMilestone: 'Hito anterior',
     nextMilestone: 'Hito siguiente',
     roadmapHeading: 'Hoja de ruta por fase',
@@ -1730,6 +1761,15 @@ submitFrom: 'Formulario de contacto del portafolio',
     statusReported: 'Denunciado. Gracias.',
     statusReportError: 'No se ha podido enviar la denuncia. Inténtalo de nuevo.',
     statusUnavailable: 'Los comentarios no están disponibles temporalmente.',
+    reply: 'Responder',
+    replyingTo: 'Respondiendo a {name}',
+    replyingToEvidence: 'Comentando sobre {anchor}',
+    cancelReply: 'Cancelar',
+    submitReply: 'Publicar respuesta',
+    replyPosted: 'Respuesta publicada.',
+    replyQueued: 'Gracias: tu respuesta está pendiente de revisión.',
+    removedParent: 'Comentario eliminado',
+    replyDepthHint: 'Solo se permite un nivel de respuestas.',
   },
 };
 

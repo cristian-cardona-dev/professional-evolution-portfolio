@@ -330,6 +330,137 @@ test('the admin remove action is the GDPR delete path', async () => {
   assert.deepEqual(list.body.comments, []);
 });
 
+test('a reply is published under its parent and includes the evidence anchor', async () => {
+  const page = 'work/reply-valid/';
+  const parent = await postComment(page, 'top level comment', { name: 'Parent' });
+  assert.equal(parent.status, 201);
+  const parentId = parent.body.comment.id;
+
+  const reply = await postComment(page, 'a reply', {
+    name: 'Replier',
+    parentId,
+    evidenceAnchor: 'evidence-2',
+  });
+  assert.equal(reply.status, 201);
+  assert.equal(reply.body.status, 'published');
+  assert.equal(reply.body.comment.parent_id, parentId);
+  assert.equal(reply.body.comment.evidence_anchor, 'evidence-2');
+
+  const list = await getComments(page);
+  assert.equal(list.body.comments.length, 2);
+  const found = list.body.comments.find((c) => c.id === reply.body.comment.id);
+  assert.ok(found);
+  assert.equal(found.parent_id, parentId);
+  assert.equal(found.evidence_anchor, 'evidence-2');
+});
+
+test('a reply to a parent on another page is rejected', async () => {
+  const parentPage = 'work/reply-cross-a/';
+  const childPage = 'work/reply-cross-b/';
+  const parent = await postComment(parentPage, 'parent on another page');
+  assert.equal(parent.status, 201);
+
+  const reply = await postComment(childPage, 'cross-page reply', { parentId: parent.body.comment.id });
+  assert.equal(reply.status, 400);
+  assert.equal(reply.body.error, 'cross_page_parent');
+
+  const list = await getComments(childPage);
+  assert.deepEqual(list.body.comments, []);
+});
+
+test('a reply to a reply is rejected to enforce one-level threading', async () => {
+  const page = 'work/reply-too-deep/';
+  const root = await postComment(page, 'root comment');
+  assert.equal(root.status, 201);
+  const reply = await postComment(page, 'first reply', { parentId: root.body.comment.id });
+  assert.equal(reply.status, 201);
+
+  const tooDeep = await postComment(page, 'reply to reply', { parentId: reply.body.comment.id });
+  assert.equal(tooDeep.status, 400);
+  assert.equal(tooDeep.body.error, 'too_deep');
+
+  const list = await getComments(page);
+  assert.equal(list.body.comments.length, 2);
+});
+
+test('a reply to a removed parent is rejected', async () => {
+  const page = 'work/reply-removed-parent/';
+  const parent = await postComment(page, 'will be removed');
+  assert.equal(parent.status, 201);
+  const id = parent.body.comment.id;
+
+  const removed = await api(`/api/moderation/${encodeURIComponent(id)}`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${ADMIN_TOKEN}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'remove' }),
+  });
+  assert.equal(removed.status, 200);
+
+  const reply = await postComment(page, 'reply after removal', { parentId: id });
+  assert.equal(reply.status, 400);
+  assert.equal(reply.body.error, 'parent_removed');
+});
+
+test('reports and GDPR removal apply to replies like top-level comments', async () => {
+  const page = 'work/reply-report-gdpr/';
+  const root = await postComment(page, 'root for report test');
+  assert.equal(root.status, 201);
+  const reply = await postComment(page, 'reply for report test', { parentId: root.body.comment.id });
+  assert.equal(reply.status, 201);
+  const replyId = reply.body.comment.id;
+
+  for (let i = 1; i <= 3; i += 1) {
+    const report = await api(
+      `/api/comments/${encodeURIComponent(page)}/${encodeURIComponent(replyId)}/report`,
+      { method: 'POST' },
+    );
+    assert.equal(report.status, 200);
+    if (i === 3) assert.equal(report.body.status, 'flagged');
+  }
+
+  const listAfterReports = await getComments(page);
+  assert.equal(
+    listAfterReports.body.comments.some((c) => c.id === replyId),
+    false,
+    'flagged replies are hidden from the public list',
+  );
+
+  const queue = await adminQueue();
+  assert.ok(queue.body.entries.some((entry) => entry.id === replyId && entry.parent_id === root.body.comment.id));
+
+  const removed = await api(`/api/moderation/${encodeURIComponent(replyId)}`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${ADMIN_TOKEN}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'remove' }),
+  });
+  assert.equal(removed.status, 200);
+  assert.equal(removed.body.status, 'removed');
+
+  const queueAfter = await adminQueue();
+  assert.ok(!queueAfter.body.entries.some((entry) => entry.id === replyId));
+});
+
+test('a removed parent with remaining replies renders context via the list shape', async () => {
+  const page = 'work/reply-tombstone/';
+  const root = await postComment(page, 'root with replies');
+  assert.equal(root.status, 201);
+  const rootId = root.body.comment.id;
+  const reply = await postComment(page, 'orphaned reply', { parentId: rootId });
+  assert.equal(reply.status, 201);
+  const replyId = reply.body.comment.id;
+
+  await api(`/api/moderation/${encodeURIComponent(rootId)}`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${ADMIN_TOKEN}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'remove' }),
+  });
+
+  const list = await getComments(page);
+  assert.equal(list.body.comments.length, 1);
+  assert.equal(list.body.comments[0].id, replyId);
+  assert.equal(list.body.comments[0].parent_id, rootId);
+});
+
 test('the realtime socket endpoint refuses an upgrade without an allowed Origin', async () => {
   // F-B implemented the socket: the DO now answers 403 to a client that does
   // not present one of the two allowlisted site origins (Node's fetch sends no

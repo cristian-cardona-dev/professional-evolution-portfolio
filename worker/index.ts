@@ -208,8 +208,19 @@ async function handleCreate(request: Request, env: Env, page: string): Promise<R
 
   const name = typeof payload.name === 'string' ? payload.name : null;
   const lang = typeof payload.lang === 'string' ? payload.lang : '';
+  const parentId = typeof payload.parentId === 'string' ? payload.parentId : null;
+  const evidenceAnchor = typeof payload.evidenceAnchor === 'string' ? payload.evidenceAnchor : null;
 
-  const result = await pageRoom(env, page).create({ page, name, body, lang, ip: remoteIp });
+  const result = await pageRoom(env, page).create({
+    page,
+    name,
+    body,
+    lang,
+    ip: remoteIp,
+    parentId,
+    evidenceAnchor,
+  });
+  if (result.status === 'rejected') return fail(result.reason, 400);
   if (result.reason === 'invalid_body') return fail('invalid_body', 400);
   if (result.reason === 'rate_limited') return fail('rate_limited', 429);
   return json({ status: result.status, comment: result.comment, reason: result.reason }, 201);
