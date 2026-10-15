@@ -744,6 +744,41 @@ export interface Copy {
     /** Hint that replies cannot be nested deeper than one level. */
     replyDepthHint: string;
   };
+  /**
+   * Milestone reactions — one anonymous ❤️ per milestone detail page.
+   *
+   * Counts are aggregate and shared between the EN and ES routes of the same
+   * canonical milestone id. The control is honest about its own availability:
+   * `loading` is the initial fetch, `unavailable` a deployment without a
+   * reaction API, `error`/`rateLimited` the two failing responses. `countOne`
+   * and `countMany` are templates because the client script fills the count.
+   */
+  reactions: {
+    /** Accessible group label announcing the control. */
+    group: string;
+    /** Button label: useful-support copy, never "like". */
+    useful: string;
+    /** Count when exactly one person reacted. */
+    countOne: string;
+    /** Count otherwise; `{n}` is filled client-side. */
+    countMany: string;
+    /** Status while the initial count loads. */
+    loading: string;
+    /** Live announcement after a reaction is added. */
+    added: string;
+    /** Live announcement after a reaction is removed. */
+    removed: string;
+    /** Status when the API answers with an error. */
+    error: string;
+    /** Status when the abuse guard refuses the request. */
+    rateLimited: string;
+    /** Status when the reaction API is not reachable on this deployment. */
+    unavailable: string;
+    /** Honest note: lightweight feedback, not a verdict on the evidence. */
+    note: string;
+    /** No-JS fallback: reactions need JavaScript; nothing is sent without it. */
+    noJs: string;
+  };
 }
 
 export const en: Copy = {
@@ -1255,6 +1290,20 @@ submitFrom: 'Portfolio contact form',
     replyQueued: 'Thanks — your reply is waiting for review.',
     removedParent: 'Comment removed',
     replyDepthHint: 'Replies are limited to one level.',
+  },
+  reactions: {
+    group: 'Reaction',
+    useful: 'This was useful',
+    countOne: '1 person found this useful',
+    countMany: '{n} people found this useful',
+    loading: 'Loading reactions…',
+    added: 'Thanks — your reaction was counted.',
+    removed: 'Your reaction was removed.',
+    error: 'Could not save your reaction. Please try again.',
+    rateLimited: 'Too many reactions in a short time. Please try again later.',
+    unavailable: 'Reactions are temporarily unavailable.',
+    note: 'Lightweight feedback, not a verdict on the evidence.',
+    noJs: 'Reactions need JavaScript; nothing is sent without it.',
   },
 };
 
@@ -1770,6 +1819,20 @@ submitFrom: 'Formulario de contacto del portafolio',
     replyQueued: 'Gracias: tu respuesta está pendiente de revisión.',
     removedParent: 'Comentario eliminado',
     replyDepthHint: 'Solo se permite un nivel de respuestas.',
+  },
+  reactions: {
+    group: 'Reacción',
+    useful: 'Me resultó útil',
+    countOne: 'A 1 persona le resultó útil',
+    countMany: 'A {n} personas les resultó útil',
+    loading: 'Cargando reacciones…',
+    added: 'Gracias: tu reacción se ha contado.',
+    removed: 'Tu reacción se ha eliminado.',
+    error: 'No se ha podido guardar tu reacción. Inténtalo de nuevo.',
+    rateLimited: 'Demasiadas reacciones en poco tiempo. Inténtalo más tarde.',
+    unavailable: 'Las reacciones no están disponibles temporalmente.',
+    note: 'Una señal ligera, no un veredicto sobre la evidencia.',
+    noJs: 'Las reacciones necesitan JavaScript; sin él no se envía nada.',
   },
 };
 

@@ -1,11 +1,15 @@
 /**
  * The comment Durable Object (spec 4, 5, 6).
  *
- * One class, three roles, selected by the DO instance name:
+ * One class, four roles, selected by the DO instance name:
  *
  *   - `comments:<page>`      — the per-page room: SQLite `comments` table,
  *                              transient rate-limit keys, presence, report
  *                              counting and the moderation/translation pipeline.
+ *   - `reactions:<milestone>` — the per-milestone reaction room: a SQLite
+ *                              `reactions` table keyed by salted nonce hashes.
+ *                              The name carries the CANONICAL milestone id, not
+ *                              the locale, so EN and ES share one count.
  *   - `__budget__`           — the global daily neuron counter (spec 6.3). It is
  *                              one instance shared by every page room, so the
  *                              5,000/day guardrail is a *site* budget rather
@@ -46,6 +50,16 @@ export const REPORT_FLAG_THRESHOLD = 3;
 export const NEURON_DAILY_LIMIT = 5000;
 export const DEFAULT_PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 100;
+
+/**
+ * Abuse guard for NEW reactions, per IP per milestone room. Generous on
+ * purpose: honest idempotency already caps a single visitor at one active
+ * reaction, so this only bounds nonce rotation. Deleting and duplicate PUTs
+ * never spend the allowance.
+ */
+export const REACTION_RATE_LIMIT_PER_HOUR = 30;
+export const REACTION_NONCE_MIN_LENGTH = 16;
+export const REACTION_NONCE_MAX_LENGTH = 128;
 
 export const BUDGET_ROOM_NAME = '__budget__';
 export const MODERATION_ROOM_NAME = '__moderation__';
@@ -126,6 +140,27 @@ export interface BudgetState {
   neurons: number;
   paused: boolean;
   limit: number;
+}
+
+/** Public, aggregate-only reaction state for one milestone. */
+export interface ReactionState {
+  /** How many anonymous visitors currently hold an active reaction. */
+  count: number;
+  /** Whether the caller's anonymous nonce holds an active reaction. */
+  reacted: boolean;
+}
+
+export interface ReactionResult extends ReactionState {
+  /** True when the abuse guard refused a NEW reaction; the state is unchanged. */
+  rateLimited: boolean;
+}
+
+export interface ReactionInput {
+  milestone: string;
+  /** Opaque, client-generated, hashed before it touches storage. */
+  nonce: string;
+  /** Transient: used for the abuse guard, hashed before it touches storage. */
+  ip: string;
 }
 
 interface CommentRow {
@@ -224,6 +259,19 @@ export class CommentsRoom extends DurableObject<Env> {
     this.sql.exec(
       `CREATE INDEX IF NOT EXISTS idx_comments_page_parent_status
          ON comments(page, parent_id, status, created_at DESC)`,
+    );
+    // Reactions share the per-room SQLite pattern but live in their own table,
+    // in their own `reactions:<milestone>` room, so they can never touch the
+    // comments or moderation rows and can never be addressed by a page id.
+    // `CREATE TABLE IF NOT EXISTS` is the idempotent, non-destructive migration
+    // for both a fresh room and an already-deployed one. The nonce is stored
+    // ONLY as a salted hash; the row count is the public count.
+    this.sql.exec(
+      `CREATE TABLE IF NOT EXISTS reactions (
+         nonce_hash TEXT PRIMARY KEY,
+         milestone  TEXT NOT NULL,
+         created_at INTEGER NOT NULL
+       )`,
     );
   }
 
@@ -613,6 +661,64 @@ export class CommentsRoom extends DurableObject<Env> {
     return { ok: true, status };
   }
 
+  // --- Milestone reactions (role: reactions:<milestone>) ---------------------
+
+  /**
+   * Public aggregate state for the milestone plus whether the caller's nonce
+   * already holds a reaction. The nonce is hashed with the per-room secret
+   * before it is looked up, so the stored value can never be replayed and the
+   * nonce itself is never compared or returned.
+   */
+  async reactionState(input: { milestone: string; nonce: string | null }): Promise<ReactionState> {
+    const count = this.reactionCount();
+    if (!input.nonce) return { count, reacted: false };
+    const hash = await this.reactionHash(input.nonce);
+    return { count, reacted: this.hasReaction(hash) };
+  }
+
+  /**
+   * Idempotent add. A nonce that already reacted is a no-op: no increment and
+   * no quota spent. Only a NEW reaction consumes the abuse allowance. There is
+   * no `await` between the post-quota re-check and the insert, so two
+   * concurrent PUTs for one nonce cannot both count.
+   */
+  async react(input: ReactionInput): Promise<ReactionResult> {
+    const hash = await this.reactionHash(input.nonce);
+    if (this.hasReaction(hash)) {
+      return { count: this.reactionCount(), reacted: true, rateLimited: false };
+    }
+
+    if (!(await this.consumeReactionAllowance(input.ip))) {
+      return {
+        count: this.reactionCount(),
+        reacted: this.hasReaction(hash),
+        rateLimited: true,
+      };
+    }
+
+    // No await below: the DO completes this synchronously, so a duplicate that
+    // slipped past the first check cannot double-count.
+    if (!this.hasReaction(hash)) {
+      this.sql.exec(
+        `INSERT OR IGNORE INTO reactions (nonce_hash, milestone, created_at)
+         VALUES (?, ?, ?)`,
+        hash,
+        input.milestone,
+        Date.now(),
+      );
+    }
+    return { count: this.reactionCount(), reacted: true, rateLimited: false };
+  }
+
+  /** Idempotent remove: deleting an absent reaction is a successful no-op. */
+  async unreact(input: { nonce: string }): Promise<ReactionResult> {
+    const hash = await this.reactionHash(input.nonce);
+    if (this.hasReaction(hash)) {
+      this.sql.exec(`DELETE FROM reactions WHERE nonce_hash = ?`, hash);
+    }
+    return { count: this.reactionCount(), reacted: false, rateLimited: false };
+  }
+
   // --- Global moderation index (role: __moderation__) ------------------------
 
   /**
@@ -729,5 +835,49 @@ export class CommentsRoom extends DurableObject<Env> {
     const salt = crypto.randomUUID();
     await this.ctx.storage.put('rl-salt', salt);
     return salt;
+  }
+
+  // --- Reaction internals ----------------------------------------------------
+
+  /** The public count is the number of active (nonce-hashed) rows in the room. */
+  private reactionCount(): number {
+    return this.sql.exec<{ n: number }>(`SELECT COUNT(*) AS n FROM reactions`).one().n;
+  }
+
+  private hasReaction(hash: string): boolean {
+    return (
+      this.sql.exec(`SELECT 1 FROM reactions WHERE nonce_hash = ? LIMIT 1`, hash).toArray().length >
+      0
+    );
+  }
+
+  /**
+   * Salt + hash the anonymous nonce with the per-room secret. The same secret
+   * already salts the rate-limit keys; only hashes are ever stored, compared or
+   * returned, and the nonce never appears in a response or a log line.
+   */
+  private async reactionHash(nonce: string): Promise<string> {
+    const salt = await this.rateSalt();
+    return sha256Hex(`${salt}|reaction|${nonce}`);
+  }
+
+  /**
+   * Abuse guard, per IP per milestone, spent only for a NEW reaction. Same
+   * shape as the comment limiter: the IP is salted and hashed and never
+   * persisted, and only timestamps inside the current hour are kept.
+   */
+  private async consumeReactionAllowance(ip: string): Promise<boolean> {
+    const salt = await this.rateSalt();
+    const key = `rlr:${await sha256Hex(`${salt}|${ip}`)}`;
+    const now = Date.now();
+    const previous = (await this.ctx.storage.get<number[]>(key)) ?? [];
+    const recent = previous.filter((t) => typeof t === 'number' && now - t < RATE_WINDOW_MS);
+    if (recent.length >= REACTION_RATE_LIMIT_PER_HOUR) {
+      await this.ctx.storage.put(key, recent);
+      return false;
+    }
+    recent.push(now);
+    await this.ctx.storage.put(key, recent);
+    return true;
   }
 }

@@ -17,6 +17,7 @@ import { milestoneProjects, milestoneTitle, milestonesByDateDesc } from '../lib/
 import { canonicalUrl, route } from '../lib/urls';
 import ShareRow from '../components/ShareRow.astro';
 import CopyAnchor from '../components/CopyAnchor.astro';
+import MilestoneReactions from '../components/MilestoneReactions.astro';
 import Comments from '../components/Comments.astro';
 
 interface Props {
@@ -200,6 +201,10 @@ function evidenceLabel(url: string): string {
     )
   }
 
+  <div class="milestone-post__interactions shell shell--narrow">
+    <MilestoneReactions locale={locale} copy={copy} milestoneId={milestone.id} />
+  </div>
+
   <Comments locale={locale} copy={copy} path={`evolution/${milestone.id}/`} />
 </article>
 
@@ -326,6 +331,11 @@ function evidenceLabel(url: string): string {
     grid-template-columns: 1fr 1fr;
     gap: var(--space-4);
     padding-block: var(--space-8);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .milestone-post__interactions {
+    padding-block-start: var(--space-8);
     border-top: 1px solid var(--color-border);
   }
 
