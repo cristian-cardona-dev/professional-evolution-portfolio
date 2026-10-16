@@ -1,36 +1,47 @@
 ---
 /**
- * Evolution composition — roadmap, source legend, and the complete timeline.
+ * Evolution composition — a featured reading entry, a navigable milestone
+ * archive, and the secondary roadmap.
  *
- * The roadmap area is two blocks, in this order:
+ * The page has three layers, in this order:
  *
- *   1. **Goal → skill → proof** (`components/RoadmapTable.astro`), from
- *      `data/roadmap.json`. This is the primary roadmap content: each declared
- *      goal, the skills it exercises and the artifacts that would prove it. It
- *      carries the `#roadmap` anchor the home page links to.
- *   2. **Roadmap by phase**, derived from the milestones themselves
+ *   1. **Journal index**: a reviewed, delivered/in-progress entry, followed by
+ *      native links into curated history, git-derived candidates and planned
+ *      direction. The feature is an excerpt; the detail route remains canonical.
+ *   2. **Goal → skill → proof** (`components/RoadmapTable.astro`), from
+ *      `data/roadmap.json`. Each declared goal, the skills it exercises and the
+ *      artifacts that would prove it keep the `#roadmap` anchor stable, but the
+ *      whole area follows the journal.
+ *   3. **Roadmap by phase**, derived from the milestones themselves
  *      (`roadmapRows` in `lib/data.ts`): a phase only appears if at least one
  *      milestone declares it, and its "supporting projects" are the union of the
  *      projects those milestones link to. It is kept because it answers a
  *      different question — what each phase (foundation / transition /
- *      frontier) covered — but it is now subordinate: an `h3` under the goal
- *      table's `h2`, behind a hairline.
+ *      frontier) covered — but it is subordinate to the journal as a whole.
  *
- * Editing the data changes either roadmap; editing this file never would.
+ * Editing canonical data changes the milestones and derived roadmaps; this view
+ * owns no duplicate dataset.
  *
  * The legend is not decoration: it explains the three badges a milestone can
  * carry (curated, derived from git, snapshot), so a visitor knows that a
  * git-derived entry is an unreviewed candidate rather than curated history.
  * All strings come from the catalog, in both locales.
  *
- * Heading order: h1 (page) → h2 (goal roadmap, source legend, timeline) →
- * h3 (phases, timeline section) → h4 (phase, milestone), so no level is skipped.
+ * Heading order: h1 (page) → h2 (feature, archive, timeline, source, roadmap) →
+ * h3 (featured entry, timeline section, phase) → h4 (milestone, phase), with no
+ * skipped heading level.
  */
 import type { Copy, Locale } from '../i18n/copy';
 import EvolutionTimeline from '../components/EvolutionTimeline.astro';
 import RoadmapTable from '../components/RoadmapTable.astro';
 import Comments from '../components/Comments.astro';
-import { roadmapRows } from '../lib/data';
+import {
+  curatedMilestonesByDateDesc,
+  milestoneNarrative,
+  milestoneTitle,
+  roadmapRows,
+  type Milestone,
+} from '../lib/data';
 import { route } from '../lib/urls';
 
 interface Props {
@@ -43,6 +54,29 @@ const { locale, copy } = Astro.props;
 const SOURCES = ['curated', 'git', 'snapshot'] as const;
 
 const roadmap = roadmapRows();
+// Pick the newest reviewed entry that is delivered or in progress. Planned
+// direction remains visible in its own archive section, never as the first story.
+const featured = curatedMilestonesByDateDesc.find((milestone) => milestone.status !== 'planned');
+const dateFormat = new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  timeZone: 'UTC',
+});
+
+const statusVariant: Record<Milestone['status'], string> = {
+  shipped: 'chip--success',
+  'in-progress': 'chip--warn',
+  planned: 'chip--neutral',
+};
+
+function excerpt(text: string, maxLength = 150): string {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+  const shortened = normalized.slice(0, maxLength - 1);
+  const lastSpace = shortened.lastIndexOf(' ');
+  return `${shortened.slice(0, lastSpace > 0 ? lastSpace : shortened.length)}…`;
+}
 ---
 
 <section class="section" id="evolution" aria-labelledby="evolution-heading">
@@ -53,8 +87,78 @@ const roadmap = roadmapRows();
       <p class="lead">{copy.evolution.summary}</p>
     </header>
 
-    {/* Primary roadmap content. `id="roadmap"` is the anchor the home page CTA
-        points at, so the goal table is reachable from `/` without scrolling. */}
+    <section class="journal-feature reveal" id="latest-entry" aria-labelledby="featured-heading">
+      <p class="eyebrow">{copy.evolution.featuredEyebrow}</p>
+      <h2 id="featured-heading">{copy.evolution.featuredHeading}</h2>
+      {
+        featured && (
+          <article class="journal-feature__entry">
+            <div class="journal-feature__meta">
+              <time class="tabular" datetime={featured.date}>
+                {dateFormat.format(new Date(`${featured.date}T00:00:00Z`))}
+              </time>
+              <span class={`chip ${statusVariant[featured.status]}`}>
+                {copy.evolution[featured.status === 'in-progress' ? 'inProgress' : featured.status]}
+              </span>
+              <span class="chip chip--neutral">{copy.evolution.sourceLabel[featured.source]}</span>
+            </div>
+            <h3>
+              <a href={route(locale, `evolution/${featured.id}/`)}>
+                {milestoneTitle(featured, locale)}
+              </a>
+            </h3>
+            <p class="journal-feature__excerpt">
+              {excerpt(milestoneNarrative(featured, locale))}
+            </p>
+            <p class="journal-feature__evidence">
+              {copy.evolution.evidenceLinks(featured.evidence.length)}
+            </p>
+            <p class="journal-feature__invitation">{copy.evolution.contributionNote}</p>
+            <div class="journal-feature__actions">
+              <a class="journal-feature__read" href={route(locale, `evolution/${featured.id}/`)}>
+                {copy.evolution.readStory}
+              </a>
+              <a href={route(locale, `evolution/${featured.id}/#comments`)}>
+                {copy.evolution.joinDiscussion}
+              </a>
+            </div>
+          </article>
+        )
+      }
+    </section>
+
+    <nav class="journal-index reveal" aria-label={copy.evolution.latestMilestonesHeading}>
+      <h2>{copy.evolution.latestMilestonesHeading}</h2>
+      <ul>
+        <li><a href="#timeline-section-completed">{copy.evolution.curatedNav}</a></li>
+        <li><a href="#timeline-section-candidates">{copy.evolution.candidateNav}</a></li>
+        <li><a href="#timeline-section-ahead">{copy.evolution.plannedNav}</a></li>
+        <li><a class="journal-index__roadmap" href="#roadmap">{copy.evolution.roadmapNav}</a></li>
+      </ul>
+    </nav>
+
+    <div class="timeline-block">
+      <h2 id="timeline-heading">{copy.evolution.timelineHeading}</h2>
+      <EvolutionTimeline copy={copy} locale={locale} editorial />
+    </div>
+
+    <div class="source-key reveal">
+      <h2 class="source-key__heading" id="source-key-heading">
+        {copy.evolution.sourcesNote}
+      </h2>
+      <ul class="source-key__list">
+        {
+          SOURCES.map((source) => (
+            <li class="source-key__item">
+              <span class="chip chip--neutral">{copy.evolution.sourceLabel[source]}</span>
+              <span class="source-key__hint">{copy.evolution.sourceHint[source]}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    {/* Keep #roadmap stable for the home-page CTA and existing deep links. */}
     <section class="roadmap-goals reveal" id="roadmap" aria-labelledby="roadmap-heading">
       <header class="roadmap-goals__head">
         <h2 id="roadmap-heading">{copy.evolution.roadmapTable.heading}</h2>
@@ -104,27 +208,6 @@ const roadmap = roadmapRows();
         </section>
       )
     }
-
-    <div class="source-key reveal">
-      <h2 class="source-key__heading" id="source-key-heading">
-        {copy.evolution.sourcesNote}
-      </h2>
-      <ul class="source-key__list">
-        {
-          SOURCES.map((source) => (
-            <li class="source-key__item">
-              <span class="chip chip--neutral">{copy.evolution.sourceLabel[source]}</span>
-              <span class="source-key__hint">{copy.evolution.sourceHint[source]}</span>
-            </li>
-          ))
-        }
-      </ul>
-    </div>
-
-    <div class="timeline-block">
-      <h2 id="timeline-heading">{copy.evolution.timelineHeading}</h2>
-      <EvolutionTimeline copy={copy} locale={locale} />
-    </div>
   </div>
 </section>
 
@@ -132,28 +215,164 @@ const roadmap = roadmapRows();
 
 <style>
   .section {
-    padding-block: var(--space-16) var(--space-24);
+    padding-block: var(--space-6) var(--space-24);
     scroll-margin-top: var(--header-height);
   }
 
   .section__head {
     max-width: 68ch;
-    margin-bottom: var(--space-8);
+    margin-bottom: var(--space-4);
   }
 
   .section__head h1 {
     margin-block: var(--space-2) var(--space-3);
   }
 
+  .journal-feature {
+    max-width: 68ch;
+    margin-bottom: var(--space-4);
+    padding: var(--space-3);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .journal-feature > .eyebrow {
+    margin-bottom: var(--space-1);
+  }
+
+  .journal-feature > h2,
+  .journal-index > h2 {
+    font-size: var(--text-lg);
+    line-height: var(--leading-lg);
+  }
+
+  .journal-feature__entry {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+  }
+
+  .journal-feature__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    line-height: var(--leading-xs);
+  }
+
+  .journal-feature__entry h3 {
+    font-size: var(--text-lg);
+    line-height: var(--leading-lg);
+  }
+
+  .journal-feature__entry h3 a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .journal-feature__entry h3 a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+  }
+
+  .journal-feature__excerpt,
+  .journal-feature__invitation {
+    max-width: var(--measure);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+  }
+
+  .journal-feature__evidence {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    line-height: var(--leading-xs);
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+  }
+
+  .journal-feature__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  .journal-feature__actions a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--color-accent);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-underline-offset: 0.2em;
+  }
+
+  .journal-feature__actions .journal-feature__read {
+    padding-inline: var(--space-3);
+    background-color: var(--color-surface-raised);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+  }
+
+  .journal-feature__actions a:focus-visible,
+  .journal-index a:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  .journal-index {
+    max-width: 68ch;
+    margin-bottom: var(--space-6);
+    padding-block: var(--space-3);
+    border-block: 1px solid var(--color-border);
+  }
+
+  .journal-index ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    margin-top: var(--space-2);
+    padding: 0;
+    list-style: none;
+  }
+
+  .journal-index li {
+    max-width: none;
+  }
+
+  .journal-index a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--color-accent);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-underline-offset: 0.2em;
+  }
+
+  .journal-index .journal-index__roadmap {
+    color: var(--color-text-muted);
+    font-weight: 500;
+  }
+
   /* --- Roadmap -------------------------------------------------------------
-   * Two blocks in one area: the goal table (primary, `#roadmap`) and the phase
-   * rows summarised from the milestones (subordinate). Neither is a `<table>`:
+   * Two blocks in one area: the goal table (`#roadmap`) and the phase rows
+   * summarised from the milestones. Neither is a `<table>`:
    * the columns are prose and links, not numbers to compare, and a stacked row
    * survives a narrow viewport without horizontal scrolling.
    * --------------------------------------------------------------------- */
   /* The rows span the shell (a three-column grid at 68ch would wrap every
      project name); the prose is what gets the measure cap. */
   .roadmap-goals {
+    margin-top: var(--space-12);
+    padding-top: var(--space-8);
+    border-top: 1px solid var(--color-border);
     margin-bottom: var(--space-12);
     /* `:target` is styled globally; this offset keeps the sticky header from
        covering the anchor when the home CTA lands on it. */
@@ -286,9 +505,38 @@ const roadmap = roadmapRows();
     }
   }
 
+  @media (min-width: 1024px) {
+    .shell {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: var(--space-8);
+    }
+
+    .section__head,
+    .timeline-block,
+    .source-key,
+    .roadmap-goals,
+    .roadmap-phases {
+      grid-column: 1 / -1;
+    }
+
+    .journal-feature {
+      grid-column: 1 / span 7;
+      width: 100%;
+      margin-bottom: 0;
+    }
+
+    .journal-index {
+      grid-column: 8 / span 5;
+      align-self: start;
+      margin-top: var(--space-4);
+    }
+  }
+
   /* --- Source legend -------------------------------------------------------- */
   .source-key {
     max-width: 68ch;
+    margin-top: var(--space-10);
     padding: var(--space-4);
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
@@ -321,7 +569,7 @@ const roadmap = roadmapRows();
   }
 
   .timeline-block {
-    margin-top: var(--space-12);
+    margin-top: var(--space-8);
   }
 
   .timeline-block > h2 {
