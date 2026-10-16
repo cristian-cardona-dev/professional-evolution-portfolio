@@ -9,13 +9,14 @@
  * no key handling of our own, and assistive tech announces open/closed from
  * `aria-expanded` rather than from colour.
  *
- * Without JavaScript the panel is simply always visible below 768px (the
+ * Without JavaScript the panel is simply always visible below 1024px (the
  * `.js` gate on <html> is what enables the collapsed state), so a no-JS visit
  * never loses the navigation to a button that cannot work — the same
  * progressive-enhancement contract the work-page filter uses.
  *
- * From 768px up the button is removed from the layout and the panel is always
- * visible, so exactly one nav landmark exists at every width.
+ * From 1024px up the button is removed from the layout and the panel is always
+ * visible. At tablet widths it remains a disclosure so the nav and controls fit
+ * without horizontal overflow; exactly one nav landmark exists at every width.
  *
  * On the home page a tiny scroll-spy marks the nav link of the section in view
  * with `aria-current="true"`; every other route keeps the static
@@ -283,7 +284,7 @@ const isCurrent = (id: NavId): boolean =>
     padding-block: var(--space-3);
   }
 
-  @media (max-width: 767.98px) {
+  @media (max-width: 1023.98px) {
     html.js .site-nav__button {
       display: inline-flex;
     }
@@ -340,7 +341,7 @@ const isCurrent = (id: NavId): boolean =>
 
   /* --- Command palette trigger --------------------------------------------
    * Hidden without JavaScript (the `html.js` gate) because the palette cannot
-   * open without a script, and hidden below 768px where a keyboard shortcut
+   * open without a script, and hidden below 1024px where a keyboard shortcut
    * hint adds little on touch devices. */
   .site-header__palette {
     display: none;
@@ -372,14 +373,14 @@ const isCurrent = (id: NavId): boolean =>
     letter-spacing: 0.04em;
   }
 
-  @media (min-width: 768px) {
+  @media (min-width: 1024px) {
     html.js .site-header__palette {
       display: inline-flex;
     }
   }
 
   /* --- Wide viewport: one always-visible nav, no disclosure control -------- */
-  @media (min-width: 768px) {
+  @media (min-width: 1024px) {
     .site-nav__button {
       display: none;
     }

@@ -31,6 +31,8 @@ interface Props {
   locale: Locale;
   /** Optional subset, e.g. the home page preview. */
   milestones?: Milestone[];
+  /** Editorial archive treatment is scoped to the full Evolution page. */
+  editorial?: boolean;
   /** When set, the component notes that it is showing a subset. */
   limit?: number;
   /**
@@ -41,7 +43,7 @@ interface Props {
   previewNote?: string;
 }
 
-const { copy, locale, milestones = milestonesByDateDesc, limit, previewNote } = Astro.props;
+const { copy, locale, milestones = milestonesByDateDesc, limit, previewNote, editorial = false } = Astro.props;
 
 const ordered = [...milestones].sort((a, b) =>
   a.date === b.date ? a.id.localeCompare(b.id) : a.date < b.date ? 1 : -1,
@@ -118,12 +120,25 @@ function evidenceLabel(url: string): string {
     return url;
   }
 }
+
+/** Keep the archive scannable; the complete canonical narrative stays on detail pages. */
+function narrativeExcerpt(text: string, maxLength = 180): string {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+  const shortened = normalized.slice(0, maxLength - 1);
+  const lastSpace = shortened.lastIndexOf(' ');
+  return `${shortened.slice(0, lastSpace > 0 ? lastSpace : shortened.length)}…`;
+}
 ---
 
-<div class="timeline reveal">
+<div class={`timeline reveal ${editorial ? 'timeline--editorial' : ''}`}>
   {
     sections.map((section) => (
-      <section class={`timeline__section ${section.modifier}`} aria-labelledby={`timeline-${section.id}`}>
+      <section
+        class={`timeline__section ${section.modifier}`}
+        id={editorial ? `timeline-section-${section.id}` : undefined}
+        aria-labelledby={`timeline-${section.id}`}
+      >
         <header class="timeline__section-head">
           <h3 class="timeline__section-heading" id={`timeline-${section.id}`}>
             {section.heading}
@@ -169,7 +184,11 @@ function evidenceLabel(url: string): string {
                           </a>
                         </h4>
 
-                        <p class="timeline__narrative">{milestoneNarrative(milestone, locale)}</p>
+                        <p class="timeline__narrative">
+                          {editorial
+                            ? narrativeExcerpt(milestoneNarrative(milestone, locale))
+                            : milestoneNarrative(milestone, locale)}
+                        </p>
 
                         {related.length > 0 && (
                           <p class="timeline__related">
@@ -185,33 +204,74 @@ function evidenceLabel(url: string): string {
                           </p>
                         )}
 
-                        <p class="timeline__evidence-count">
-                          {copy.evolution.evidenceLinks(milestone.evidence.length)}
-                        </p>
+                        {editorial ? (
+                          <>
+                            <details class="timeline__evidence-details">
+                              <summary class="timeline__evidence-count">
+                                {copy.evolution.evidenceLinks(milestone.evidence.length)}
+                              </summary>
+                              <ul class="timeline__evidence">
+                                {milestone.evidence.map((url) => (
+                                  <li>
+                                    <a
+                                      class="timeline__evidence-link"
+                                      href={url}
+                                      title={url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      {evidenceLabel(url)}
+                                      <span class="visually-hidden"> ({copy.a11y.opensInNewTab})</span>
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
 
-                        <ul class="timeline__evidence">
-                          {milestone.evidence.map((url) => (
-                            <li>
+                            <div class="timeline__actions">
                               <a
-                                class="timeline__evidence-link"
-                                href={url}
-                                title={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                class="timeline__read-story"
+                                href={route(locale, `evolution/${milestone.id}/`)}
                               >
-                                {evidenceLabel(url)}
-                                <span class="visually-hidden"> ({copy.a11y.opensInNewTab})</span>
+                                {copy.evolution.readStory}
                               </a>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <a
-                          class="timeline__read-story"
-                          href={route(locale, `evolution/${milestone.id}/`)}
-                        >
-                          {copy.evolution.readStory}
-                        </a>
+                              <a
+                                class="timeline__discuss"
+                                href={route(locale, `evolution/${milestone.id}/#comments`)}
+                              >
+                                {copy.evolution.joinDiscussion}
+                              </a>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <p class="timeline__evidence-count">
+                              {copy.evolution.evidenceLinks(milestone.evidence.length)}
+                            </p>
+                            <ul class="timeline__evidence">
+                              {milestone.evidence.map((url) => (
+                                <li>
+                                  <a
+                                    class="timeline__evidence-link"
+                                    href={url}
+                                    title={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    {evidenceLabel(url)}
+                                    <span class="visually-hidden"> ({copy.a11y.opensInNewTab})</span>
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                            <a
+                              class="timeline__read-story"
+                              href={route(locale, `evolution/${milestone.id}/`)}
+                            >
+                              {copy.evolution.readStory}
+                            </a>
+                          </>
+                        )}
                       </article>
                     </li>
                   );
@@ -458,6 +518,24 @@ function evidenceLabel(url: string): string {
     letter-spacing: var(--tracking-eyebrow);
   }
 
+  .timeline--editorial .timeline__evidence-count {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    min-height: 44px;
+    cursor: pointer;
+  }
+
+  .timeline--editorial .timeline__evidence-details summary:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  .timeline--editorial .timeline__evidence-details[open] .timeline__evidence {
+    margin-top: var(--space-1);
+  }
+
   .timeline__evidence {
     display: flex;
     flex-wrap: wrap;
@@ -493,6 +571,29 @@ function evidenceLabel(url: string): string {
     font-weight: 500;
     text-decoration: none;
     transition: color var(--duration-quick) ease;
+  }
+
+  .timeline__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  .timeline__discuss {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--color-accent);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    text-underline-offset: 0.2em;
+  }
+
+  .timeline__actions a:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
   }
 
   .timeline__read-story:hover {

@@ -163,6 +163,15 @@ export interface Copy {
     eyebrow: string;
     heading: string;
     summary: string;
+    featuredEyebrow: string;
+    featuredHeading: string;
+    latestMilestonesHeading: string;
+    curatedNav: string;
+    candidateNav: string;
+    plannedNav: string;
+    roadmapNav: string;
+    /** Invitation to add perspective on the detail-page discussion, not to validate evidence. */
+    contributionNote: string;
     viewAll: string;
     previewNote: string;
     shipped: string;
@@ -903,6 +912,15 @@ export const en: Copy = {
     heading: 'Where this comes from, and where it is going.',
     summary:
       'The trajectory is inspectable: each milestone links to the commits and artifacts behind it, and unreviewed git-derived entries are labelled as candidates.',
+    featuredEyebrow: 'Journal entry',
+    featuredHeading: 'Start with this entry',
+    latestMilestonesHeading: 'Latest milestones',
+    curatedNav: 'Curated history',
+    candidateNav: 'Git candidates · unreviewed',
+    plannedNav: 'Planned direction',
+    roadmapNav: 'Roadmap',
+    contributionNote:
+      "Have context or questions? Add them in the discussion. Contributions don't verify evidence.",
     viewAll: 'View the full timeline',
     previewNote: 'Showing the most recent entries only.',
     shipped: 'Shipped',
@@ -1438,6 +1456,15 @@ export const es: Copy = {
     heading: 'De dónde viene esto y hacia dónde va.',
     summary:
       'La trayectoria es inspeccionable: cada hito enlaza con los commits y artefactos que lo respaldan, y las entradas derivadas de git sin revisar se etiquetan como candidatas.',
+    featuredEyebrow: 'Entrada del diario',
+    featuredHeading: 'Empieza por esta entrada',
+    latestMilestonesHeading: 'Últimos hitos',
+    curatedNav: 'Historial curado',
+    candidateNav: 'Candidatos de git · sin revisar',
+    plannedNav: 'Dirección planificada',
+    roadmapNav: 'Hoja de ruta',
+    contributionNote:
+      '¿Tienes contexto o preguntas? Compártelos en la conversación. Las aportaciones no verifican la evidencia.',
     viewAll: 'Ver la línea de tiempo completa',
     previewNote: 'Se muestran solo las entradas más recientes.',
     shipped: 'Entregado',
