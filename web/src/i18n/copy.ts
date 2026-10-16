@@ -204,6 +204,10 @@ export interface Copy {
     previousMilestone: string;
     /** Accessible label of the next milestone link on a detail page. */
     nextMilestone: string;
+    /** CTA link to the comments section of a milestone detail page. */
+    joinDiscussion: string;
+    /** CTA link from a timeline row to the milestone detail page. */
+    readStory: string;
     /** Heading of the roadmap table on the evolution page. */
     roadmapHeading: string;
     /** One line under the roadmap heading. */
@@ -935,6 +939,8 @@ export const en: Copy = {
     discussEvidence: 'Discuss this evidence',
     previousMilestone: 'Previous milestone',
     nextMilestone: 'Next milestone',
+    joinDiscussion: 'Join the discussion',
+    readStory: 'Read the story',
     roadmapHeading: 'Roadmap by phase',
     roadmapNote:
       'Derived from the milestones themselves: each phase lists the focus it covered and the projects that supported it. Phases describe what happened; only "Direction ahead" describes what is intended.',
@@ -1469,6 +1475,8 @@ export const es: Copy = {
     discussEvidence: 'Comentar esta evidencia',
     previousMilestone: 'Hito anterior',
     nextMilestone: 'Hito siguiente',
+    joinDiscussion: 'Únete a la conversación',
+    readStory: 'Leer la historia',
     roadmapHeading: 'Hoja de ruta por fase',
     roadmapNote:
       'Derivada de los propios hitos: cada fase muestra el foco que cubrió y los proyectos que lo respaldaron. Las fases describen lo que ocurrió; solo «Dirección por delante» describe lo que se pretende.',
