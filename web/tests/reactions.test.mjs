@@ -118,13 +118,27 @@ test('EN and ES render their own reaction copy', () => {
   assert.match(es, /data-count-many="A \{n\} personas les resultó útil"/);
 });
 
-test('exactly one heart is rendered and no second reaction emoji is added', () => {
+test('exactly one heart SVG is rendered and no emoji heart is present', () => {
   for (const locale of ['en', 'es']) {
     const html = readFileSync(pagePath(locale, milestones[0].id), 'utf8');
     const section = reactionSection(html) ?? '';
-    const hearts = section.match(/\u2764\uFE0F/gu) ?? [];
-    assert.equal(hearts.length, 1, `${locale}: expected exactly one ❤️`);
-    const pictographs = new Set((section.match(/\p{Extended_Pictographic}/gu) ?? []).filter((c) => c !== '\u2764'));
-    assert.deepEqual([...pictographs], [], `${locale}: unexpected extra emoji in the control`);
+    
+    // Check for exactly one SVG heart with the correct class
+    const heartSvgs = section.match(/<svg[^>]*class="milestone-reactions__heart"[^>]*>/g) ?? [];
+    assert.equal(heartSvgs.length, 1, `${locale}: expected exactly one heart SVG`);
+    
+    // Verify the SVG has aria-hidden for accessibility
+    assert.match(heartSvgs[0], /aria-hidden="true"/, `${locale}: heart SVG should have aria-hidden="true"`);
+    
+    // Verify the heart path is present
+    assert.match(section, /M12 21\.35l-1\.45-1\.32C5\.4 15\.36/, `${locale}: heart SVG should contain the heart path`);
+    
+    // Ensure no emoji hearts are present
+    const emojiHearts = section.match(/\u2764\uFE0F/gu) ?? [];
+    assert.equal(emojiHearts.length, 0, `${locale}: emoji heart should not be present`);
+    
+    // No other emoji should be in the control
+    const pictographs = new Set((section.match(/\p{Extended_Pictographic}/gu) ?? []));
+    assert.deepEqual([...pictographs], [], `${locale}: no emoji should be in the control`);
   }
 });
