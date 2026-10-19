@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-10-12T15:27:19Z",
+  "captured_at": "2026-10-19T13:17:47Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -26,22 +26,22 @@
       "pull_requests": [],
       "commits": [
         {
-          "id": "e7a77df6921bb7b421435d7ecb5c4579ad536a9e",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/e7a77df6921bb7b421435d7ecb5c4579ad536a9e",
-          "captured_at": "2026-10-12T15:04:01Z",
-          "title": "ai(portfolio): caveat machine drafted spanish in cutover doc"
+          "id": "17d3819dbb3fb85090d405425d57b2dfc0916b3f",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/17d3819dbb3fb85090d405425d57b2dfc0916b3f",
+          "captured_at": "2026-10-16T13:42:22Z",
+          "title": "Merge pull request #24 from cristian-cardona-dev/ai/portfolio-design-ux"
         },
         {
-          "id": "8788100f59f55676f563a94938b94430e68e5be3",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/8788100f59f55676f563a94938b94430e68e5be3",
-          "captured_at": "2026-10-12T14:41:17Z",
-          "title": "ai(portfolio): annotate search form and widen perf gate margin"
+          "id": "8586d2a1977579e318aa2d76b81a00e41028215c",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/8586d2a1977579e318aa2d76b81a00e41028215c",
+          "captured_at": "2026-10-16T12:32:09Z",
+          "title": "ai(portfolio): redesign evolution as evidence journal"
         },
         {
-          "id": "6ea1f5e8e51f91f22552e4158fcaa891103c6e09",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/6ea1f5e8e51f91f22552e4158fcaa891103c6e09",
-          "captured_at": "2026-10-12T13:53:55Z",
-          "title": "ai(portfolio): recalibrate perf gate from honest lighthouse measurement"
+          "id": "29d5879650fa568780a7099d57a8260fd05c49a8",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/29d5879650fa568780a7099d57a8260fd05c49a8",
+          "captured_at": "2026-10-16T10:24:30Z",
+          "title": "Merge pull request #23 from cristian-cardona-dev/ai/portfolio-design-ux"
         }
       ],
       "releases": [],
