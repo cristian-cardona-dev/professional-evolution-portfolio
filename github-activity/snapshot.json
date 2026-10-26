@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-10-19T13:17:47Z",
+  "captured_at": "2026-10-26T13:04:49Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -26,6 +26,12 @@
       "pull_requests": [],
       "commits": [
         {
+          "id": "ae8252c42f1a8677b49e948e0f08caf87fdf2b23",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/ae8252c42f1a8677b49e948e0f08caf87fdf2b23",
+          "captured_at": "2026-10-19T13:17:48Z",
+          "title": "ai(portfolio): refresh public github activity"
+        },
+        {
           "id": "17d3819dbb3fb85090d405425d57b2dfc0916b3f",
           "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/17d3819dbb3fb85090d405425d57b2dfc0916b3f",
           "captured_at": "2026-10-16T13:42:22Z",
@@ -36,12 +42,6 @@
           "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/8586d2a1977579e318aa2d76b81a00e41028215c",
           "captured_at": "2026-10-16T12:32:09Z",
           "title": "ai(portfolio): redesign evolution as evidence journal"
-        },
-        {
-          "id": "29d5879650fa568780a7099d57a8260fd05c49a8",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/29d5879650fa568780a7099d57a8260fd05c49a8",
-          "captured_at": "2026-10-16T10:24:30Z",
-          "title": "Merge pull request #23 from cristian-cardona-dev/ai/portfolio-design-ux"
         }
       ],
       "releases": [],
