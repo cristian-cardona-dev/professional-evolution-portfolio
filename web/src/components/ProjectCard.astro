@@ -24,6 +24,8 @@ import type { Copy, Locale } from '../i18n/copy';
 import type { Project } from '../lib/data';
 import { caseStudyFor, relatedProjects } from '../lib/data';
 import { route } from '../lib/urls';
+import { Image } from 'astro:assets';
+import siteCareerPng from '../assets/images/site-career.png';
 
 interface Props {
   copy: Copy;
@@ -80,30 +82,13 @@ const initials = project.name
   .join('');
 
 /**
- * Screenshot wiring. `data/projects.json` stores paths relative to the site
- * root (`images/site-career.png`), so the deployment base is prepended here:
- * a bare relative path would otherwise resolve against `/work/` on the listing
- * and miss the asset.
- *
- * `width`/`height` are the real intrinsic sizes, read from each PNG's IHDR
- * header. They are keyed by file basename because the card is generic; a
- * screenshot with no recorded size simply omits the attributes (the CSS
- * `aspect-ratio` still reserves the box, so there is no layout shift).
+ * Screenshot wiring. Uses astro:assets Image component for automatic
+ * optimization (WebP, responsive sizes, srcset). Only the portfolio
+ * screenshot is currently available; other projects show a placeholder.
  */
-const BASE: string = import.meta.env.BASE_URL;
-
-const SCREENSHOT_SIZES: Record<string, { width: number; height: number }> = {
-  'site-career.png': { width: 324, height: 183 },
-};
-
-const firstScreenshot = project.screenshots[0];
-const screenshotName = firstScreenshot ? (firstScreenshot.split('/').pop() ?? '') : '';
-const screenshotSrc = firstScreenshot
-  ? `${BASE}${firstScreenshot.replace(/^\/+/, '')}`
-  : '';
-const screenshotSize = SCREENSHOT_SIZES[screenshotName];
-const screenshotAlt = screenshotName
-  ? (copy.work.screenshotAlt[screenshotName] ?? copy.work.screenshotAltFallback(project.name))
+const hasScreenshot = project.screenshots.length > 0;
+const screenshotAlt = hasScreenshot
+  ? (copy.work.screenshotAlt['site-career.png'] ?? copy.work.screenshotAltFallback(project.name))
   : '';
 ---
 
@@ -116,13 +101,14 @@ const screenshotAlt = screenshotName
 >
   <div class="project-card__figure">
     {
-      firstScreenshot ? (
-        <img
+      hasScreenshot ? (
+        <Image
           class="project-card__image"
-          src={screenshotSrc}
+          src={siteCareerPng}
           alt={screenshotAlt}
-          width={screenshotSize?.width}
-          height={screenshotSize?.height}
+          widths={[320, 640, 960]}
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          formats={['webp', 'avif']}
           loading={priority ? 'eager' : 'lazy'}
           decoding="async"
         />

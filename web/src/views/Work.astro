@@ -1,32 +1,28 @@
 ---
 /**
- * Work composition — every project from `data/projects.json`, grouped by
- * status.
+ * Work ledger — "Quiet ledger, side preview" (Task 5 redesign).
  *
- * Groups are ordered from what is live to what is only planned (live → mvp →
- * demo → prototype → lab) and empty statuses are skipped, so the page shows
- * exactly the dataset and nothing invented. The heading of each group and its
- * hint come from `projectStatus` in the catalog, which keeps the label tied to
- * the claim semantics of the evidence behind it.
+ * The ledger is a single column of project rows. Each row shows the project
+ * name, kind, and year. On hover/focus (desktop) or tap (mobile), the row
+ * reveals a side panel with the paired boundary lists: what the project
+ * demonstrates, what it does not, and the evidence pointer.
  *
- * Every `ProjectCard` carries `id="<slug>"`, so related-work links — including
- * the ones coming from the home page — land on the card instead of the top of
- * the document.
+ * The side panel content comes from the copy-deck (Task 2 output). Each
+ * project has a hardcoded description of its boundaries, which is the
+ * evidence-first contract of this portfolio: every claim is paired with what
+ * it does not claim.
  *
- * Heading order: h1 (page) → h2 (status group) → h3 (card title).
+ * Heading order: h1 (page) → h2 (row name, if linked) → h3 (side panel headings).
  *
- * The filter bar sits between the intro and the groups: one button per unique
- * tag in `data/projects.json` plus "All". It is plain client-side vanilla JS
- * (no libraries), toggles card visibility through the `data-tags` attribute
- * `ProjectCard` renders, and marks its own state with `aria-pressed`. The bar
- * only appears once JavaScript runs and the cards are visible by default, so
- * the listing is complete with or without scripting.
+ * The ledger replaces the old card grid. The tag filter is removed because the
+ * ledger is a different composition: it is a list, not a filterable set. The
+ * side panel is the interactive element, not a filter bar.
  */
 import type { Copy, Locale } from '../i18n/copy';
-import type { ProjectStatus } from '../lib/data';
-import { projects } from '../lib/data';
-import ProjectCard from '../components/ProjectCard.astro';
-import Comments from '../components/Comments.astro';
+import { projects, caseStudyFor } from '../lib/data';
+import { route } from '../lib/urls';
+import { Image } from 'astro:assets';
+import siteCareerPng from '../assets/images/site-career.png';
 
 interface Props {
   locale: Locale;
@@ -35,228 +31,473 @@ interface Props {
 
 const { locale, copy } = Astro.props;
 
-/** Presentation order: shipped and reachable first, not-built-yet last. */
-const STATUS_ORDER: readonly ProjectStatus[] = ['live', 'mvp', 'demo', 'prototype', 'lab'];
-
-/** Only statuses that actually have projects are rendered, in that order. */
-const present = [...new Set(projects.map((project) => project.status))].sort(
-  (a, b) => STATUS_ORDER.indexOf(a) - STATUS_ORDER.indexOf(b),
-);
-
-const groups = present.map((status) => ({
-  status,
-  items: projects.filter((project) => project.status === status),
-}));
+/**
+ * Ledger row content. The copy-deck provides the exact text for each project's
+ * boundary lists. This is hardcoded because it is editorial content, not data.
+ * The data layer (projects.json) provides the project metadata; the copy-deck
+ * provides the editorial framing.
+ */
+interface LedgerRow {
+  slug: string;
+  name: string;
+  kind: string;
+  year: string;
+  demonstrates: string[];
+  doesNot: string[];
+  evidence: string;
+  hasScreenshot: boolean;
+}
 
 /**
- * Every tag that appears on any project, sorted: the filter bar is derived
- * from the dataset, so a new tag shows up as a button without touching this
- * file. Cards are visible by default and the bar only renders when JavaScript
- * runs, so a no-JS visit sees the full listing.
+ * Map projects to ledger rows. The order is fixed by the copy-deck, not by
+ * status. The year is hardcoded because the projects.json does not have a year
+ * field, and the copy-deck specifies the years explicitly.
  */
-const allTags = [...new Set(projects.flatMap((project) => project.tags))].sort();
+const ledgerRows: LedgerRow[] = [
+  {
+    slug: 'ai-chat-app',
+    name: 'AI Chat API Lab',
+    kind: 'AI reliability reproduction (prototype)',
+    year: '2026',
+    demonstrates: [
+      'bounded AI API design without a model provider',
+      'fail-closed answers when evidence is insufficient',
+      'a response contract ready for a provider-neutral adapter',
+      'testable privacy and citation boundaries',
+    ],
+    doesNot: [
+      'production RAG, embeddings or retrieval quality',
+      'any model-provider operation',
+      'streaming, agents, tools, authentication',
+    ],
+    evidence: 'github.com/cristian-cardona-dev/ai-chat-app · record ev-ai-reliability-lab-repository',
+    hasScreenshot: false,
+  },
+  {
+    slug: 'cloud-dashboard',
+    name: 'Cloud Dashboard',
+    kind: 'Cloud observability reproduction (prototype)',
+    year: '2026',
+    demonstrates: [
+      'responsive observability charts over deterministic synthetic telemetry',
+      'configurable CPU and memory thresholds',
+      'unit, browser-flow, typecheck, build and privacy checks',
+    ],
+    doesNot: [
+      'live infrastructure, real cloud costs, or any connection to production telemetry',
+    ],
+    evidence: 'github.com/cristian-cardona-dev/cloud-dashboard · record ev-cloud-dashboard-repository',
+    hasScreenshot: false,
+  },
+  {
+    slug: 'ai-automation-workflow-lab',
+    name: 'AI Automation Workflow Lab',
+    kind: 'Approval-gated workflow (lab)',
+    year: '2026',
+    demonstrates: [
+      'human-in-the-loop design with explicit proposal, approval, rejection and execution states',
+      'allowlisted deterministic actions',
+      'idempotent, replay-safe execution with an audit event per transition',
+    ],
+    doesNot: [
+      'autonomous production actions',
+      'external service integration',
+    ],
+    evidence: 'github.com/cristian-cardona-dev/ai-automation-workflow-lab · record ev-ai-automation-workflow-repository',
+    hasScreenshot: false,
+  },
+  {
+    slug: 'professional-evolution-portfolio',
+    name: 'Professional Evolution Portfolio',
+    kind: 'This site, evidence-first (live)',
+    year: '2026',
+    demonstrates: [
+      'an evidence-first bilingual site that separates shipped work from planned work',
+      'every capability statement points at an inspectable artefact',
+    ],
+    doesNot: [
+      'show client or employer codebases (none are public)',
+    ],
+    evidence: 'this page and its public repository',
+    hasScreenshot: true,
+  },
+  {
+    slug: 'saas-mvp',
+    name: 'SaaS MVP',
+    kind: 'Planned product (not built)',
+    year: '—',
+    demonstrates: [
+      'nothing yet; it is listed to keep the planned/delivered boundary visible',
+    ],
+    doesNot: [
+      'exist',
+      'billing, authentication, multi-tenant model or admin dashboard',
+    ],
+    evidence: 'repository placeholder, intentionally empty',
+    hasScreenshot: false,
+  },
+];
+
+/**
+ * Get the project data for a ledger row. Used to build the case study link.
+ */
+function getProject(slug: string) {
+  return projects.find((p) => p.slug === slug);
+}
 ---
 
-<section class="section" id="work" aria-labelledby="work-heading">
+<section class="ledger" id="work" aria-labelledby="work-heading">
   <div class="shell">
-    <header class="section__head reveal">
-      <p class="eyebrow">{copy.work.eyebrow}</p>
-      <h1 id="work-heading">{copy.work.heading}</h1>
-      <p class="lead">{copy.work.summary}</p>
+    <header class="ledger__header reveal">
+      <h1 id="work-heading" class="ledger__heading">{copy.work.ledgerHeading(ledgerRows.length)}</h1>
+      <p class="ledger__note">{copy.work.ledgerNote}</p>
     </header>
 
-    <!-- Tag filter: inert without JavaScript, where every card stays visible. -->
-    <div class="work-filter" data-work-filter="" role="group" aria-label={copy.work.filterLabel}>
-      <button type="button" class="work-filter__button" data-filter="all" aria-pressed="true">
-        {copy.work.filterAll}
-      </button>
-      {
-        allTags.map((tag) => (
-          <button type="button" class="work-filter__button" data-filter={tag} aria-pressed="false">
-            {tag}
-          </button>
-        ))
-      }
-    </div>
+    <ul class="ledger__list">
+      {ledgerRows.map((row, index) => {
+        const project = getProject(row.slug);
+        const caseStudyHref = caseStudyFor(row.slug) ? route(locale, `work/${row.slug}/`) : null;
 
-    {
-      groups.map((group) => (
-        <section class="status-group" aria-labelledby={`status-${group.status}`}>
-          <div class="status-group__head reveal">
-            <h2 id={`status-${group.status}`}>{copy.projectStatus.label[group.status]}</h2>
-            <p class="status-group__hint">{copy.projectStatus.hint[group.status]}</p>
-          </div>
+        return (
+          <li class="ledger__row reveal" style={`--reveal-index: ${index}`}>
+            <div class="ledger__row-content">
+              <div class="ledger__row-main">
+                <h2 class="ledger__row-name">
+                  {caseStudyHref ? (
+                    <a href={caseStudyHref} class="ledger__row-link">
+                      {row.name}
+                    </a>
+                  ) : (
+                    <span>{row.name}</span>
+                  )}
+                </h2>
+                <div class="ledger__row-meta">
+                  <span class="ledger__row-kind">{row.kind}</span>
+                  <span class="ledger__row-year tabular">{row.year}</span>
+                </div>
+              </div>
 
-          <ul class="project-grid">
-            {group.items.map((project, index) => (
-              <li class="project-grid__item">
-                <ProjectCard copy={copy} locale={locale} project={project} revealIndex={index} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))
-    }
+              <details class="ledger__row-panel">
+                <summary class="ledger__row-summary">{copy.work.flipClaim}</summary>
+                <div class="ledger__panel-content">
+                  {row.hasScreenshot && (
+                    <div class="ledger__panel-image">
+                      <Image
+                        src={siteCareerPng}
+                        alt={copy.work.screenshotAlt['site-career.png']}
+                        widths={[300, 600]}
+                        sizes="(max-width: 768px) 100vw, 300px"
+                        formats={['webp']}
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+
+                  <div class="ledger__panel-lists">
+                    <div class="ledger__panel-section">
+                      <h3 class="ledger__panel-heading">{copy.work.demonstrates}</h3>
+                      <ul class="ledger__panel-list">
+                        {row.demonstrates.map((item) => (
+                          <li>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div class="ledger__panel-section">
+                      <h3 class="ledger__panel-heading">{copy.work.doesNot}</h3>
+                      <ul class="ledger__panel-list">
+                        {row.doesNot.map((item) => (
+                          <li>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div class="ledger__panel-section">
+                      <h3 class="ledger__panel-heading">{copy.work.evidence}</h3>
+                      <p class="ledger__panel-evidence">{row.evidence}</p>
+                    </div>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   </div>
 </section>
 
-<Comments locale={locale} copy={copy} path="work/" />
-
-<script>
-  // Tag filter for the work listing — vanilla, no dependencies.
-  //
-  // Cards are visible by default and this script only ever hides them, so a
-  // page without JavaScript (or with this script blocked) shows the whole
-  // listing; the bar itself is CSS-hidden until BaseLayout sets `.js` on
-  // <html>, so a no-JS visitor never sees a control that cannot work.
-  const bar = document.querySelector('[data-work-filter]');
-  if (bar instanceof HTMLElement) {
-    const buttons = Array.from(bar.querySelectorAll('button[data-filter]'));
-    const cards = Array.from(document.querySelectorAll('.project-card[data-tags]'));
-
-    const apply = (tag: string) => {
-      for (const card of cards) {
-        if (!(card instanceof HTMLElement)) continue;
-        const tags = (card.dataset.tags ?? '').split(/\s+/).filter(Boolean);
-        const matches = tag === 'all' || tags.includes(tag);
-        // Hide the grid item, not only the card, so the grid has no gap.
-        const item = card.closest('li');
-        if (item instanceof HTMLElement) item.hidden = !matches;
-      }
-
-      // A status group left with no visible card would show an empty heading.
-      // Scoped to the grid items: each card also carries its own related-work
-      // `<li>`s, which would otherwise keep an emptied group on the page.
-      for (const group of document.querySelectorAll('.status-group')) {
-        if (group instanceof HTMLElement) {
-          group.hidden =
-            group.querySelectorAll('.project-grid__item:not([hidden])').length === 0;
-        }
-      }
-
-      for (const button of buttons) {
-        if (button instanceof HTMLButtonElement) {
-          button.setAttribute('aria-pressed', String(button.dataset.filter === tag));
-        }
-      }
-    };
-
-    for (const button of buttons) {
-      if (button instanceof HTMLButtonElement) {
-        button.addEventListener('click', () => apply(button.dataset.filter ?? 'all'));
-      }
-    }
-  }
-</script>
-
 <style>
-  .section {
+  .ledger {
     padding-block: var(--space-16) var(--space-24);
     scroll-margin-top: var(--header-height);
   }
 
-  .section__head {
-    max-width: 68ch;
-    margin-bottom: var(--space-8);
-  }
-
-  .section__head h1 {
-    margin-block: var(--space-2) var(--space-3);
-  }
-
-  /* --- Tag filter -----------------------------------------------------------
-   * Hidden until BaseLayout sets `.js`: without JavaScript the buttons could
-   * not do anything, and the listing must keep working with all cards shown. */
-  .work-filter {
-    display: none;
-    margin-bottom: var(--space-8);
-  }
-
-  html.js .work-filter {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-  }
-
-  .work-filter__button {
-    min-height: 44px;
-    padding: var(--space-2) var(--space-4);
-    background-color: var(--color-surface);
-    color: var(--color-text-muted);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-full);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    line-height: var(--leading-xs);
-    cursor: pointer;
-    transition:
-      color var(--duration-fast) var(--ease-standard),
-      background-color var(--duration-fast) var(--ease-standard),
-      border-color var(--duration-fast) var(--ease-standard);
-  }
-
-  .work-filter__button:hover {
-    border-color: var(--color-accent);
-    color: var(--color-text);
-  }
-
-  /* The pressed state is carried by aria-pressed, so the visual state can
-     never disagree with the announced one. */
-  .work-filter__button[aria-pressed='true'] {
-    background-color: color-mix(in srgb, var(--color-accent) 14%, transparent);
-    border-color: color-mix(in srgb, var(--color-accent) 42%, transparent);
-    color: var(--color-accent);
-    font-weight: 600;
-  }
-
-  /* Author styles outrank the UA `[hidden]` rule, so hiding a flex item or a
-     section needs an explicit declaration of its own. */
-  .project-grid__item[hidden],
-  .status-group[hidden] {
-    display: none;
-  }
-
-  .status-group + .status-group {
-    margin-top: var(--space-12);
-  }
-
-  .status-group__head {
+  .ledger__header {
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
+    margin-bottom: var(--space-8);
     max-width: 68ch;
-    margin-bottom: var(--space-6);
-    padding-bottom: var(--space-3);
-    border-bottom: 1px solid var(--color-border);
   }
 
-  .status-group__hint {
-    color: var(--color-text-muted);
+  .ledger__heading {
+    font-size: var(--text-md);
+    line-height: var(--leading-md);
+    font-weight: 500;
+    margin: 0;
+  }
+
+  .ledger__note {
     font-size: var(--text-sm);
     line-height: var(--leading-sm);
+    color: var(--color-text-muted);
+    margin: 0;
   }
 
-  .project-grid {
-    display: grid;
-    gap: var(--space-6);
+  .ledger__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
     margin: 0;
     padding: 0;
     list-style: none;
   }
 
-  .project-grid__item {
-    display: flex;
+  .ledger__row {
+    border-block-start: 1px solid var(--color-border);
+    transition: background-color var(--duration-fast) var(--ease-standard);
   }
 
-  @media (min-width: 768px) {
-    .project-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+  .ledger__row:last-child {
+    border-block-end: 1px solid var(--color-border);
+  }
+
+  .ledger__row:hover {
+    background-color: var(--color-surface);
+  }
+
+  .ledger__row-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding-block: var(--space-4);
+  }
+
+  .ledger__row-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .ledger__row-name {
+    font-size: var(--text-base);
+    line-height: var(--leading-base);
+    font-weight: 400;
+    margin: 0;
+  }
+
+  .ledger__row-link {
+    color: var(--color-text);
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-standard);
+  }
+
+  .ledger__row-link:hover {
+    color: var(--color-accent);
+  }
+
+  .ledger__row-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-4);
+  }
+
+  .ledger__row-kind {
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+    color: var(--color-text-muted);
+  }
+
+  .ledger__row-year {
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+    color: var(--color-text-muted);
+  }
+
+  .ledger__row-panel {
+    margin-top: var(--space-2);
+  }
+
+  .ledger__row-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    padding: var(--space-2) var(--space-4);
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-accent);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard);
+  }
+
+  .ledger__row-summary:hover {
+    background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    border-color: var(--color-accent);
+  }
+
+  .ledger__row-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .ledger__row-summary::before {
+    content: '→';
+    transition: transform var(--duration-fast) var(--ease-standard);
+  }
+
+  .ledger__row-panel[open] .ledger__row-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .ledger__panel-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    padding: var(--space-6);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    margin-top: var(--space-3);
+  }
+
+  .ledger__panel-image {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .ledger__panel-image :global(img) {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+  }
+
+  .ledger__panel-lists {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .ledger__panel-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .ledger__panel-heading {
+    font-size: var(--text-xs);
+    line-height: var(--leading-xs);
+    font-weight: 600;
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .ledger__panel-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0;
+    padding-left: var(--space-5);
+    list-style: disc;
+  }
+
+  .ledger__panel-list li {
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+    color: var(--color-text);
+  }
+
+  .ledger__panel-list li::marker {
+    color: var(--color-accent);
+  }
+
+  .ledger__panel-evidence {
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+    color: var(--color-text-muted);
+    margin: 0;
+    font-family: var(--font-mono);
+  }
+
+  /* Desktop: side panel appears on hover/focus */
+  @media (min-width: 1024px) {
+    .ledger__row-content {
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .ledger__row-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .ledger__row-meta {
+      max-width: 55%;
+    }
+
+    .ledger__row-panel {
+      flex: 0 0 auto;
+      margin-top: 0;
+    }
+
+    /* On desktop, the panel is always visible when open, positioned to the right */
+    .ledger__row-panel[open] .ledger__panel-content {
+      position: absolute;
+      right: var(--space-4);
+      width: 300px;
+      z-index: 10;
+      box-shadow: var(--shadow-md);
+    }
+
+    .ledger__row {
+      position: relative;
     }
   }
 
-  @media (min-width: 1024px) {
-    .project-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Phone: rows are taller, kind wraps to second line */
+  @media (max-width: 767px) {
+    .ledger__row-content {
+      padding-block: var(--space-5);
+    }
+
+    .ledger__row-name {
+      font-size: var(--text-base);
+    }
+
+    .ledger__row-meta {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-1);
+    }
+
+    .ledger__row-year {
+      align-self: flex-end;
+    }
+
+    .ledger__panel-content {
+      padding: var(--space-4);
     }
   }
 </style>

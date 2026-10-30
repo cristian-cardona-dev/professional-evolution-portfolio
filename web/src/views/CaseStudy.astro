@@ -1,29 +1,21 @@
 ---
 /**
- * Case-study composition — one project plus the case study derived from
- * `case-studies/*.md` by `scripts/case-studies-sync.mjs`.
+ * Case-study composition — restructured with Context → Decisions → Impact → Learnings.
  *
- * Shared by `/work/<slug>/` and `/es/work/<slug>/`, exactly like the other
- * views: `locale` picks the copy catalog and builds every internal link.
+ * The case study is organized into four skimmable sections that answer the
+ * reader's questions in order: What was the situation? What did you decide?
+ * What happened? What did you learn?
  *
- * Content rules:
- *   - The name, status, repository and summary come from `data/projects.json`
- *     (the es locale reads `summary_es` when the dataset publishes one).
- *   - Section bodies come from `data/case-studies.json` and are rendered
- *     through `renderSectionBody` (escape first, then bold + links only — no
- *     HTML passthrough). The canonical `sections` are English; the reviewed
- *     `sections_es` (from `case-studies/<slug>.es.md`) is the Spanish
- *     translation of that same evidence and is what the es locale renders.
- *   - The source H1 shown as provenance (`.case-study__source-title`) is
- *     localized the same way: the es locale reads `title_es` (the H1 of the
- *     same companion file) and falls back to the English `title`.
- *   - The first two sections (classification, problem/context) are always
- *     visible; everything after them sits behind one `<details>` disclosure
- *     labelled from `copy.caseStudy.disclosure`.
- *   - A project with no case study gets the honest empty state and its
- *     repository link — never an invented write-up.
+ * Each section groups related content from the source markdown:
+ *   - Context: Classification + Problem (the situation and constraints)
+ *   - Decisions: What was implemented (the design choices)
+ *   - Impact: What this demonstrates + What this does not demonstrate (trade-offs)
+ *   - Learnings: Evidence + Next boundary (what we learned and where to go next)
  *
- * Heading order: h1 (project) → h2 (sections, related, CTA) → h3 (cards).
+ * The progressive disclosure is removed; all four sections are visible by
+ * default. This makes the case study skimmable and the trade-offs explicit.
+ *
+ * Heading order: h1 (project) → h2 (four sections, related, CTA) → h3 (cards).
  */
 import type { Copy, Locale } from '../i18n/copy';
 import type { Project } from '../lib/data';
@@ -49,15 +41,6 @@ const study = caseStudyFor(project.slug);
 /**
  * The source H1 of the markdown, shown verbatim as provenance
  * (`.case-study__source-title`).
- *
- * The es locale reads the reviewed `title_es` when the study publishes one
- * (the H1 of `case-studies/<slug>.es.md`); otherwise — and always on en — it
- * falls back to the canonical English `title`, exactly like `summary_es` and
- * `sections_es`.
- *
- * The document `<title>`/`og:title` are NOT derived from this: the route pages
- * build them from `project.name` + `copy.caseStudy.eyebrow`, so those head
- * surfaces are byte-identical in both locales by construction.
  */
 const sourceTitle = study
   ? locale === 'es' && study.title_es
@@ -66,53 +49,52 @@ const sourceTitle = study
   : null;
 
 /**
- * Section bodies in the page's locale.
- *
- * The es locale reads the reviewed `sections_es` when the study publishes one
- * (derived from `case-studies/<slug>.es.md`, the same shape as `sections`);
- * otherwise — and always on en — it falls back to the canonical English
- * sections, exactly like `summary_es` on the project summary. The two locales
- * mirror 1:1, which `data-validate.mjs` enforces.
- *
- * Anchors stay `case-study-section-<index>`, derived from the section position
- * and never from the heading text, so the id set is identical in both locales
- * even though the headings are translated.
+ * Section bodies in the page's locale, grouped into the four-part structure.
  */
 const sections = study
   ? locale === 'es' && study.sections_es
     ? study.sections_es
     : study.sections
   : [];
-/** Sections 1–2 (classification / problem) stay open. */
-const visibleSections = sections.slice(0, 2);
-/** Everything else is progressive disclosure. */
-const disclosedSections = sections.slice(2);
-const hasContent = visibleSections.length > 0;
 
 /**
- * Table-of-contents entries — one per section, in reading order.
- *
- * `id` is the position-derived anchor the headings already carry
- * (`case-study-section-<index>`), reused verbatim and never re-derived from
- * the heading text: EN and ES translate the headings, so a text-derived id
- * would differ per locale and break every shared or copied link. `heading` is
- * the label the reader sees, in the page's locale — the same string the
- * section itself renders as its `<h2>`.
+ * Group sections into the four-part structure. Each group collects related
+ * sections from the source markdown. If a section heading matches (case-insensitive
+ * substring), it's included in that group.
  */
-const tocItems = sections.map((section, index) => ({
-  id: `case-study-section-${index}`,
-  heading: section.heading,
-}));
+function groupSections() {
+  const context: typeof sections = [];
+  const decisions: typeof sections = [];
+  const impact: typeof sections = [];
+  const learnings: typeof sections = [];
+
+  for (const section of sections) {
+    const heading = section.heading.toLowerCase();
+    if (heading.includes('classification') || heading.includes('problem') || heading.includes('clasificación') || heading.includes('problema')) {
+      context.push(section);
+    } else if (heading.includes('implemented') || heading.includes('implementó')) {
+      decisions.push(section);
+    } else if (heading.includes('demonstrates') || heading.includes('demuestra')) {
+      impact.push(section);
+    } else if (heading.includes('evidence') || heading.includes('evidencia') || heading.includes('next') || heading.includes('siguiente')) {
+      learnings.push(section);
+    }
+  }
+
+  return { context, decisions, impact, learnings };
+}
+
+const grouped = groupSections();
+const hasContent = sections.length > 0;
 
 const related = relatedProjects(project.slug);
 
 /**
- * Spanish pages read the reviewed `summary_es` when the dataset publishes one,
- * exactly like `ProjectCard`; every other locale keeps `summary`.
+ * Spanish pages read the reviewed `summary_es` when the dataset publishes one.
  */
 const summary = locale === 'es' && project.summary_es ? project.summary_es : project.summary;
 
-/** Same status→colour mapping the project card uses (see ProjectCard.astro). */
+/** Same status→colour mapping the project card uses. */
 const statusVariant: Record<Project['status'], string> = {
   live: 'chip--success',
   mvp: 'chip--accent',
@@ -122,25 +104,15 @@ const statusVariant: Record<Project['status'], string> = {
 };
 
 const backHref = route(locale, 'work/');
-/** Base-aware: from this page it resolves to `<locale root>#contact`. */
 const contactHref = sectionHref(locale, 'contact', Astro.url.pathname);
 
 /**
- * The canonical URL of this case study, on the Pages origin — the same value
- * `BaseLayout` publishes in `<link rel="canonical">`, read from the one
- * shared computation in `lib/urls.ts` so the share intents below can never
- * advertise a different host than the page itself does.
+ * The canonical URL of this case study, on the Pages origin.
  */
 const pageCanonical = canonicalUrl(locale, `work/${project.slug}/`);
 
 /**
- * Seed query of the "ask about this page" deep link
- * (`components/AskAboutPage.astro`): the page's own title and its declared
- * keywords, exactly as this page renders them. English by design — the
- * canonical datasets are English and the assistant's published index is
- * English-only — so the `es` page seeds the same words and matches the same
- * entries. The button only seeds; the widget runs its own search, so a seed
- * that matched nothing would still show the honest fallback.
+ * Seed query of the "ask about this page" deep link.
  */
 const askQuery = [project.name, ...project.tags].join(' ');
 ---
@@ -193,16 +165,6 @@ const askQuery = [project.name, ...project.tags].join(' ');
           </a>
         </div>
 
-        {/* One natural home for "send this page to somebody else": the header
-            of the page a reader would share. The share row keeps the E1b
-            copy-link control — same `button[data-copy]` + `data-copy-canonical`
-            contract, same canonical value read from `<link rel="canonical">`
-            by `lib/clipboard.ts` — and adds the two plain-anchor share
-            intents beside it (no third-party script). The URL those intents
-            advertise comes from `canonicalUrl()`, the same helper BaseLayout
-            uses for the canonical tag, so the Workers mirror can never share
-            its own origin. The control itself follows the shared
-            copy-control contract in global.css. */}
         <div class="case-study__share">
           <ShareRow copy={copy} url={pageCanonical?.href} />
           <AskAboutPage copy={copy} query={askQuery} />
@@ -219,85 +181,70 @@ const askQuery = [project.name, ...project.tags].join(' ');
     </div>
   </header>
 
-  <div class="shell case-study__main">
+  <div class="shell shell--narrow case-study__main">
     {
       hasContent ? (
-        <>
-          {/* Sticky table of contents. On a wide viewport it is the sticky
-              sidebar of the two-column body; below 1024px it is a compact
-              disclosure above the text. The list is rendered open in the
-              markup so a no-JS visit keeps every section reachable — the same
-              progressive-enhancement contract as the site header: `html.js`
-              (set pre-paint by BaseLayout) is what enables the collapsed
-              state, and the toggle only flips `aria-expanded` plus the
-              `data-open` marker the scoped CSS keys off. The label is the
-              localized `a11y.onThisPage`, which is also the landmark's
-              accessible name. */}
-          <nav class="case-study__toc" aria-label={copy.a11y.onThisPage} data-toc>
-            <p class="eyebrow case-study__toc-heading">{copy.a11y.onThisPage}</p>
+        <div class="case-study__body">
+          {/* Context section */}
+          {grouped.context.length > 0 && (
+            <section class="case-study__section" aria-labelledby="case-study-context">
+              <div class="case-study__section-head">
+                <h2 id="case-study-context">{copy.caseStudy.contextHeading}</h2>
+                <CopyAnchor copy={copy} sectionId="case-study-context" />
+              </div>
+              <div class="case-study__section-body">
+                {grouped.context.map((section, index) => (
+                  <div class="case-study__text" set:html={renderSectionBody(section.body)} />
+                ))}
+              </div>
+            </section>
+          )}
 
-            <button
-              type="button"
-              class="case-study__toc-toggle"
-              aria-expanded="false"
-              aria-controls="case-study-toc-list"
-              data-toc-toggle
-            >
-              <span>{copy.a11y.onThisPage}</span>
-              <span class="case-study__toc-chevron" aria-hidden="true"></span>
-            </button>
+          {/* Decisions section */}
+          {grouped.decisions.length > 0 && (
+            <section class="case-study__section" aria-labelledby="case-study-decisions">
+              <div class="case-study__section-head">
+                <h2 id="case-study-decisions">{copy.caseStudy.decisionsHeading}</h2>
+                <CopyAnchor copy={copy} sectionId="case-study-decisions" />
+              </div>
+              <div class="case-study__section-body">
+                {grouped.decisions.map((section, index) => (
+                  <div class="case-study__text" set:html={renderSectionBody(section.body)} />
+                ))}
+              </div>
+            </section>
+          )}
 
-            <ul class="case-study__toc-list" id="case-study-toc-list">
-              {tocItems.map((item) => (
-                <li>
-                  <a class="case-study__toc-link" href={`#${item.id}`} data-toc-link={item.id}>
-                    {item.heading}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          {/* Impact section */}
+          {grouped.impact.length > 0 && (
+            <section class="case-study__section" aria-labelledby="case-study-impact">
+              <div class="case-study__section-head">
+                <h2 id="case-study-impact">{copy.caseStudy.impactHeading}</h2>
+                <CopyAnchor copy={copy} sectionId="case-study-impact" />
+              </div>
+              <div class="case-study__section-body">
+                {grouped.impact.map((section, index) => (
+                  <div class="case-study__text" set:html={renderSectionBody(section.body)} />
+                ))}
+              </div>
+            </section>
+          )}
 
-          <div class="case-study__body">
-            {visibleSections.map((section, index) => (
-              <section
-                class="case-study__section"
-                aria-labelledby={`case-study-section-${index}`}
-                data-toc-section={`case-study-section-${index}`}
-              >
-                <div class="case-study__section-head">
-                  <h2 id={`case-study-section-${index}`}>{section.heading}</h2>
-                  <CopyAnchor copy={copy} sectionId={`case-study-section-${index}`} />
-                </div>
-                <div class="case-study__text" set:html={renderSectionBody(section.body)} />
-              </section>
-            ))}
-
-            {disclosedSections.length > 0 && (
-              <details class="disclosure">
-                <summary class="disclosure__summary">{copy.caseStudy.disclosure}</summary>
-                <div class="disclosure__body">
-                  {disclosedSections.map((section, offset) => {
-                    const index = visibleSections.length + offset;
-                    return (
-                      <section
-                        class="case-study__section"
-                        aria-labelledby={`case-study-section-${index}`}
-                        data-toc-section={`case-study-section-${index}`}
-                      >
-                        <div class="case-study__section-head">
-                          <h2 id={`case-study-section-${index}`}>{section.heading}</h2>
-                          <CopyAnchor copy={copy} sectionId={`case-study-section-${index}`} />
-                        </div>
-                        <div class="case-study__text" set:html={renderSectionBody(section.body)} />
-                      </section>
-                    );
-                  })}
-                </div>
-              </details>
-            )}
-          </div>
-        </>
+          {/* Learnings section */}
+          {grouped.learnings.length > 0 && (
+            <section class="case-study__section" aria-labelledby="case-study-learnings">
+              <div class="case-study__section-head">
+                <h2 id="case-study-learnings">{copy.caseStudy.learningsHeading}</h2>
+                <CopyAnchor copy={copy} sectionId="case-study-learnings" />
+              </div>
+              <div class="case-study__section-body">
+                {grouped.learnings.map((section, index) => (
+                  <div class="case-study__text" set:html={renderSectionBody(section.body)} />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       ) : (
         <div class="state-panel">
           <p>{copy.caseStudy.empty}</p>
@@ -361,105 +308,6 @@ const askQuery = [project.name, ...project.tags].join(' ');
 
 <Comments locale={locale} copy={copy} path={`work/${project.slug}/`} />
 
-<script>
-  // Case-study table of contents: the mobile disclosure, the scroll-spy and
-  // the deep-link repair. Every behaviour is an enhancement — the list is
-  // rendered open, the links are plain anchors, and nothing here is required
-  // to read the page.
-  const toc = document.querySelector('[data-toc]');
-  const tocToggle = document.querySelector('[data-toc-toggle]');
-
-  // 1. Disclosure (mobile only; the CSS hides the button from 1024px up).
-  // Same contract as the header menu: `aria-expanded` on the button plus a
-  // `data-open` marker the scoped CSS keys off, and no focus trap because the
-  // list sits in DOM order right after the button.
-  if (toc instanceof HTMLElement && tocToggle instanceof HTMLButtonElement) {
-    tocToggle.addEventListener('click', () => {
-      const open = tocToggle.getAttribute('aria-expanded') !== 'true';
-      tocToggle.setAttribute('aria-expanded', String(open));
-      if (open) toc.setAttribute('data-open', '');
-      else toc.removeAttribute('data-open');
-    });
-  }
-
-  // Close the disclosure again when the reader picks a section: on a narrow
-  // viewport the open list would otherwise sit between them and the section
-  // they just chose. It runs after `revealTarget` (the ancestor `<details>`
-  // must open first) and after the click has been dispatched, so the default
-  // anchor navigation is unaffected. On wide viewports the button is hidden
-  // and `data-open` is inert, so the same call is a no-op there.
-  const collapseToc = () => {
-    if (toc instanceof HTMLElement && tocToggle instanceof HTMLButtonElement) {
-      tocToggle.setAttribute('aria-expanded', 'false');
-      toc.removeAttribute('data-open');
-    }
-  };
-
-  // 2. Sections 3+ live inside the progressive-disclosure `<details>`, whose
-  // content is not rendered while closed. A TOC click — or a deep link, which
-  // is exactly what the copy-anchor button produces — therefore has to open
-  // every closed ancestor first, or the browser would scroll to an anchor
-  // nobody can see. Runs before the default anchor navigation, so the section
-  // is already rendered when the browser scrolls to it.
-  const revealTarget = (id: string | undefined) => {
-    const target = id ? document.getElementById(id) : null;
-    for (let node = target?.parentElement ?? null; node; node = node.parentElement) {
-      if (node instanceof HTMLDetailsElement && !node.open) node.open = true;
-    }
-  };
-
-  for (const link of document.querySelectorAll<HTMLElement>('[data-toc-link]')) {
-    link.addEventListener('click', () => {
-      revealTarget(link.dataset.tocLink);
-      collapseToc();
-    });
-  }
-
-  // A shared or copied URL arrives with the fragment already set.
-  const revealFromHash = () => revealTarget(window.location.hash.slice(1));
-  revealFromHash();
-  window.addEventListener('hashchange', revealFromHash);
-
-  // 3. Scroll-spy: the same IntersectionObserver pattern as the header nav
-  // (Header.astro) — one thin band in the middle of the viewport, the first
-  // section in document order that sits in it wins, and only our own `true`
-  // value is ever cleared. Sections inside a closed `<details>` are ignored:
-  // they are not rendered, so they cannot be "the section you are reading".
-  const tocLinks = Array.from(document.querySelectorAll<HTMLElement>('[data-toc-link]'));
-  const tocSections = Array.from(document.querySelectorAll<HTMLElement>('[data-toc-section]'));
-
-  if (tocLinks.length > 0 && tocSections.length > 0 && 'IntersectionObserver' in window) {
-    const visible = new Set<string>();
-
-    const paint = () => {
-      const current = tocSections.find((section) => visible.has(section.dataset.tocSection ?? ''));
-      for (const link of tocLinks) {
-        const isCurrent =
-          current !== undefined && link.dataset.tocLink === current.dataset.tocSection;
-        if (isCurrent) link.setAttribute('aria-current', 'true');
-        else if (link.getAttribute('aria-current') === 'true') link.removeAttribute('aria-current');
-      }
-    };
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const target = entry.target as HTMLElement;
-          const key = target.dataset.tocSection;
-          if (!key) continue;
-          const disclosedAway = target.closest('details:not([open])') !== null;
-          if (entry.isIntersecting && !disclosedAway) visible.add(key);
-          else visible.delete(key);
-        }
-        paint();
-      },
-      { rootMargin: '-40% 0px -55% 0px' },
-    );
-
-    tocSections.forEach((section) => observer.observe(section));
-  }
-</script>
-
 <style>
   .case-study {
     display: block;
@@ -508,13 +356,6 @@ const askQuery = [project.name, ...project.tags].join(' ');
     margin-bottom: var(--space-4);
   }
 
-  /* The share row replaces the old inline copy button: it now carries the
-     copy control AND the two share intents, so it gets the meta row's own
-     bottom spacing before the source title / lead. The "ask about this page"
-     button sits beside it as a page-level action of the same rank, and the
-     slightly wider column gap marks it as a separate group from the share
-     actions. (`--space-4` keeps the tighter action gap; `--space-5` is the
-     wider layout step.) */
   .case-study__share {
     display: flex;
     flex-wrap: wrap;
@@ -537,9 +378,6 @@ const askQuery = [project.name, ...project.tags].join(' ');
     height: 13px;
   }
 
-  /* The H1 of the source markdown: it carries the boundary wording of the
-     original document ("public reproduction" / "reproducción pública"), so it
-     is shown verbatim — in the page's locale, via `title_es` on es. */
   .case-study__source-title {
     margin-bottom: var(--space-4);
     color: var(--color-text-muted);
@@ -549,162 +387,42 @@ const askQuery = [project.name, ...project.tags].join(' ');
   }
 
   /* --- Body ---------------------------------------------------------------- */
-  /* One column below 1024px (the TOC sits above the text as a compact
-     disclosure); from 1024px up, a two-column grid whose left column is the
-     sticky table of contents. The text column keeps the 760px cap the narrow
-     shell used to provide, so the reading measure does not change, and the
-     whole grid is centred inside the wider shell. */
   .case-study__main {
-    display: grid;
-    gap: var(--space-6);
     padding-block: var(--space-12) var(--space-8);
   }
 
-  /* The honest empty state has no sections to list, so it spans the grid. */
-  .case-study__main > .state-panel {
-    grid-column: 1 / -1;
-  }
-
   .case-study__body {
-    display: block;
-    min-width: 0;
-  }
-
-  @media (min-width: 1024px) {
-    .case-study__main {
-      grid-template-columns: 12rem minmax(0, 760px);
-      justify-content: center;
-      gap: var(--space-12);
-      align-items: start;
-    }
-
-    /* `align-self: start` (via the grid's `align-items`) plus `position:
-       sticky` is what keeps the TOC in view while the long body scrolls past
-       it; it stops at the end of its own grid area, never overlapping the
-       related-work section below. */
-    .case-study__toc {
-      position: sticky;
-      top: calc(var(--header-height) + var(--space-6));
-      max-height: calc(100vh - var(--header-height) - var(--space-12));
-      overflow-y: auto;
-    }
-  }
-
-  /* --- Table of contents --------------------------------------------------- */
-  .case-study__toc {
-    padding: var(--space-4);
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-  }
-
-  .case-study__toc-heading {
-    margin-bottom: var(--space-3);
-  }
-
-  /* Collapsed state, mobile only, and only with JavaScript: without it the
-     list below simply stays open, so no section is ever unreachable. */
-  .case-study__toc-toggle {
-    display: none;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-2);
-    width: 100%;
-    min-height: 44px;
-    padding: var(--space-2) var(--space-3);
-    background-color: transparent;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    color: var(--color-text);
-    font-size: var(--text-sm);
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .case-study__toc-chevron {
-    width: 8px;
-    height: 8px;
-    border-right: 2px solid currentColor;
-    border-bottom: 2px solid currentColor;
-    transform: rotate(45deg) translate(-2px, -2px);
-    transition: transform var(--duration-fast) var(--ease-standard);
-  }
-
-  .case-study__toc[data-open] .case-study__toc-chevron {
-    transform: rotate(225deg) translate(-2px, -2px);
-  }
-
-  .case-study__toc-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .case-study__toc-link {
-    display: flex;
-    align-items: center;
-    min-height: 44px;
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-sm);
-    color: var(--color-text-muted);
-    font-size: var(--text-sm);
-    text-decoration: none;
-    transition:
-      color var(--duration-fast) var(--ease-standard),
-      background-color var(--duration-fast) var(--ease-standard);
-  }
-
-  .case-study__toc-link:hover {
-    color: var(--color-accent);
-    background-color: var(--color-surface-raised);
-  }
-
-  /* The section being read. Colour alone never carries the meaning: the
-     attribute is what the scroll-spy sets and what a screen reader reads. */
-  .case-study__toc-link[aria-current='true'] {
-    color: var(--color-accent);
-    font-weight: 600;
-  }
-
-  @media (max-width: 1023.98px) {
-    html.js .case-study__toc-heading {
-      display: none;
-    }
-
-    html.js .case-study__toc-toggle {
-      display: flex;
-    }
-
-    html.js .case-study__toc-list {
-      display: none;
-    }
-
-    html.js .case-study__toc[data-open] .case-study__toc-list {
-      display: flex;
-      margin-top: var(--space-3);
-    }
+    gap: var(--space-12);
   }
 
   /* --- Sections ------------------------------------------------------------ */
-  .case-study__section + .case-study__section {
-    margin-top: var(--space-10);
+  .case-study__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
   }
 
-  /* The heading and its copy-anchor share one row: the rule under the heading
-     spans the whole row, and the anchor sits at its end. The anchor button
-     lives outside the `<h2>` so the section's `aria-labelledby` (the heading)
-     stays exactly the heading text, with no control text folded into it. */
   .case-study__section-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    margin-bottom: var(--space-3);
     padding-bottom: var(--space-2);
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 2px solid var(--color-border);
+  }
+
+  .case-study__section-head h2 {
+    font-size: var(--text-lg);
+    line-height: var(--leading-lg);
+    font-weight: 600;
+  }
+
+  .case-study__section-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
   }
 
   .case-study__text {
@@ -732,62 +450,10 @@ const askQuery = [project.name, ...project.tags].join(' ');
     color: var(--color-accent);
   }
 
-  /* --- Progressive disclosure ---------------------------------------------- */
-  .disclosure {
-    margin-top: var(--space-8);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    background-color: var(--color-surface);
+  /* --- Empty state ---------------------------------------------------------- */
+  .case-study__main > .state-panel {
+    grid-column: 1 / -1;
   }
-
-  .disclosure__summary {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    min-height: 44px;
-    padding: var(--space-3) var(--space-5);
-    color: var(--color-accent);
-    font-size: var(--text-sm);
-    font-weight: 600;
-    cursor: pointer;
-    list-style: none;
-  }
-
-  .disclosure__summary::-webkit-details-marker {
-    display: none;
-  }
-
-  /* A chevron that rotates with the open state, so the affordance reads as a
-     disclosure without hiding the meaning behind an icon. */
-  .disclosure__summary::after {
-    content: '';
-    width: 8px;
-    height: 8px;
-    margin-left: auto;
-    border-right: 2px solid currentColor;
-    border-bottom: 2px solid currentColor;
-    transform: rotate(45deg) translate(-2px, -2px);
-    transition: transform var(--duration-fast) var(--ease-standard);
-  }
-
-  .disclosure[open] .disclosure__summary::after {
-    transform: rotate(225deg) translate(-2px, -2px);
-  }
-
-  .disclosure__summary:hover {
-    background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
-  }
-
-  .disclosure__body {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-10);
-    padding: var(--space-5);
-    border-top: 1px solid var(--color-border);
-  }
-
-  /* --- Empty state ----------------------------------------------------------
-   * The shape comes from the shared `.state-panel` class in global.css. */
 
   /* --- Related work --------------------------------------------------------- */
   .case-study__related {
@@ -816,9 +482,6 @@ const askQuery = [project.name, ...project.tags].join(' ');
     display: flex;
   }
 
-  /* Compact cards: the related row is navigation, so the visual block and the
-     nested related list of each card are dropped. The full card — figure and
-     all — stays on `/work/` and the home page. */
   .case-study__related-item :global(.project-card__figure),
   .case-study__related-item :global(.project-card__related) {
     display: none;
