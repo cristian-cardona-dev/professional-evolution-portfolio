@@ -68,14 +68,19 @@ export interface Copy {
     switchToEn: string;
     switchToEs: string;
   };
+  /**
+   * Hero (first screen) — "Void, then statement on axis" (Task 4 redesign).
+   *
+   * The statement itself is the person's name and comes from
+   * `data/profile.json`, not from copy; these are the two strings set with
+   * it: the plain-words sentence that says who this is and what they do,
+   * and the one primary action (same name everywhere, per the copy deck).
+   */
   hero: {
-    eyebrow: string;
-    oneLiner: string;
-    principle: string;
-    ctaWork: string;
-    ctaEvidence: string;
-    github: string;
-    linkedin: string;
+    sentence: string;
+    cta: string;
+    /** mailto subject for the CTA until the Cal.com URL is confirmed. */
+    ctaSubject: string;
   };
   /**
    * Verified metrics strip on the home page (`views/Home.astro`).
@@ -837,15 +842,9 @@ export const en: Copy = {
     switchToEs: 'Leer esta página en español',
   },
   hero: {
-    eyebrow: 'Evidence before confidence',
-    oneLiner:
-      'A deliberately honest portfolio: work that is demonstrated, capabilities that are still developing, and the direction being built next.',
-    principle:
-      'Evidence before confidence. Direction is labelled as direction, and a prototype is never presented as a production system.',
-    ctaWork: 'Explore the work',
-    ctaEvidence: 'Inspect the evidence',
-    github: 'GitHub',
-    linkedin: 'LinkedIn',
+    sentence: 'AI engineer who ships production LLM systems. Formerly full-stack and cloud.',
+    cta: 'Book a call',
+    ctaSubject: 'Portfolio intro call',
   },
   metrics: {
     heading: 'Verified metrics',
@@ -1381,15 +1380,13 @@ export const es: Copy = {
     switchToEs: 'Leer esta página en español',
   },
   hero: {
-    eyebrow: 'Evidencia antes que confianza',
-    oneLiner:
-      'Un portafolio deliberadamente honesto: trabajo demostrado, capacidades todavía en desarrollo y la dirección que se está construyendo.',
-    principle:
-      'Evidencia antes que confianza. La dirección se etiqueta como dirección, y un prototipo nunca se presenta como un sistema en producción.',
-    ctaWork: 'Explorar el trabajo',
-    ctaEvidence: 'Inspeccionar la evidencia',
-    github: 'GitHub',
-    linkedin: 'LinkedIn',
+    // Interim translation: the reviewed Spanish copy deck is a follow-up
+    // task (copy deck, "For client confirmation" #7); keep parity so the
+    // shared markup renders a complete hero in both locales until then.
+    sentence:
+      'Ingeniero de IA que entrega sistemas LLM en producción. Antes, full-stack y cloud.',
+    cta: 'Agendar una llamada',
+    ctaSubject: 'Llamada de presentación del portafolio',
   },
   metrics: {
     heading: 'Cifras verificadas',

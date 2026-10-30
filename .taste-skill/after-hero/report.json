@@ -1,0 +1,2881 @@
+{
+ "url": "index.html",
+ "at": "2026-10-30T18:56:01.502Z",
+ "allow": [],
+ "viewports": [
+  {
+   "width": 1440,
+   "height": 900,
+   "load": "load",
+   "screens": 12,
+   "filled": [
+    0.13,
+    0.62,
+    0.41,
+    0.45,
+    0.19,
+    0.21,
+    0.43,
+    0.26,
+    0.73,
+    0.58,
+    0.29,
+    0.68
+   ],
+   "motion": {
+    "elements": 7,
+    "css": 0,
+    "transitions": 7,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "page": {
+     "height": 10296,
+     "screens": 11.4,
+     "words": 1580,
+     "img": 1,
+     "video": 0,
+     "canvas": 0,
+     "svg": 11,
+     "sections": 19,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 1,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "site-career.png"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [
+      "🏢",
+      "📦",
+      "✓"
+     ],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Cristian Cardona",
+     "words": 2,
+     "chars": 16,
+     "lines": 2,
+     "size": 80,
+     "vw": 5.6,
+     "font": "Newsreader",
+     "weight": 300,
+     "tracking": -0.05,
+     "leading": 0.95,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "right",
+     "widthRatio": 0.31,
+     "top": 677,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Cristian Cardona",
+     "words": 2,
+     "lines": 2,
+     "size": 80,
+     "font": "Newsreader"
+    },
+    "headings": [
+     {
+      "text": "Cristian Cardona",
+      "words": 2,
+      "chars": 16,
+      "lines": 2,
+      "size": 80,
+      "vw": 5.6,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 0.95,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.31,
+      "top": 677,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Projects with their limits visible.",
+      "words": 5,
+      "chars": 35,
+      "lines": 1,
+      "size": 32,
+      "vw": 2.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.45,
+      "top": 1147,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "AA",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 32,
+      "vw": 2.2,
+      "font": "Newsreader",
+      "weight": 700,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.22,
+      "top": 1302,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "AC",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 32,
+      "vw": 2.2,
+      "font": "Newsreader",
+      "weight": 700,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.22,
+      "top": 1302,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "Where the work happened, and on what.",
+      "words": 7,
+      "chars": 37,
+      "lines": 1,
+      "size": 32,
+      "vw": 2.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.45,
+      "top": 2344,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Skills, and what stands behind each one.",
+      "words": 7,
+      "chars": 40,
+      "lines": 1,
+      "size": 32,
+      "vw": 2.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.78,
+      "top": 3358,
+      "tag": "h3",
+      "kind": "heading"
+     },
+     {
+      "text": "Where this comes from, and where it is going.",
+      "words": 9,
+      "chars": 45,
+      "lines": 1,
+      "size": 32,
+      "vw": 2.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.45,
+      "top": 5054,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Completed & ongoing",
+      "words": 3,
+      "chars": 19,
+      "lines": 1,
+      "size": 32,
+      "vw": 2.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.78,
+      "top": 5192,
+      "tag": "h3",
+      "kind": "heading"
+     },
+     {
+      "text": "Recent notes.",
+      "words": 2,
+      "chars": 13,
+      "lines": 1,
+      "size": 32,
+      "vw": 2.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.45,
+      "top": 6908,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Evidence, not a skill score.",
+      "words": 5,
+      "chars": 28,
+      "lines": 1,
+      "size": 32,
+      "vw": 2.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.78,
+      "top": 7805,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "4 linked evidence items",
+      "words": 4,
+      "chars": 23,
+      "lines": 1,
+      "size": 32,
+      "vw": 2.2,
+      "font": "Newsreader",
+      "weight": 700,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.78,
+      "top": 7923,
+      "tag": "p",
+      "kind": "statement"
+     },
+     {
+      "text": "What this portfolio will not pretend to know.",
+      "words": 8,
+      "chars": 45,
+      "lines": 1,
+      "size": 32,
+      "vw": 2.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.45,
+      "top": 8231,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Start from the evidence.",
+      "words": 4,
+      "chars": 24,
+      "lines": 1,
+      "size": 32,
+      "vw": 2.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.35,
+      "top": 8670,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Something missing? Say it in the open.",
+      "words": 7,
+      "chars": 38,
+      "lines": 1,
+      "size": 32,
+      "vw": 2.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.34,
+      "top": 9578,
+      "tag": "h2",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 14,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 3,
+     "centered": 0,
+     "medianWords": 5,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Newsreader",
+       "share": 0.97,
+       "mono": false
+      },
+      {
+       "family": "JetBrains Mono",
+       "share": 0.03,
+       "mono": true
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      13,
+      14,
+      16,
+      18,
+      32,
+      80
+     ],
+     "sizeCount": 6,
+     "notLoaded": [
+      "Newsreader"
+     ],
+     "body": {
+      "font": "Newsreader",
+      "size": 14,
+      "leading": 1.55,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 5.7
+     },
+     "measureChars": 82,
+     "max": {
+      "size": 80,
+      "vw": 5.6,
+      "font": "Newsreader",
+      "text": "Cristian"
+     },
+     "monoShare": 0.03,
+     "monoProseShare": 0.03,
+     "monoFamilies": [
+      "JetBrains Mono"
+     ],
+     "monoSamples": [
+      "astro",
+      "bilingual",
+      "evidence-first",
+      "accessibility",
+      "state-machine",
+      "human-in-the-loop"
+     ],
+     "microLabels": 27,
+     "microLabelShare": 0.032,
+     "microSamples": [
+      "Verified metrics",
+      "Selected work",
+      "Related work",
+      "Related work",
+      "Related work",
+      "Career"
+     ],
+     "upperShare": 0.04,
+     "centerShare": 0.01,
+     "smallText": 0
+    },
+    "eyebrows": [
+     {
+      "text": "Selected work",
+      "above": "Projects with their limits visible.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 1120
+     },
+     {
+      "text": "Career",
+      "above": "Where the work happened, and on what.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 2317
+     },
+     {
+      "text": "View the full career",
+      "above": "Skills, and what stands behind each one.",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 3245
+     },
+     {
+      "text": "Evolution",
+      "above": "Where this comes from, and where it is g",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 5027
+     },
+     {
+      "text": "Notes",
+      "above": "Recent notes.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 6881
+     },
+     {
+      "text": "Evidence",
+      "above": "Evidence, not a skill score.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 7786
+     },
+     {
+      "text": "The boundary",
+      "above": "What this portfolio will not pretend to ",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 8203
+     },
+     {
+      "text": "Contact",
+      "above": "Start from the evidence.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 8643
+     },
+     {
+      "text": "Suggestions",
+      "above": "Something missing? Say it in the open.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 9551
+     }
+    ],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#0a0a0a",
+     "bodyBgHsl": {
+      "h": 0,
+      "s": 0,
+      "l": 0.04
+     },
+     "dark": true,
+     "sectionBgs": [
+      {
+       "color": "#1a1a1a",
+       "top": 7689,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 0.1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#98938a",
+       "share": 0.72
+      },
+      {
+       "color": "#f2efe6",
+       "share": 0.14
+      },
+      {
+       "color": "#f53fd6",
+       "share": 0.12
+      },
+      {
+       "color": "#f6c177",
+       "share": 0.01
+      },
+      {
+       "color": "#48bb78",
+       "share": 0.01
+      }
+     ],
+     "button": {
+      "bg": "#222222",
+      "hsl": {
+       "h": 0,
+       "s": 0,
+       "l": 0.13
+      },
+      "fg": "#f53fd6"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 16,
+     "inHero": 2,
+     "radius": 0,
+     "height": 44,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 13,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to main content",
+      "Book a call"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 1,
+     "shadowSamples": [],
+     "gradients": 2,
+     "scrims": 0,
+     "gradientSamples": [
+      "span.project-card__placeholder → radial-gradient(70% 80% at 20% 10%, rgba(98, 217, 38, 0.22) 0%, rgba(0, 0, 0, 0) 60%), linear-gradient(135deg,",
+      "span.project-card__placeholder → radial-gradient(70% 80% at 20% 10%, rgba(217, 38, 190, 0.22) 0%, rgba(0, 0, 0, 0) 60%), linear-gradient(135deg"
+     ],
+     "gradientText": 0,
+     "hairlines": 16,
+     "hairlineSamples": [
+      "header.site-header 1440px",
+      "section.section.section--metrics 1440px",
+      "div.project-card__related 324px",
+      "div.project-card__related 324px",
+      "div.project-card__related 324px"
+     ],
+     "outlinedBoxes": 19,
+     "dashed": 0,
+     "blurred": 1,
+     "roundedBoxes": 0,
+     "boxRadius": 0,
+     "squareMedia": 1,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 8,
+     "fixed": true,
+     "height": 65,
+     "floatingPill": false,
+     "blur": true
+    },
+    "fontsLoaded": [
+     "jetbrains mono"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "pageH": 10296,
+    "margins": {
+     "left": 160,
+     "right": 185
+    },
+    "sections": [
+     {
+      "sel": "section.hero",
+      "tag": "section",
+      "top": 65,
+      "height": 836,
+      "words": 17,
+      "media": 0,
+      "middle": 249,
+      "heading": null,
+      "left": 160,
+      "right": 185,
+      "textLeft": 160,
+      "textRight": 185,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.section.section--metrics",
+      "tag": "section",
+      "top": 901,
+      "height": 123,
+      "words": 16,
+      "media": 0,
+      "middle": 123,
+      "heading": {
+       "text": "Verified metrics",
+       "size": 13,
+       "tag": "h2"
+      },
+      "left": 160,
+      "right": 367,
+      "textLeft": 160,
+      "textRight": 367,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#projects.section",
+      "tag": "section",
+      "top": 1024,
+      "height": 1197,
+      "words": 268,
+      "media": 1,
+      "middle": 61,
+      "heading": {
+       "text": "Projects with their limits visible.",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 160,
+      "right": 181,
+      "textLeft": 160,
+      "textRight": 181,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#career.section",
+      "tag": "section",
+      "top": 2221,
+      "height": 2710,
+      "words": 214,
+      "media": 0,
+      "middle": 26,
+      "heading": {
+       "text": "Where the work happened, and on what.",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 160,
+      "right": 433,
+      "textLeft": 160,
+      "textRight": 433,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#evolution.section",
+      "tag": "section",
+      "top": 4931,
+      "height": 1854,
+      "words": 279,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Where this comes from, and where it is going.",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 160,
+      "right": 639,
+      "textLeft": 160,
+      "textRight": 639,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#notes.section",
+      "tag": "section",
+      "top": 6785,
+      "height": 904,
+      "words": 239,
+      "media": 0,
+      "middle": 63,
+      "heading": {
+       "text": "Recent notes.",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 160,
+      "right": 181,
+      "textLeft": 160,
+      "textRight": 181,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#evidence.section.section--teaser",
+      "tag": "section",
+      "top": 7689,
+      "height": 418,
+      "words": 33,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Evidence, not a skill score.",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 160,
+      "right": 595,
+      "textLeft": 160,
+      "textRight": 595,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#boundaries.section.section--boundary",
+      "tag": "section",
+      "top": 8107,
+      "height": 440,
+      "words": 65,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "What this portfolio will not pretend to know.",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 160,
+      "right": 637,
+      "textLeft": 160,
+      "textRight": 637,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#contact.contact",
+      "tag": "section",
+      "top": 8547,
+      "height": 875,
+      "words": 66,
+      "media": 0,
+      "middle": 9978,
+      "heading": {
+       "text": "Start from the evidence.",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 0,
+      "right": 185,
+      "textLeft": 160,
+      "textRight": 227,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.suggestions",
+      "tag": "section",
+      "top": 9422,
+      "height": 379,
+      "words": 38,
+      "media": 0,
+      "middle": 358,
+      "heading": {
+       "text": "Something missing? Say it in the open.",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 193,
+      "right": 240,
+      "textLeft": 193,
+      "textRight": 240,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "footer.site-footer",
+      "tag": "footer",
+      "top": 9897,
+      "height": 399,
+      "words": 47,
+      "media": 0,
+      "middle": 133,
+      "heading": null,
+      "left": 160,
+      "right": 360,
+      "textLeft": 160,
+      "textRight": 360,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Cristian Cardona",
+      "size": 80,
+      "top": 677,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 160,
+      "n": 19
+     },
+     {
+      "x": 193,
+      "n": 2
+     },
+     {
+      "x": 630,
+      "n": 2
+     },
+     {
+      "x": 752,
+      "n": 2
+     }
+    ],
+    "leftBlocks": 25,
+    "bodySize": 14,
+    "stage": false,
+    "explains": true,
+    "slivers": [],
+    "voidShare": 0.6,
+    "voidBox": {
+     "x": 0,
+     "y": 120,
+     "w": 1440,
+     "h": 540
+    }
+   },
+   "app": null,
+   "consoleErrors": []
+  },
+  {
+   "width": 768,
+   "height": 1024,
+   "load": "load",
+   "screens": 12,
+   "filled": [
+    0.16,
+    0.79,
+    0.5,
+    0.75,
+    0.3,
+    0.32,
+    0.74,
+    0.46,
+    0.79,
+    0.73,
+    0.52,
+    0.72
+   ],
+   "motion": {
+    "elements": 3,
+    "css": 0,
+    "transitions": 3,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "page": {
+     "height": 11706,
+     "screens": 11.4,
+     "words": 1550,
+     "img": 1,
+     "video": 0,
+     "canvas": 0,
+     "svg": 11,
+     "sections": 19,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 1,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "site-career.png"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [
+      "🏢",
+      "📦",
+      "✓"
+     ],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Cristian Cardona",
+     "words": 2,
+     "chars": 16,
+     "lines": 2,
+     "size": 80,
+     "vw": 10.4,
+     "font": "Newsreader",
+     "weight": 300,
+     "tracking": -0.05,
+     "leading": 0.95,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "center",
+     "widthRatio": 0.96,
+     "top": 671,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Cristian Cardona",
+     "words": 2,
+     "lines": 2,
+     "size": 80,
+     "font": "Newsreader"
+    },
+    "headings": [
+     {
+      "text": "Cristian Cardona",
+      "words": 2,
+      "chars": 16,
+      "lines": 2,
+      "size": 80,
+      "vw": 10.4,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 0.95,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.96,
+      "top": 671,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Projects with their limits visible.",
+      "words": 5,
+      "chars": 35,
+      "lines": 1,
+      "size": 30.7,
+      "vw": 4,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.85,
+      "top": 1309,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "AA",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 32,
+      "vw": 4.2,
+      "font": "Newsreader",
+      "weight": 700,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.42,
+      "top": 1462,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "AC",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 32,
+      "vw": 4.2,
+      "font": "Newsreader",
+      "weight": 700,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.42,
+      "top": 2211,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "Where the work happened, and on what.",
+      "words": 7,
+      "chars": 37,
+      "lines": 1,
+      "size": 30.7,
+      "vw": 4,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.85,
+      "top": 3252,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Skills, and what stands behind each one.",
+      "words": 7,
+      "chars": 40,
+      "lines": 1,
+      "size": 32,
+      "vw": 4.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.96,
+      "top": 4298,
+      "tag": "h3",
+      "kind": "heading"
+     },
+     {
+      "text": "Where this comes from, and where it is going.",
+      "words": 9,
+      "chars": 45,
+      "lines": 1,
+      "size": 30.7,
+      "vw": 4,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.85,
+      "top": 5995,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Completed & ongoing",
+      "words": 3,
+      "chars": 19,
+      "lines": 1,
+      "size": 32,
+      "vw": 4.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.96,
+      "top": 6131,
+      "tag": "h3",
+      "kind": "heading"
+     },
+     {
+      "text": "Recent notes.",
+      "words": 2,
+      "chars": 13,
+      "lines": 1,
+      "size": 30.7,
+      "vw": 4,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.85,
+      "top": 7847,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Evidence, not a skill score.",
+      "words": 5,
+      "chars": 28,
+      "lines": 1,
+      "size": 30.7,
+      "vw": 4,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.96,
+      "top": 8956,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "4 linked evidence items",
+      "words": 4,
+      "chars": 23,
+      "lines": 1,
+      "size": 32,
+      "vw": 4.2,
+      "font": "Newsreader",
+      "weight": 700,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.96,
+      "top": 9073,
+      "tag": "p",
+      "kind": "statement"
+     },
+     {
+      "text": "What this portfolio will not pretend to know.",
+      "words": 8,
+      "chars": 45,
+      "lines": 1,
+      "size": 30.7,
+      "vw": 4,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.85,
+      "top": 9380,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Start from the evidence.",
+      "words": 4,
+      "chars": 24,
+      "lines": 1,
+      "size": 30.7,
+      "vw": 4,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.96,
+      "top": 9818,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Something missing? Say it in the open.",
+      "words": 7,
+      "chars": 38,
+      "lines": 1,
+      "size": 30.7,
+      "vw": 4,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.64,
+      "top": 10890,
+      "tag": "h2",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 14,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 3,
+     "centered": 0,
+     "medianWords": 5,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Newsreader",
+       "share": 0.97,
+       "mono": false
+      },
+      {
+       "family": "JetBrains Mono",
+       "share": 0.03,
+       "mono": true
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      13,
+      14,
+      16,
+      18,
+      31,
+      32,
+      80
+     ],
+     "sizeCount": 7,
+     "notLoaded": [
+      "Newsreader"
+     ],
+     "body": {
+      "font": "Newsreader",
+      "size": 14,
+      "leading": 1.55,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 5.7
+     },
+     "measureChars": 82,
+     "max": {
+      "size": 80,
+      "vw": 10.4,
+      "font": "Newsreader",
+      "text": "Cristian"
+     },
+     "monoShare": 0.03,
+     "monoProseShare": 0.03,
+     "monoFamilies": [
+      "JetBrains Mono"
+     ],
+     "monoSamples": [
+      "astro",
+      "bilingual",
+      "evidence-first",
+      "accessibility",
+      "state-machine",
+      "human-in-the-loop"
+     ],
+     "microLabels": 27,
+     "microLabelShare": 0.032,
+     "microSamples": [
+      "Verified metrics",
+      "Selected work",
+      "Related work",
+      "Related work",
+      "Related work",
+      "Career"
+     ],
+     "upperShare": 0.04,
+     "centerShare": 0,
+     "smallText": 0
+    },
+    "eyebrows": [
+     {
+      "text": "Selected work",
+      "above": "Projects with their limits visible.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 1281
+     },
+     {
+      "text": "Career",
+      "above": "Where the work happened, and on what.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 3224
+     },
+     {
+      "text": "View the full career",
+      "above": "Skills, and what stands behind each one.",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 4185
+     },
+     {
+      "text": "Evolution",
+      "above": "Where this comes from, and where it is g",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 5967
+     },
+     {
+      "text": "Notes",
+      "above": "Recent notes.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 7820
+     },
+     {
+      "text": "Evidence",
+      "above": "Evidence, not a skill score.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 8937
+     },
+     {
+      "text": "The boundary",
+      "above": "What this portfolio will not pretend to ",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 9353
+     },
+     {
+      "text": "Contact",
+      "above": "Start from the evidence.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 9790
+     },
+     {
+      "text": "Suggestions",
+      "above": "Something missing? Say it in the open.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 10863
+     }
+    ],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#0a0a0a",
+     "bodyBgHsl": {
+      "h": 0,
+      "s": 0,
+      "l": 0.04
+     },
+     "dark": true,
+     "sectionBgs": [
+      {
+       "color": "#1a1a1a",
+       "top": 1445,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 0.1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#98938a",
+       "share": 0.72
+      },
+      {
+       "color": "#f2efe6",
+       "share": 0.14
+      },
+      {
+       "color": "#f53fd6",
+       "share": 0.12
+      },
+      {
+       "color": "#f6c177",
+       "share": 0.01
+      },
+      {
+       "color": "#48bb78",
+       "share": 0.01
+      }
+     ],
+     "button": {
+      "bg": "#222222",
+      "hsl": {
+       "h": 0,
+       "s": 0,
+       "l": 0.13
+      },
+      "fg": "#f53fd6"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 16,
+     "inHero": 2,
+     "radius": 0,
+     "height": 44,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 13,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to main content",
+      "Book a call"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 1,
+     "shadowSamples": [],
+     "gradients": 2,
+     "scrims": 0,
+     "gradientSamples": [
+      "span.project-card__placeholder → radial-gradient(70% 80% at 20% 10%, rgba(98, 217, 38, 0.22) 0%, rgba(0, 0, 0, 0) 60%), linear-gradient(135deg,",
+      "span.project-card__placeholder → radial-gradient(70% 80% at 20% 10%, rgba(217, 38, 190, 0.22) 0%, rgba(0, 0, 0, 0) 60%), linear-gradient(135deg"
+     ],
+     "gradientText": 0,
+     "hairlines": 16,
+     "hairlineSamples": [
+      "header.site-header 768px",
+      "section.section.section--metrics 768px",
+      "div.project-card__related 322px",
+      "div.project-card__related 322px",
+      "div.project-card__related 322px"
+     ],
+     "outlinedBoxes": 19,
+     "dashed": 0,
+     "blurred": 1,
+     "roundedBoxes": 0,
+     "boxRadius": 0,
+     "squareMedia": 1,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 1,
+     "fixed": true,
+     "height": 65,
+     "floatingPill": false,
+     "blur": true
+    },
+    "fontsLoaded": [
+     "jetbrains mono"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "pageH": 11706,
+    "margins": {
+     "left": 16,
+     "right": 41
+    },
+    "sections": [
+     {
+      "sel": "section.hero",
+      "tag": "section",
+      "top": 65,
+      "height": 960,
+      "words": 17,
+      "media": 0,
+      "middle": 0,
+      "heading": null,
+      "left": 16,
+      "right": 432,
+      "textLeft": 16,
+      "textRight": 432,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.section.section--metrics",
+      "tag": "section",
+      "top": 1025,
+      "height": 161,
+      "words": 16,
+      "media": 0,
+      "middle": 202,
+      "heading": {
+       "text": "Verified metrics",
+       "size": 13,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 187,
+      "textLeft": 16,
+      "textRight": 187,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#projects.section",
+      "tag": "section",
+      "top": 1185,
+      "height": 1943,
+      "words": 268,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "AA",
+       "size": 32,
+       "tag": "span"
+      },
+      "left": 16,
+      "right": 35,
+      "textLeft": 16,
+      "textRight": 35,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#career.section",
+      "tag": "section",
+      "top": 3128,
+      "height": 2743,
+      "words": 214,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Skills, and what stands behind each one.",
+       "size": 32,
+       "tag": "h3"
+      },
+      "left": 16,
+      "right": 105,
+      "textLeft": 16,
+      "textRight": 105,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#evolution.section",
+      "tag": "section",
+      "top": 5871,
+      "height": 1853,
+      "words": 279,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Completed & ongoing",
+       "size": 32,
+       "tag": "h3"
+      },
+      "left": 16,
+      "right": 111,
+      "textLeft": 16,
+      "textRight": 111,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#notes.section",
+      "tag": "section",
+      "top": 7724,
+      "height": 1116,
+      "words": 239,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Recent notes.",
+       "size": 31,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 39,
+      "textLeft": 16,
+      "textRight": 39,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#evidence.section.section--teaser",
+      "tag": "section",
+      "top": 8840,
+      "height": 416,
+      "words": 33,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "4 linked evidence items",
+       "size": 32,
+       "tag": "p"
+      },
+      "left": 16,
+      "right": 67,
+      "textLeft": 16,
+      "textRight": 67,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#boundaries.section.section--boundary",
+      "tag": "section",
+      "top": 9256,
+      "height": 438,
+      "words": 65,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "What this portfolio will not pretend to know.",
+       "size": 31,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 109,
+      "textLeft": 16,
+      "textRight": 109,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#contact.contact",
+      "tag": "section",
+      "top": 9694,
+      "height": 1040,
+      "words": 66,
+      "media": 0,
+      "middle": 9834,
+      "heading": {
+       "text": "Start from the evidence.",
+       "size": 31,
+       "tag": "h2"
+      },
+      "left": 0,
+      "right": 41,
+      "textLeft": 16,
+      "textRight": 124,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.suggestions",
+      "tag": "section",
+      "top": 10734,
+      "height": 477,
+      "words": 38,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Something missing? Say it in the open.",
+       "size": 31,
+       "tag": "h2"
+      },
+      "left": 49,
+      "right": 236,
+      "textLeft": 49,
+      "textRight": 236,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "footer.site-footer",
+      "tag": "footer",
+      "top": 11307,
+      "height": 399,
+      "words": 47,
+      "media": 0,
+      "middle": 0,
+      "heading": null,
+      "left": 16,
+      "right": 24,
+      "textLeft": 16,
+      "textRight": 24,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Cristian Cardona",
+      "size": 80,
+      "top": 671,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 16,
+      "n": 21
+     },
+     {
+      "x": 41,
+      "n": 4
+     }
+    ],
+    "leftBlocks": 25,
+    "bodySize": 14,
+    "stage": false,
+    "explains": true,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": null,
+   "consoleErrors": []
+  },
+  {
+   "width": 390,
+   "height": 844,
+   "load": "load",
+   "screens": 12,
+   "filled": [
+    0.21,
+    0.77,
+    0.86,
+    0.86,
+    0.57,
+    0.74,
+    0.53,
+    0.4,
+    0.41,
+    0.85,
+    0.69,
+    0.63
+   ],
+   "motion": {
+    "elements": 6,
+    "css": 0,
+    "transitions": 6,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "page": {
+     "height": 14403,
+     "screens": 17.1,
+     "words": 1550,
+     "img": 1,
+     "video": 0,
+     "canvas": 0,
+     "svg": 11,
+     "sections": 19,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 1,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "site-career.png"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [
+      "🏢",
+      "📦",
+      "✓"
+     ],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Cristian Cardona",
+     "words": 2,
+     "chars": 16,
+     "lines": 2,
+     "size": 48.8,
+     "vw": 12.5,
+     "font": "Newsreader",
+     "weight": 300,
+     "tracking": -0.05,
+     "leading": 0.95,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "center",
+     "widthRatio": 0.92,
+     "top": 550,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Cristian Cardona",
+     "words": 2,
+     "lines": 2,
+     "size": 48.8,
+     "font": "Newsreader"
+    },
+    "headings": [
+     {
+      "text": "Cristian Cardona",
+      "words": 2,
+      "chars": 16,
+      "lines": 2,
+      "size": 48.8,
+      "vw": 12.5,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 0.95,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 550,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "AA",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Newsreader",
+      "weight": 700,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.83,
+      "top": 2133,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "AC",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Newsreader",
+      "weight": 700,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.83,
+      "top": 2883,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "Skills, and what stands behind each one.",
+      "words": 7,
+      "chars": 40,
+      "lines": 2,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 5115,
+      "tag": "h3",
+      "kind": "heading"
+     },
+     {
+      "text": "Completed & ongoing",
+      "words": 3,
+      "chars": 19,
+      "lines": 1,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Newsreader",
+      "weight": 300,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 7467,
+      "tag": "h3",
+      "kind": "heading"
+     },
+     {
+      "text": "4 linked evidence items",
+      "words": 4,
+      "chars": 23,
+      "lines": 1,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Newsreader",
+      "weight": 700,
+      "tracking": -0.05,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 11454,
+      "tag": "p",
+      "kind": "statement"
+     }
+    ],
+    "headingSummary": {
+     "count": 6,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 3,
+     "centered": 0,
+     "medianWords": 3,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Newsreader",
+       "share": 0.97,
+       "mono": false
+      },
+      {
+       "family": "JetBrains Mono",
+       "share": 0.03,
+       "mono": true
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      13,
+      14,
+      16,
+      18,
+      32,
+      49
+     ],
+     "sizeCount": 6,
+     "notLoaded": [
+      "Newsreader"
+     ],
+     "body": {
+      "font": "Newsreader",
+      "size": 14,
+      "leading": 1.55,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 5.7
+     },
+     "measureChars": 42,
+     "max": {
+      "size": 48.8,
+      "vw": 12.5,
+      "font": "Newsreader",
+      "text": "Cristian"
+     },
+     "monoShare": 0.03,
+     "monoProseShare": 0.03,
+     "monoFamilies": [
+      "JetBrains Mono"
+     ],
+     "monoSamples": [
+      "astro",
+      "bilingual",
+      "evidence-first",
+      "accessibility",
+      "state-machine",
+      "human-in-the-loop"
+     ],
+     "microLabels": 27,
+     "microLabelShare": 0.032,
+     "microSamples": [
+      "Verified metrics",
+      "Selected work",
+      "Related work",
+      "Related work",
+      "Related work",
+      "Career"
+     ],
+     "upperShare": 0.04,
+     "centerShare": 0,
+     "smallText": 0
+    },
+    "eyebrows": [
+     {
+      "text": "AI Automation Workflow Lab",
+      "above": "AA",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 2031
+     },
+     {
+      "text": "AI Chat API Lab",
+      "above": "AC",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 2781
+     },
+     {
+      "text": "View the full career",
+      "above": "Skills, and what stands behind each one.",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 5002
+     }
+    ],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#0a0a0a",
+     "bodyBgHsl": {
+      "h": 0,
+      "s": 0,
+      "l": 0.04
+     },
+     "dark": true,
+     "sectionBgs": [
+      {
+       "color": "#1a1a1a",
+       "top": 1381,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 0.1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#98938a",
+       "share": 0.72
+      },
+      {
+       "color": "#f2efe6",
+       "share": 0.14
+      },
+      {
+       "color": "#f53fd6",
+       "share": 0.12
+      },
+      {
+       "color": "#f6c177",
+       "share": 0.01
+      },
+      {
+       "color": "#48bb78",
+       "share": 0.01
+      }
+     ],
+     "button": {
+      "bg": "#222222",
+      "hsl": {
+       "h": 0,
+       "s": 0,
+       "l": 0.13
+      },
+      "fg": "#f53fd6"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 16,
+     "inHero": 2,
+     "radius": 0,
+     "height": 44,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 13,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to main content",
+      "Book a call"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 2,
+     "scrims": 0,
+     "gradientSamples": [
+      "span.project-card__placeholder → radial-gradient(70% 80% at 20% 10%, rgba(98, 217, 38, 0.22) 0%, rgba(0, 0, 0, 0) 60%), linear-gradient(135deg,",
+      "span.project-card__placeholder → radial-gradient(70% 80% at 20% 10%, rgba(217, 38, 190, 0.22) 0%, rgba(0, 0, 0, 0) 60%), linear-gradient(135deg"
+     ],
+     "gradientText": 0,
+     "hairlines": 16,
+     "hairlineSamples": [
+      "header.site-header 390px",
+      "section.section.section--metrics 390px",
+      "div.project-card__related 325px",
+      "div.project-card__related 325px",
+      "div.project-card__related 325px"
+     ],
+     "outlinedBoxes": 19,
+     "dashed": 0,
+     "blurred": 1,
+     "roundedBoxes": 0,
+     "boxRadius": 0,
+     "squareMedia": 1,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 1,
+     "fixed": true,
+     "height": 65,
+     "floatingPill": false,
+     "blur": true
+    },
+    "fontsLoaded": [
+     "jetbrains mono"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "pageH": 14403,
+    "margins": {
+     "left": 16,
+     "right": 20
+    },
+    "sections": [
+     {
+      "sel": "section.hero",
+      "tag": "section",
+      "top": 65,
+      "height": 780,
+      "words": 17,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Cristian",
+       "size": 49,
+       "tag": "h1"
+      },
+      "left": 16,
+      "right": 54,
+      "textLeft": 16,
+      "textRight": 54,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.section.section--metrics",
+      "tag": "section",
+      "top": 845,
+      "height": 236,
+      "words": 16,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Verified metrics",
+       "size": 13,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 185,
+      "textLeft": 16,
+      "textRight": 185,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#projects.section",
+      "tag": "section",
+      "top": 1081,
+      "height": 2721,
+      "words": 268,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "AA",
+       "size": 32,
+       "tag": "span"
+      },
+      "left": 16,
+      "right": 32,
+      "textLeft": 16,
+      "textRight": 32,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#career.section",
+      "tag": "section",
+      "top": 3802,
+      "height": 3365,
+      "words": 214,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Skills, and what stands behind each one.",
+       "size": 32,
+       "tag": "h3"
+      },
+      "left": 16,
+      "right": 20,
+      "textLeft": 16,
+      "textRight": 20,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#evolution.section",
+      "tag": "section",
+      "top": 7167,
+      "height": 2273,
+      "words": 279,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Completed & ongoing",
+       "size": 32,
+       "tag": "h3"
+      },
+      "left": 16,
+      "right": 16,
+      "textLeft": 16,
+      "textRight": 16,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#notes.section",
+      "tag": "section",
+      "top": 9439,
+      "height": 1769,
+      "words": 239,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Recent notes.",
+       "size": 18,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 24,
+      "textLeft": 16,
+      "textRight": 24,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#evidence.section.section--teaser",
+      "tag": "section",
+      "top": 11208,
+      "height": 429,
+      "words": 33,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "4 linked evidence items",
+       "size": 32,
+       "tag": "p"
+      },
+      "left": 16,
+      "right": 24,
+      "textLeft": 16,
+      "textRight": 24,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#boundaries.section.section--boundary",
+      "tag": "section",
+      "top": 11637,
+      "height": 510,
+      "words": 65,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "What this portfolio will not pretend to know.",
+       "size": 18,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 18,
+      "textLeft": 16,
+      "textRight": 18,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#contact.contact",
+      "tag": "section",
+      "top": 12147,
+      "height": 1152,
+      "words": 66,
+      "media": 0,
+      "middle": 9834,
+      "heading": {
+       "text": "Start from the evidence.",
+       "size": 18,
+       "tag": "h2"
+      },
+      "left": 0,
+      "right": 37,
+      "textLeft": 16,
+      "textRight": 37,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.suggestions",
+      "tag": "section",
+      "top": 13299,
+      "height": 483,
+      "words": 38,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Something missing? Say it in the open.",
+       "size": 18,
+       "tag": "h2"
+      },
+      "left": 49,
+      "right": 56,
+      "textLeft": 49,
+      "textRight": 56,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "footer.site-footer",
+      "tag": "footer",
+      "top": 13878,
+      "height": 526,
+      "words": 47,
+      "media": 0,
+      "middle": 0,
+      "heading": null,
+      "left": 16,
+      "right": 16,
+      "textLeft": 16,
+      "textRight": 16,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Cristian Cardona",
+      "size": 49,
+      "top": 550,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [
+     {
+      "text": "The trajectory is inspectable: each milestone link",
+      "side": "right",
+      "px": 16
+     }
+    ],
+    "edges": [
+     {
+      "x": 16,
+      "n": 21
+     },
+     {
+      "x": 41,
+      "n": 4
+     }
+    ],
+    "leftBlocks": 25,
+    "bodySize": 14,
+    "stage": false,
+    "explains": true,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": null,
+   "consoleErrors": []
+  }
+ ],
+ "findings": [
+  {
+   "level": "FAIL",
+   "id": "eyebrow",
+   "width": 1440,
+   "message": "9 eyebrow/kicker label(s) above headings: \"Selected work\" above \"Projects with their limits visible.\"; \"Career\" above \"Where the work happened, and on what.\"; \"View the full career\" above \"Skills, and what stands behind each one.\"; \"Evolution\" above \"Where this comes from, and where it is g\"; \"Notes\" above \"Recent notes.\"",
+   "fix": "Delete them. If the label carried real information, fold it into the headline or the supporting sentence.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "mono",
+   "width": 1440,
+   "message": "Monospace type outside code: JetBrains Mono — e.g. \"astro\", \"bilingual\", \"evidence-first\", \"accessibility\"",
+   "fix": "Set it in the text face. Monospace is for literal code inside <pre>/<code> only.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "micro-label",
+   "width": 1440,
+   "message": "27 tiny uppercase letter-spaced labels (e.g. \"Verified metrics\", \"Selected work\", \"Related work\", \"Related work\").",
+   "fix": "Use sentence-case text at a readable size, or delete the label.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "emoji",
+   "width": 1440,
+   "message": "Emoji in the page: 🏢 📦 ✓",
+   "fix": "Remove. Use words or real imagery.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "gradient",
+   "width": 1440,
+   "message": "2 gradient fill(s): span.project-card__placeholder → radial-gradient(70% 80% at 20% 10%, rgba(98, 217, 38, 0.22) 0%, rgba(0, 0, 0, 0) 60%), linear-gradient(135deg, | span.project-card__placeholder → radial-gradient(70% 80% at 20% 10%, rgba(217, 38, 190, 0.22) 0%, rgba(0, 0, 0, 0) 60%), linear-gradient(135deg",
+   "fix": "Use a flat colour or a real image. The only gradient allowed by default is a neutral scrim over a photo for legibility.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "hairline",
+   "width": 1440,
+   "message": "16 thin rule(s)/divider line(s): header.site-header 1440px | section.section.section--metrics 1440px | div.project-card__related 324px | div.project-card__related 324px",
+   "fix": "Delete. Separate with space, a tone change, or scale. Lines are only for real tables and form fields.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "outlined-box",
+   "width": 1440,
+   "message": "19 boxes drawn with a 1px outline.",
+   "fix": "Define a surface by its fill (one tone step from the page) or leave the content unboxed.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "palette-cream",
+   "width": 1440,
+   "message": "Yellow-cream background (text #f2efe6).",
+   "fix": "Use the drawn palette. If you want warmth, take a low-chroma stone or bone, not a yellow cream.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "font-fallback",
+   "width": 1440,
+   "message": "Typeface(s) declared but not loaded, so a fallback is rendering: Newsreader",
+   "fix": "Fix the font URL / family name, or the screenshots you are judging are not the design.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "body-size",
+   "width": 1440,
+   "message": "Body text is 14px (the size most of the running text is set in).",
+   "fix": "Body copy 16–20px. Map small sizes from blueprints onto your body step.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "grey-body",
+   "width": 1440,
+   "message": "The running text is a soft grey on its ground (5.7:1).",
+   "fix": "Set body copy in the full ink (7:1 or more). Keep the muted ink for secondary notes; pages read thin and unfinished when everything is grey.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "few-pictures",
+   "width": 1440,
+   "message": "Only 1 picture(s) on the page (1 photographs, footage or raster images, 0 interface fragments). Drawings in SVG do not count.",
+   "fix": "Find real pictures of the subject's world with scripts/assets.mjs (photographs, archival images, maps, engravings, footage), download them to assets/ and give them room: a hero picture, one per section that has a subject, a full-width band. At least four, usually six to twelve."
+  },
+  {
+   "level": "WARN",
+   "id": "no-footage",
+   "width": 1440,
+   "message": "No video anywhere on the page.",
+   "fix": "Look for one honest clip with scripts/assets.mjs --video (the place, the material, the process) and use it as a muted loop with a poster frame. Defend its absence only if no clip fits the subject."
+  },
+  {
+   "level": "WARN",
+   "id": "off-centre",
+   "width": 1440,
+   "message": "The margins differ: 160px on the left, 185px on the right, at 1440px.",
+   "fix": "Put the navigation and the content on one pair of margins; check for padding on one side only, a scrollbar gutter, or a header on another inset than the page.",
+   "alsoAt": [
+    768
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "lopsided",
+   "width": 1440,
+   "message": "2 sections keep all their content on one side and leave 44% of the width empty: \"Where this comes from, and where it is going.\" (right 639px empty); \"What this portfolio will not pretend to know.\" (right 637px empty)",
+   "fix": "Use the whole width the page has set up: put the section's picture, its second column, its list or its figure in the empty half, or set the text larger across the grid. Empty space must be placed, with something on each side of it."
+  },
+  {
+   "level": "WARN",
+   "id": "empty-middle",
+   "width": 1440,
+   "message": "1 section(s) have content at both edges and 9978px of nothing between: \"Start from the evidence.\"",
+   "fix": "Bring the two parts together on the grid, or put the picture or figure of the section in the middle. An empty middle third reads as a hole, the same as an empty half.",
+   "alsoAt": [
+    768
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "hero-void",
+   "width": 1440,
+   "message": "60% of the first screen is one empty block (1440×540px at 0,120).",
+   "fix": "Place the void on purpose or fill it: move the picture, the film or one fact into it, grow the headline to meet it, or shrink the screen to its content. A void reads as placed only when something closes it on the far side and it is the screen's one rest."
+  },
+  {
+   "level": "FAIL",
+   "id": "still-page",
+   "width": 1440,
+   "message": "Only 7 element(s) moved while the page loaded and scrolled.",
+   "fix": "Build the motion layer (SKILL.md step 9, references/motion.md): the signature move, an entrance for the parts of every section, feedback on every control, and one moving picture. Transform and opacity only, with a reduced-motion fallback."
+  },
+  {
+   "level": "FAIL",
+   "id": "empty-screens",
+   "width": 1440,
+   "message": "2 of 12 desktop screens are almost empty ground (under 20% of the screen holds text, a picture or a colour field): screens 1, 5.",
+   "fix": "An empty screen is a rest only once per page. Elsewhere it means the section is underbuilt: set its content larger, give it the full information, put it on a colour field, or cut it."
+  },
+  {
+   "level": "WARN",
+   "id": "edge-text",
+   "width": 390,
+   "message": "1 text block(s) sit 12–15px from the phone's edge: \"The trajectory is inspectable:\" (16px)",
+   "fix": "The page margin is 16–20px on a phone; the header and the corner labels sit on it too."
+  }
+ ],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1440,
+   "fold": "C:\\Users\\CARDONA\\Desktop\\portfolio-work\\professional-evolution-portfolio-wt-redesign\\.taste-skill\\after-hero\\desktop-fold.jpg",
+   "pages": [
+    "C:\\Users\\CARDONA\\Desktop\\portfolio-work\\professional-evolution-portfolio-wt-redesign\\.taste-skill\\after-hero\\desktop-page-01.jpg",
+    "C:\\Users\\CARDONA\\Desktop\\portfolio-work\\professional-evolution-portfolio-wt-redesign\\.taste-skill\\after-hero\\desktop-page-02.jpg",
+    "C:\\Users\\CARDONA\\Desktop\\portfolio-work\\professional-evolution-portfolio-wt-redesign\\.taste-skill\\after-hero\\desktop-page-03.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "tablet",
+   "width": 768,
+   "fold": "C:\\Users\\CARDONA\\Desktop\\portfolio-work\\professional-evolution-portfolio-wt-redesign\\.taste-skill\\after-hero\\tablet-fold.jpg",
+   "pages": [
+    "C:\\Users\\CARDONA\\Desktop\\portfolio-work\\professional-evolution-portfolio-wt-redesign\\.taste-skill\\after-hero\\tablet-page-01.jpg",
+    "C:\\Users\\CARDONA\\Desktop\\portfolio-work\\professional-evolution-portfolio-wt-redesign\\.taste-skill\\after-hero\\tablet-page-02.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "mobile",
+   "width": 390,
+   "fold": "C:\\Users\\CARDONA\\Desktop\\portfolio-work\\professional-evolution-portfolio-wt-redesign\\.taste-skill\\after-hero\\mobile-fold.jpg",
+   "pages": [
+    "C:\\Users\\CARDONA\\Desktop\\portfolio-work\\professional-evolution-portfolio-wt-redesign\\.taste-skill\\after-hero\\mobile-page-01.jpg",
+    "C:\\Users\\CARDONA\\Desktop\\portfolio-work\\professional-evolution-portfolio-wt-redesign\\.taste-skill\\after-hero\\mobile-page-02.jpg"
+   ],
+   "film": []
+  }
+ ]
+}

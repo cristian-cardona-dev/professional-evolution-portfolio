@@ -1,172 +1,202 @@
 ---
 /**
- * Hero — who, what, and how to check it, in the first viewport.
+ * Hero — "Void, then statement on axis" (redesign Task 4).
  *
- * The name is the single `h1` of the page; the headline from `profile.json`
- * is the role line, so the page keeps exactly one top-level heading.
+ * The dealt direction's first screen is made only of words, colour and space:
+ * the upper part of the screen is deliberately empty, and a bottom band
+ * carries three things that share one baseline — the name set at the display
+ * step ("Cristian" / "Cardona", two authored lines) starting on the 42% axis,
+ * the plain-words sentence that says who this is and what they do, and the
+ * single primary action at the right margin. No eyebrow, no badge, no
+ * gradient, no glass, no image: the emptiness is the composition, so nothing
+ * may be added to fill it.
+ *
+ * The name is the page's single `h1` and is derived from `data/profile.json`
+ * (the data file stays the single source), split into the two lines the copy
+ * deck authors. The CTA falls back to a mailto with a written subject until
+ * the Cal.com URL is confirmed (copy deck, for-client-confirmation #1).
+ *
+ * The phone layout is its own composition, not a scaled-down desktop: the
+ * axis collapses to the left margin and the three elements stack, ending
+ * 28px above the bottom edge.
  */
-import type { Copy, Locale } from '../i18n/copy';
+import type { Copy } from '../i18n/copy';
 import { profile } from '../lib/data';
-import { sectionHref } from '../lib/urls';
 
 interface Props {
   copy: Copy;
-  /** Home locale; every CTA targets a section of this language's home. */
-  locale?: Locale;
 }
 
-const { copy, locale = 'en' } = Astro.props;
-const pathname = Astro.url.pathname;
+const { copy } = Astro.props;
 
-const socials = [
-  { href: profile.socials.github, label: copy.hero.github },
-  { href: profile.socials.linkedin, label: copy.hero.linkedin },
-];
+/** Two authored lines from the canonical name; extra words join the last line. */
+const nameWords = profile.name.trim().split(/\s+/);
+const statementLines =
+  nameWords.length > 1
+    ? [nameWords[0], nameWords.slice(1).join(' ')]
+    : [profile.name];
+
+/** Cal.com URL pending; the copy deck's fallback is a mailto with a subject. */
+const ctaHref = `mailto:${profile.email}?subject=${encodeURIComponent(
+  copy.hero.ctaSubject,
+)}`;
 ---
 
 <section class="hero" aria-labelledby="hero-heading">
-  <div class="shell hero__inner">
-    <p class="eyebrow reveal" style="--reveal-index: 0">{copy.hero.eyebrow}</p>
-
-    <h1 class="hero__name reveal" id="hero-heading" style="--reveal-index: 1">{profile.name}</h1>
-
-    <p class="hero__headline reveal" style="--reveal-index: 2">{profile.headline}</p>
-
-    <p class="lead hero__one-liner reveal" style="--reveal-index: 3">{copy.hero.oneLiner}</p>
-
-    <p class="hero__principle reveal" style="--reveal-index: 4">{copy.hero.principle}</p>
-
-    <div class="hero__actions reveal" style="--reveal-index: 5">
-      <a class="button button--primary" href={sectionHref(locale, 'projects', pathname)}>
-        {copy.hero.ctaWork}
-      </a>
-      <a class="button button--ghost" href={sectionHref(locale, 'evidence', pathname)}>
-        {copy.hero.ctaEvidence}
-      </a>
-    </div>
-
-    <ul class="hero__socials reveal" style="--reveal-index: 6">
+  <div class="shell hero__frame">
+    <h1 class="hero__statement" id="hero-heading">
       {
-        socials.map((social) => (
-          <li>
-            <a class="hero__social" href={social.href} target="_blank" rel="noopener noreferrer">
-              {social.label}
-              <svg
-                class="hero__social-icon"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path
-                  d="M14 4h6v6M20 4l-8.5 8.5M18 14v4.5A1.5 1.5 0 0 1 16.5 20h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"></path>
-              </svg>
-              <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
-            </a>
-          </li>
+        statementLines.map((line, index) => (
+          <span class="hero__mask">
+            <span class={`hero__line${index === 1 ? ' hero__line--2' : ''}`} style={`--i: ${index}`}>
+              {line}
+            </span>
+          </span>
         ))
       }
-    </ul>
+    </h1>
+
+    <p class="hero__sentence reveal" style="--reveal-index: 1">{copy.hero.sentence}</p>
+
+    <a class="button button--primary hero__cta reveal" style="--reveal-index: 1" href={ctaHref}>
+      {copy.hero.cta}
+    </a>
   </div>
 </section>
 
 <style>
+  /* The ground is one flat tone — the page's own. The section is exactly the
+     first screen below the sticky header, and its content is pushed to the
+     bottom so the space above the band reads as a placed void, the
+     direction's composition, rather than as absence. */
   .hero {
-    padding-block: var(--space-16) var(--space-24);
-    /* A single restrained accent glow keeps the dark-first depth without
-       decoration competing with the content. */
-    background-image: radial-gradient(
-      60% 55% at 50% 0%,
-      color-mix(in srgb, var(--color-accent) 12%, transparent) 0%,
-      transparent 70%
-    );
+    display: grid;
+    align-content: end;
+    min-height: calc(100vh - var(--header-height));
+    min-height: calc(100svh - var(--header-height));
+    /* The band ends 28px above the bottom edge on a phone, 72px from 900px
+       up — the hero blueprint's numbers. */
+    padding-block-end: 28px;
   }
 
-  .hero__inner {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-6);
+  /* --- The statement -------------------------------------------------------
+   * Phone size first: 12.5vw per the blueprint (48.75px at 390px), capped at
+   * the display step's ceiling so it never outgrows the desktop size. The
+   * two lines are authored (one word each), so they cannot wrap.
+   * --------------------------------------------------------------------- */
+  .hero__statement {
+    font-size: clamp(40px, 12.5vw, 80px);
+    line-height: 0.95;
+    /* Display tracking and weight come from the global h1 rule (Newsreader
+       300, -0.05em); only the tighter leading is the hero's own. */
   }
 
-  .hero__name {
-    margin-top: var(--space-2);
+  /* The mask pair is the motion recipe's descender guard: the padding keeps
+     the overflow:hidden box from shaving anything, the negative margin keeps
+     the visual leading at 0.95. */
+  .hero__mask {
+    display: block;
+    overflow: hidden;
+    padding-block-end: 0.08em;
+    margin-block-end: -0.08em;
   }
 
-  .hero__headline {
-    max-width: 34ch;
-    color: var(--color-accent);
-    font-size: clamp(var(--text-md), 5vw, var(--text-lg));
-    line-height: var(--leading-lg);
-    font-weight: 700;
-    letter-spacing: var(--tracking-tight);
+  .hero__line {
+    display: block;
   }
 
-  .hero__one-liner {
-    max-width: 52ch;
+  /* --- The sentence and the action -----------------------------------------
+   * The sentence is body copy in the full ink (never a grey note at reading
+   * size), capped at the blueprint's 32ch measure. It and the action use the
+   * site's shared reveal (BaseLayout observer), one step after the headline
+   * starts, so they are shown with the name rather than held back for it.
+   * --------------------------------------------------------------------- */
+  .hero__sentence {
+    margin-block-start: 32px;
+    max-width: 32ch;
+    /* 18px at every width: reading-size body copy (the parent spec's 18–20px
+       range), and the size at which the first screen's plain-words line
+       counts as explaining the bare-name h1. */
+    font-size: var(--text-md);
+    line-height: var(--leading-md);
+    color: var(--color-text);
   }
 
-  .hero__principle {
-    max-width: 58ch;
-    padding-left: var(--space-4);
-    border-left: 2px solid var(--color-accent);
-    color: var(--color-text-muted);
-    font-size: var(--text-sm);
-    line-height: var(--leading-sm);
+  .hero__cta {
+    margin-block-start: 32px;
+    /* The one primary action on the page is set at the text step, not the
+       small control step, so it reads as the action and not a widget. */
+    font-size: var(--text-md);
   }
 
-  .hero__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-    margin-top: var(--space-2);
-  }
-
-  .hero__socials {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    margin: var(--space-2) 0 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .hero__social {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    min-height: 44px;
-    padding: var(--space-2) var(--space-4);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-full);
-    color: var(--color-text-muted);
-    font-size: var(--text-sm);
-    text-decoration: none;
-    transition:
-      color var(--duration-fast) var(--ease-standard),
-      border-color var(--duration-fast) var(--ease-standard),
-      background-color var(--duration-fast) var(--ease-standard);
-  }
-
-  .hero__social:hover {
-    color: var(--color-accent);
-    border-color: var(--color-accent);
-    background-color: var(--color-surface-raised);
-  }
-
-  .hero__social-icon {
-    width: 14px;
-    height: 14px;
-    flex: none;
-  }
-
-  @media (min-width: 768px) {
+  /* --- Desktop: the axis composition ---------------------------------------
+   * From 900px the frame becomes the blueprint's bottom band on one shared
+   * baseline: the sentence in the left zone, the statement starting exactly
+   * on the 42% axis of the frame, the action at the right margin. The named
+   * areas keep all three in a single row (auto-placement would otherwise
+   * deal the source-order h1 its own row above the sentence).
+   * --------------------------------------------------------------------- */
+  @media (min-width: 900px) {
     .hero {
-      padding-block: var(--space-24) var(--space-32);
+      padding-block-end: 72px;
+    }
+
+    .hero__frame {
+      --hero-gap: clamp(24px, 3vw, 48px);
+      display: grid;
+      /* The first track gives back the gap that follows it, so the second
+         column — the statement — starts on the 42% line itself. */
+      grid-template-columns: minmax(0, calc(42% - var(--hero-gap))) minmax(0, 1fr) auto;
+      grid-template-areas: 'sentence statement cta';
+      column-gap: var(--hero-gap);
+      align-items: end;
+    }
+
+    .hero__statement {
+      /* The site's one display step (tokens: clamp(32px, 6vw, 80px)) — the
+         blueprint's size mapped onto the committed five-size scale. */
+      font-size: clamp(var(--text-lg), 6vw, 80px);
+      grid-area: statement;
+    }
+
+    .hero__sentence {
+      grid-area: sentence;
+      margin-block-start: 0;
+    }
+
+    .hero__cta {
+      grid-area: cta;
+      margin-block-start: 0;
+    }
+  }
+
+  /* --- Motion: the masked headline -----------------------------------------
+   * The direction's signature move (its recipe, verbatim in structure): each
+   * line of the name rises from behind its own baseline, ~900ms with a
+   * strong ease-out, the second line 110ms after the first. The move lives
+   * behind `html.js` (set pre-paint by BaseLayout) and
+   * prefers-reduced-motion, so a no-JS visit, a printed page and reduced
+   * motion all render the final state — nothing is ever hidden to wait for
+   * a script.
+   * --------------------------------------------------------------------- */
+  @media (prefers-reduced-motion: no-preference) {
+    html.js .hero__line {
+      transform: translateY(105%);
+      animation: hero-line-up var(--duration-hero) var(--ease-out) forwards;
+      animation-delay: calc(var(--i) * 110ms + 150ms);
+    }
+  }
+
+  @keyframes hero-line-up {
+    to {
+      transform: none;
+    }
+  }
+
+  @media print {
+    html.js .hero__line {
+      animation: none;
+      transform: none;
     }
   }
 </style>
