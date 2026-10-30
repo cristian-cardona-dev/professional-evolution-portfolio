@@ -1070,7 +1070,7 @@ export const en: Copy = {
     },
     pageHeading: 'The evolution',
     intro:
-      'Each milestone below is dated and linked to its evidence: a commit, a repository, a public record. Nothing is dated that did not happen.',
+      'Each milestone is dated and nothing is dated that did not happen. The timeline below shows the progression through three phases: Foundation, Transition, and Direction ahead.',
     phaseRange: {
       foundation: '2017 to 2021',
       transition: '2021 to 2026',
@@ -1116,7 +1116,7 @@ export const en: Copy = {
     resume: 'Download the résumé (HTML)',
     resumePdf: 'Download the resume (PDF)',
     guestbookCta: 'Sign the guestbook',
-    pageHeading: 'Seven years, five companies',
+    pageHeading: 'Nine years, five companies',
     statement: [
       { text: 'My first production system shipped in ', mark: false },
       { text: '2017', mark: true },
@@ -1668,7 +1668,7 @@ export const es: Copy = {
     },
     pageHeading: 'La evolución',
     intro:
-      'Cada hito de abajo está fechado y enlazado a su evidencia: un commit, un repositorio, un registro público. Nada está fechado que no haya ocurrido.',
+      'Cada hito está fechado, y nada está fechado que no haya ocurrido. La línea de tiempo muestra la progresión a través de tres fases: Fundación, Transición y Dirección por delante.',
     phaseRange: {
       foundation: '2017 a 2021',
       transition: '2021 a 2026',
@@ -1714,7 +1714,7 @@ export const es: Copy = {
     resume: 'Descargar el currículum (HTML)',
     resumePdf: 'Descargar el currículum (PDF)',
     guestbookCta: 'Firma el libro de visitas',
-    pageHeading: 'Siete años, cinco empresas',
+    pageHeading: 'Nueve años, cinco empresas',
     statement: [
       { text: 'Mi primer sistema en producción se desplegó en ', mark: false },
       { text: '2017', mark: true },
