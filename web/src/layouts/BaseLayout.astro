@@ -152,6 +152,19 @@ const ogImageAlt = ogImagePath ? (title ?? copy.meta.title) : copy.meta.title;
     <meta name="twitter:title" content={documentTitle} />
     <meta name="twitter:description" content={metaDescription} />
     {
+      /* Google Fonts: Newsreader (display + text) + JetBrains Mono (code).
+         `font-display: swap` avoids invisible text while fonts load. Preconnect
+         removes the DNS+TLS handshake from the critical path. */
+      <>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@8..144,300;8..144,400;8..144,600&family=JetBrains+Mono:wght@400;600&display=swap"
+        />
+      </>
+    }
+    {
       ogImage && (
         <>
           <meta property="og:image" content={ogImage.href} />

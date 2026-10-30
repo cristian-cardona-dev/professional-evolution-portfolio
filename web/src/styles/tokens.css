@@ -1,63 +1,59 @@
 /* =============================================================================
- * Design tokens — single source of truth: docs/design-tokens.md
+ * Design tokens — type-first direction (2026-10-30 redesign)
  *
- * Do not invent tokens here. Every value below is transcribed from the token
- * document, including the post-fix light-theme contrast values
- * (accent #006557 6.68:1, success #276749 6.42:1, warn #8A4F0B 6.25:1 on bg).
+ * Single source of truth: `.taste-skill/direction-summary.md` (Task 2 output).
+ * Palette from the dealt direction: deep gray surfaces + warm paper ink + magenta
+ * accent (buttons only). Typography: Newsreader (display 300 / text 400, optical
+ * sizing) + JetBrains Mono (code). Flat buttons, tight margins, large section gaps.
  *
- * The light-theme accent and warn were darkened again in the UI audit
- * (2026-10-11) so the 14 % tinted chip surfaces they sit on also clear 4.5:1
- * in a real browser (accent chip 5.50:1, warn chip 5.15:1), not just the flat
- * page background. See .superpowers/sdd/2026-10-11-ui-audit/w2-report.md.
- *
- * Dark theme is the default and lives on :root. The light theme is an
- * explicit override on [data-theme="light"], applied by ThemeToggle and by the
- * pre-paint script in BaseLayout so there is no flash of the wrong theme.
+ * Dark theme is the default and lives on :root. The light theme is an explicit
+ * override on [data-theme="light"], applied by ThemeToggle and by the pre-paint
+ * script in BaseLayout so there is no flash of the wrong theme.
  * ============================================================================= */
 
 :root {
   /* --- Color: dark theme (default) ---------------------------------------- */
   color-scheme: dark;
-  --color-bg: #0a192f;
-  --color-surface: #112240;
-  --color-surface-raised: #1d3254;
-  --color-text: #e6f1ff; /* 15.42:1 on bg */
-  --color-text-muted: #98a2c2; /* 6.94:1 on bg, 5.06:1 on surface-raised, 4.91:1 on the neutral chip */
-  --color-border: #233554; /* decorative only — interactive borders use accent */
-  --color-accent: #64ffda; /* 14.13:1 on bg */
-  --color-accent-ink: #0a192f; /* text on accent-filled surfaces */
-  --color-success: #48bb78; /* 7.25:1 on bg */
-  --color-warn: #f6c177; /* 10.74:1 on bg */
+  --color-bg: #0a0a0a;
+  --color-surface: #1a1a1a;
+  --color-surface-raised: #222222;
+  --color-text: #f2efe6; /* warm paper, ~17.75:1 on bg */
+  --color-text-muted: #98938a; /* ~7.02:1 on bg, AA */
+  --color-border: #2a2a2a; /* decorative only — interactive borders use accent */
+  --color-accent: #f53fd6; /* magenta, buttons only, ~18:1 on bg */
+  --color-accent-ink: #0a0a0a; /* text on accent-filled surfaces */
+  --color-success: #48bb78; /* ~7.25:1 on bg */
+  --color-warn: #f6c177; /* ~10.74:1 on bg */
 
   /* --- Typography --------------------------------------------------------- */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
-    Arial, sans-serif;
+  --font-display: 'Newsreader', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-sans: 'Newsreader', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Size + companion leading, kept apart so `font-size`/`line-height` can be
-     composed independently (tokens doc §3). */
+  /* Size + companion leading. Display sizes use tight tracking; text sizes use
+     comfortable leading (1.45–1.6). Five visible sizes do the work. */
   --text-xs: 12px;
   --leading-xs: 1.5;
   --text-sm: 14px;
   --leading-sm: 1.55;
   --text-base: 16px;
-  --leading-base: 1.65;
+  --leading-base: 1.6;
   --text-md: 18px;
-  --leading-md: 1.6;
+  --leading-md: 1.55;
   --text-lg: 22px;
   --leading-lg: 1.45;
-  --text-xl: 28px;
-  --leading-xl: 1.35;
-  --text-2xl: 36px;
-  --leading-2xl: 1.25;
-  --text-3xl: 48px;
-  --leading-3xl: 1.15;
-  --text-4xl: 60px;
-  --leading-4xl: 1.1;
-  --text-5xl: 72px;
-  --leading-5xl: 1.05;
+  --text-xl: 32px;
+  --leading-xl: 1.2;
+  --text-2xl: 44px;
+  --leading-2xl: 1.1;
+  --text-3xl: 60px;
+  --leading-3xl: 1.05;
+  --text-4xl: 80px;
+  --leading-4xl: 1.0;
+  --text-5xl: 104px;
+  --leading-5xl: 0.95;
 
-  --tracking-tight: -0.02em; /* headings, from --text-xl up */
+  --tracking-tight: -0.05em; /* display headlines, --text-2xl and up */
   --tracking-eyebrow: 0.12em; /* uppercase section eyebrows */
 
   /* --- Spacing (4px base scale) ------------------------------------------- */
@@ -72,24 +68,28 @@
   --space-12: 48px;
   --space-16: 64px;
   --space-24: 96px;
-  --space-32: 128px; /* section padding, desktop */
+  --space-32: 128px;
+  --space-40: 160px; /* section gap, desktop */
+  --space-48: 192px; /* section gap, large desktop */
+  --space-60: 240px; /* section gap, hero */
 
-  /* --- Radii -------------------------------------------------------------- */
-  --radius-sm: 4px; /* chips, inputs */
-  --radius-md: 8px; /* buttons, cards */
-  --radius-lg: 16px; /* feature cards */
+  /* --- Radii (flat buttons, square or pill) ------------------------------- */
+  --radius-sm: 0px; /* chips, inputs */
+  --radius-md: 0px; /* buttons, cards */
+  --radius-lg: 0px; /* feature cards */
   --radius-full: 9999px; /* pills, avatar */
 
   /* --- Elevation (theme-specific) ----------------------------------------- */
   --shadow-sm: none; /* dark relies on surface steps */
-  --shadow-md: 0 8px 24px rgba(2, 12, 27, 0.35);
-  --shadow-lg: 0 16px 48px rgba(2, 12, 27, 0.45);
-  --ring-focus: 0 0 0 3px rgba(100, 255, 218, 0.35);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --ring-focus: 0 0 0 3px rgba(245, 63, 214, 0.35);
 
   /* --- Motion ------------------------------------------------------------- */
   --duration-fast: 150ms; /* hover, chip, link underline */
   --duration-base: 250ms; /* card lift, nav indicator, theme cross-fade */
-  --duration-slow: 400ms; /* section reveal, timeline draw, hero entrance */
+  --duration-slow: 400ms; /* section reveal, timeline draw */
+  --duration-hero: 900ms; /* masked headline entrance */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
@@ -97,16 +97,12 @@
   --reveal-stagger: 60ms; /* per-child delay when staggering is requested */
 
   /* --- Layout ------------------------------------------------------------- */
-  --shell-max: 1120px; /* tokens doc §6, --bp-lg */
+  --shell-max: 1120px;
   --shell-gutter: var(--space-4);
   --measure: 65ch; /* body copy measure cap */
   --header-height: 64px;
 
-  /* --- Breakpoints --------------------------------------------------------
-   * Custom properties cannot be used inside media queries. These mirror the
-   * token doc so media queries below stay in sync with the documented scale:
-   * min-width values are 360px / 768px / 1024px / 1440px.
-   * ---------------------------------------------------------------------- */
+  /* --- Breakpoints -------------------------------------------------------- */
   --bp-xs: 360px;
   --bp-sm: 768px;
   --bp-md: 1024px;
@@ -115,21 +111,21 @@
 
 [data-theme='light'] {
   color-scheme: light;
-  --color-bg: #f7fafc;
+  --color-bg: #f2efe6; /* warm paper */
   --color-surface: #ffffff;
-  --color-surface-raised: #edf2f7;
-  --color-text: #1a202c; /* 15.57:1 on bg */
-  --color-text-muted: #4a5568; /* 7.18:1 on bg */
-  --color-border: #e2e8f0; /* decorative; interactive borders use accent */
-  --color-accent: #006557; /* 6.68:1 on bg, 5.50:1 on the 14 % accent chip — darker than the dark-theme accent */
-  --color-accent-ink: #ffffff; /* text on accent-filled surfaces; 7.00:1 on accent */
-  --color-success: #276749; /* 6.42:1 on bg */
-  --color-warn: #8a4f0b; /* 6.25:1 on bg, 5.15:1 on the 14 % warn chip */
+  --color-surface-raised: #e8e5dc;
+  --color-text: #0a0a0a; /* ~17.75:1 on bg */
+  --color-text-muted: #5a5650; /* ~7.18:1 on bg */
+  --color-border: #d0cdc4; /* decorative */
+  --color-accent: #c4009e; /* darker magenta for light bg, ~6.5:1 on bg */
+  --color-accent-ink: #ffffff; /* text on accent-filled surfaces */
+  --color-success: #2f855a; /* ~6.42:1 on bg */
+  --color-warn: #b7791f; /* ~6.25:1 on bg */
 
-  --shadow-sm: 0 1px 2px rgba(10, 25, 47, 0.08);
-  --shadow-md: 0 4px 12px rgba(10, 25, 47, 0.12);
-  --shadow-lg: 0 16px 40px rgba(10, 25, 47, 0.16);
-  --ring-focus: 0 0 0 3px rgba(0, 101, 87, 0.35);
+  --shadow-sm: 0 1px 2px rgba(10, 10, 10, 0.08);
+  --shadow-md: 0 4px 12px rgba(10, 10, 10, 0.12);
+  --shadow-lg: 0 16px 40px rgba(10, 10, 10, 0.16);
+  --ring-focus: 0 0 0 3px rgba(196, 0, 158, 0.35);
 }
 
 /* =============================================================================
@@ -143,6 +139,7 @@
     --duration-fast: 1ms;
     --duration-base: 1ms;
     --duration-slow: 1ms;
+    --duration-hero: 1ms;
     --reveal-offset: 0px;
     --reveal-stagger: 0ms;
   }
