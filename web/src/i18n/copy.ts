@@ -286,6 +286,33 @@ export interface Copy {
       /** CTA from the home page to the roadmap section of `/evolution/`. */
       viewAll: string;
     };
+    /**
+     * Evolution page h1 on `/evolution/`. Different from `heading` (which is
+     * the home-page section heading); this is the editorial statement heading.
+     */
+    pageHeading: string;
+    /**
+     * Intro paragraph on the evolution page explaining the dated-milestone
+     * contract: every milestone links to its evidence and nothing is dated
+     * that did not happen.
+     */
+    intro: string;
+    /**
+     * Date range label per phase on the evolution page slip, keyed by phase.
+     * Distinct from `phaseLabel` (which names the phase); these say when the
+     * phase ran.
+     */
+    phaseRange: Record<'foundation' | 'transition' | 'frontier', string>;
+    /**
+     * Milestone items per phase on the evolution page slip. Each entry carries
+     * the editorial label and the date (or "planned") shown on the row.
+     */
+    phaseItems: Record<'foundation' | 'transition' | 'frontier', Array<{ label: string; date: string }>>;
+    /**
+     * Closing inverted row on the evolution slip — the "Today:" statement
+     * declaring the current direction and that evidence is public.
+     */
+    finalText: string;
   };
   /**
    * Career history (`data/experience.json`): the employer line rendered by
@@ -346,6 +373,22 @@ export interface Copy {
      * reader who just assessed the career record can leave a note back.
      */
     guestbookCta: string;
+    /**
+     * Page-level h1 on `/career/`. Different from `heading` (which is the
+     * home-page section heading); this is the editorial statement heading.
+     */
+    pageHeading: string;
+    /**
+     * The editorial statement rendered on `/career/`. Each segment is either
+     * plain text or wrapped in a `<mark>` element, so the highlighted facts
+     * are part of the copy contract and localise with the locale.
+     */
+    statement: Array<{ text: string; mark: boolean }>;
+    /**
+     * CTA sentence inside the statement block inviting the reader to start a
+     * conversation about the named practice areas.
+     */
+    cta: string;
   };
   /**
    * Skill matrix (`data/skills.json`), rendered by
@@ -402,6 +445,11 @@ export interface Copy {
     viewAll: string;
     statusLabel: Record<ClaimStatus, string>;
     statusHint: Record<ClaimStatus, string>;
+    /**
+     * Evidence page heading — "Checked against" (2-3 words). The page renders
+     * a sentence of evidence names from the dataset, each with a status badge.
+     */
+    pageHeading: string;
   };
   /** Build-time GitHub activity feed (`components/ActivityFeed.astro`). */
   activity: {
@@ -1020,6 +1068,33 @@ export const en: Copy = {
       noProofs: 'Proof: planned — none published',
       viewAll: 'View the roadmap',
     },
+    pageHeading: 'The evolution',
+    intro:
+      'Each milestone below is dated and linked to its evidence: a commit, a repository, a public record. Nothing is dated that did not happen.',
+    phaseRange: {
+      foundation: '2017 to 2021',
+      transition: '2021 to 2026',
+      frontier: 'recorded, no delivery dates',
+    },
+    phaseItems: {
+      foundation: [
+        { label: 'Full-stack shipping at SINCOSOFT, ITEHL, BITS Americas', date: '2017' },
+        { label: 'Azure, .NET, Java, Angular, SQL in production', date: '2021' },
+      ],
+      transition: [
+        { label: 'Siigo: .NET, Angular, Azure, SQL', date: '2021' },
+        { label: 'Talan: Azure, Java, React, Terraform, Node, Azure AI', date: '2023' },
+        { label: 'Evidence-first portfolio published', date: '2026-10-03' },
+        { label: 'Bilingual EN/ES release, accessibility parity', date: '2026-10-08' },
+        { label: 'Astro rebuild merged, dual-host release', date: '2026-10-09' },
+      ],
+      frontier: [
+        { label: 'AI engineering evidence build-out', date: 'planned' },
+        { label: 'Agentic workflow lab, replay and adversarial iterations', date: 'planned' },
+      ],
+    },
+    finalText:
+      'Today: AI engineering, automation and agentic systems — direction recorded, evidence public, in progress.',
   },
   career: {
     eyebrow: 'Career',
@@ -1041,6 +1116,23 @@ export const en: Copy = {
     resume: 'Download the résumé (HTML)',
     resumePdf: 'Download the resume (PDF)',
     guestbookCta: 'Sign the guestbook',
+    pageHeading: 'Seven years, five companies',
+    statement: [
+      { text: 'My first production system shipped in ', mark: false },
+      { text: '2017', mark: true },
+      { text: '. Since then I have built full-stack software for ', mark: false },
+      { text: 'five companies', mark: true },
+      { text: ' — SINCOSOFT, ITEHL, BITS Americas, Siigo and Talan — almost all of it running on ', mark: false },
+      { text: 'Azure', mark: true },
+      { text: ', from Angular frontends through .NET and Java services to databases and Terraform-managed infrastructure. At ', mark: false },
+      { text: 'Talan', mark: true },
+      { text: ', where I work today, the stack broadened to React, Node, PostgreSQL and ', mark: false },
+      { text: 'Azure AI', mark: true },
+      { text: '. That arc is the point: years of shipping production systems are the foundation the new work stands on. Since ', mark: false },
+      { text: 'October 2026', mark: true },
+      { text: ' I have been building public AI engineering evidence — a reliability lab that fails closed, an approval-gated automation workflow with audit trails, and this portfolio, which separates shipped work from planned work and points every claim at something you can inspect.', mark: false },
+    ],
+    cta: 'Talk to me about AI engineering, automation and cloud work.',
   },
   skills: {
     heading: 'Skills, and what stands behind each one.',
@@ -1094,6 +1186,7 @@ export const en: Copy = {
       aspirational: 'Stated direction or intent. Not started, or started but not verifiable.',
       insufficient: 'No public artifact exists today that could support the claim.',
     },
+    pageHeading: 'Checked against',
   },
   activity: {
     eyebrow: 'Open source',
@@ -1573,6 +1666,33 @@ export const es: Copy = {
       noProofs: 'Prueba: prevista — nada publicado todavía',
       viewAll: 'Ver la hoja de ruta',
     },
+    pageHeading: 'La evolución',
+    intro:
+      'Cada hito de abajo está fechado y enlazado a su evidencia: un commit, un repositorio, un registro público. Nada está fechado que no haya ocurrido.',
+    phaseRange: {
+      foundation: '2017 a 2021',
+      transition: '2021 a 2026',
+      frontier: 'registrada, sin fechas de entrega',
+    },
+    phaseItems: {
+      foundation: [
+        { label: 'Desarrollo full-stack en SINCOSOFT, ITEHL, BITS Americas', date: '2017' },
+        { label: 'Azure, .NET, Java, Angular, SQL en producción', date: '2021' },
+      ],
+      transition: [
+        { label: 'Siigo: .NET, Angular, Azure, SQL', date: '2021' },
+        { label: 'Talan: Azure, Java, React, Terraform, Node, Azure AI', date: '2023' },
+        { label: 'Portafolio basado en evidencia publicado', date: '2026-10-03' },
+        { label: 'Versión bilingüe EN/ES, paridad de accesibilidad', date: '2026-10-08' },
+        { label: 'Reconstrucción en Astro, lanzamiento en ambos hosts', date: '2026-10-09' },
+      ],
+      frontier: [
+        { label: 'Construcción de evidencia de ingeniería de IA', date: 'planificado' },
+        { label: 'Laboratorio de flujos agénticos, replay e iteraciones adversariales', date: 'planificado' },
+      ],
+    },
+    finalText:
+      'Hoy: ingeniería de IA, automatización y sistemas agénticos — dirección registrada, evidencia pública, en progreso.',
   },
   career: {
     eyebrow: 'Trayectoria',
@@ -1594,6 +1714,23 @@ export const es: Copy = {
     resume: 'Descargar el currículum (HTML)',
     resumePdf: 'Descargar el currículum (PDF)',
     guestbookCta: 'Firma el libro de visitas',
+    pageHeading: 'Siete años, cinco empresas',
+    statement: [
+      { text: 'Mi primer sistema en producción se desplegó en ', mark: false },
+      { text: '2017', mark: true },
+      { text: '. Desde entonces he construido software full-stack para ', mark: false },
+      { text: 'cinco empresas', mark: true },
+      { text: ' — SINCOSOFT, ITEHL, BITS Americas, Siigo y Talan — casi todo ejecutándose en ', mark: false },
+      { text: 'Azure', mark: true },
+      { text: ', desde frontends en Angular pasando por servicios en .NET y Java hasta bases de datos e infraestructura gestionada con Terraform. En ', mark: false },
+      { text: 'Talan', mark: true },
+      { text: ', donde trabajo hoy, el stack se amplió a React, Node, PostgreSQL y ', mark: false },
+      { text: 'Azure AI', mark: true },
+      { text: '. Ese arco es el punto: años entregando sistemas en producción son la base sobre la que se sostiene el trabajo nuevo. Desde ', mark: false },
+      { text: 'octubre de 2026', mark: true },
+      { text: ' he estado construyendo evidencia pública de ingeniería de IA — un laboratorio de fiabilidad que falla en cerrado, un flujo de automatización con puertas de aprobación y trazas de auditoría, y este portafolio, que separa el trabajo entregado del planificado y apunta cada afirmación a algo que puedes inspeccionar.', mark: false },
+    ],
+    cta: 'Hablemos de ingeniería de IA, automatización y trabajo en la nube.',
   },
   skills: {
     heading: 'Habilidades, y qué respalda cada una.',
@@ -1649,6 +1786,7 @@ export const es: Copy = {
       aspirational: 'Dirección o intención declarada. No iniciado, o iniciado pero no verificable.',
       insufficient: 'Hoy no existe ningún artefacto público que pueda respaldar la afirmación.',
     },
+    pageHeading: 'Comprobado con',
   },
   activity: {
     eyebrow: 'Código abierto',

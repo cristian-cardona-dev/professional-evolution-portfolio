@@ -4,16 +4,17 @@
  *
  * The evidence page is a single run-on sentence listing all evidence names.
  * Each name is highlighted in sequence, cycling every 2s. The sentence ends
- * with a full stop.
+ * with a full stop. Each evidence item is followed by an EvidenceBadge showing
+ * its status (demonstrated, developing, etc.).
  *
  * The heading is "Checked against" (2-3 words). The sentence is statement size
  * (≤36px), three lines desktop. 120px above and below. No logos, no columns.
  *
- * Every name is a real artefact from the evidence dataset. The phone version
- * cuts to the 12 strongest names.
+ * Every name is a real artefact from the evidence dataset (data/evidence.json).
  */
-import type { Copy, Locale } from '../i18n/copy';
+import type { Copy, Locale, ClaimStatus } from '../i18n/copy';
 import { evidence } from '../lib/data';
+import EvidenceBadge from '../components/EvidenceBadge.astro';
 
 interface Props {
   locale: Locale;
@@ -23,36 +24,31 @@ interface Props {
 const { locale, copy } = Astro.props;
 
 /**
- * Evidence names from the copy-deck. These are hardcoded editorial content.
- * Every name is a real artefact from the evidence dataset.
+ * Evidence items from the dataset. Each has a label, URL, and status.
+ * The status determines the EvidenceBadge variant (demonstrated, developing, etc.).
  */
-const evidenceNames = [
-  'the AI reliability lab repository',
-  'the cloud dashboard repository',
-  'the automation workflow lab repository',
-  "this portfolio's public build",
-  'the public snapshot contract',
-  'three case studies with explicit boundaries',
-  'evidence records ev-ai-reliability-lab-repository',
-  'ev-cloud-dashboard-repository',
-  'ev-ai-automation-workflow-repository',
-  'the commit history of every milestone',
-  'the LinkedIn profile',
-  'the GitHub activity snapshot',
-];
+const evidenceItems = evidence.items.map((item) => ({
+  label: item.label,
+  url: item.url,
+  status: item.status as ClaimStatus,
+}));
 ---
 
 <section class="evidence-page" id="evidence" aria-labelledby="evidence-heading">
   <div class="shell">
-    <h1 id="evidence-heading" class="evidence-page__heading">Checked against</h1>
+    <h1 id="evidence-heading" class="evidence-page__heading">{copy.evidence.pageHeading}</h1>
 
     <p class="evidence-page__sentence">
-      {evidenceNames.map((name, index) => (
+      {evidenceItems.map((item, index) => (
         <span
-          class="evidence-page__name"
-          style={`--index: ${index}; --total: ${evidenceNames.length}`}
+          class="evidence-page__item"
+          style={`--index: ${index}; --total: ${evidenceItems.length}`}
         >
-          {name}{index < evidenceNames.length - 1 ? ', ' : '.'}
+          <a href={item.url} class="evidence-page__name" target="_blank" rel="noopener noreferrer">
+            {item.label}
+          </a>
+          <EvidenceBadge status={item.status} copy={copy} />
+          {index < evidenceItems.length - 1 ? ', ' : '.'}
         </span>
       ))}
     </p>
@@ -73,17 +69,36 @@ const evidenceNames = [
   }
 
   .evidence-page__sentence {
-    font-size: clamp(24px, 3.6vw, 36px);
-    line-height: 1.3;
-    max-width: 68ch;
+    font-size: clamp(20px, 3vw, 28px);
+    line-height: 1.5;
+    max-width: 80ch;
     margin: 0;
   }
 
-  .evidence-page__name {
+  .evidence-page__item {
+    display: inline;
     color: var(--color-text-muted);
     transition: color 0.3s ease;
     animation: highlight-cycle calc(var(--total) * 2s) infinite;
     animation-delay: calc(var(--index) * 2s);
+  }
+
+  .evidence-page__name {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--color-border);
+    text-underline-offset: 0.2em;
+    transition: text-decoration-color 0.2s ease;
+  }
+
+  .evidence-page__name:hover {
+    text-decoration-color: var(--color-text);
+  }
+
+  .evidence-page__item :global(.evidence-badge) {
+    font-size: 0.75em;
+    vertical-align: baseline;
+    margin-inline: 0.3em 0.5em;
   }
 
   @keyframes highlight-cycle {
@@ -96,20 +111,25 @@ const evidenceNames = [
     }
   }
 
-  /* Phone: reduce font size */
+  /* Phone: reduce font size and spacing */
   @media (max-width: 767px) {
     .evidence-page {
       padding-block: 80px 80px;
     }
 
     .evidence-page__sentence {
-      font-size: clamp(20px, 5vw, 28px);
+      font-size: clamp(16px, 4vw, 22px);
+    }
+
+    .evidence-page__item :global(.evidence-badge) {
+      font-size: 0.7em;
+      margin-inline: 0.2em 0.4em;
     }
   }
 
   /* Respect reduced motion */
   @media (prefers-reduced-motion: reduce) {
-    .evidence-page__name {
+    .evidence-page__item {
       animation: none;
       color: var(--color-text);
     }

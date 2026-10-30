@@ -54,17 +54,19 @@ const availabilityText = availability ? availabilityLabels[availability.status] 
   <div class="shell">
     <header class="career-page__header reveal">
       <h1 id="career-heading" class="career-page__heading">
-        Seven years, five companies
+        {copy.career.pageHeading}
       </h1>
     </header>
 
     <div class="career-page__statement reveal">
       <p class="career-page__prose">
-        My first production system shipped in <mark>2017</mark>. Since then I have built full-stack software for <mark>five companies</mark> — SINCOSOFT, ITEHL, BITS Americas, Siigo and Talan — almost all of it running on <mark>Azure</mark>, from Angular frontends through .NET and Java services to databases and Terraform-managed infrastructure. At <mark>Talan</mark>, where I work today, the stack broadened to React, Node, PostgreSQL and <mark>Azure AI</mark>. That arc is the point: years of shipping production systems are the foundation the new work stands on. Since <mark>October 2026</mark> I have been building public AI engineering evidence — a reliability lab that fails closed, an approval-gated automation workflow with audit trails, and this portfolio, which separates shipped work from planned work and points every claim at something you can inspect.
+        {copy.career.statement.map((segment) =>
+          segment.mark ? <mark>{segment.text}</mark> : <>{segment.text}</>
+        )}
       </p>
       <p class="career-page__cta">
         <mark class="career-page__cta-mark">
-          <a href={guestbookHref}>Talk to me about AI engineering, automation and cloud work.</a>
+          <a href={guestbookHref}>{copy.career.cta}</a>
         </mark>
       </p>
     </div>

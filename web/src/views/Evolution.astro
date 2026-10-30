@@ -25,46 +25,24 @@ interface Props {
 const { locale, copy } = Astro.props;
 
 /**
- * Evolution phases from the copy-deck. These are hardcoded editorial content,
+ * Evolution phases from the copy-deck. These are editorial content from copy.ts,
  * not data. The timeline component still renders from data/milestones.json.
+ * Phases are built from copy.evolution.phaseLabel, phaseRange, and phaseItems.
  */
-const phases = [
-  {
-    name: 'Foundation',
-    range: '2017 to 2021',
-    items: [
-      { label: 'Full-stack shipping at SINCOSOFT, ITEHL, BITS Americas', date: '2017' },
-      { label: 'Azure, .NET, Java, Angular, SQL in production', date: '2021' },
-    ],
-  },
-  {
-    name: 'Transition',
-    range: '2021 to 2026',
-    items: [
-      { label: 'Siigo: .NET, Angular, Azure, SQL', date: '2021' },
-      { label: 'Talan: Azure, Java, React, Terraform, Node, Azure AI', date: '2023' },
-      { label: 'Evidence-first portfolio published', date: '2026-10-03' },
-      { label: 'Bilingual EN/ES release, accessibility parity', date: '2026-10-08' },
-      { label: 'Astro rebuild merged, dual-host release', date: '2026-10-09' },
-    ],
-  },
-  {
-    name: 'Frontier',
-    range: 'recorded, no delivery dates',
-    items: [
-      { label: 'AI engineering evidence build-out', date: 'planned' },
-      { label: 'Agentic workflow lab, replay and adversarial iterations', date: 'planned' },
-    ],
-  },
-];
+const phaseKeys = ['foundation', 'transition', 'frontier'] as const;
+const phases = phaseKeys.map((key) => ({
+  name: copy.evolution.phaseLabel[key],
+  range: copy.evolution.phaseRange[key],
+  items: copy.evolution.phaseItems[key],
+}));
 ---
 
 <section class="evolution-page" id="evolution" aria-labelledby="evolution-heading">
   <div class="shell">
     <header class="evolution-page__header reveal">
-      <h1 id="evolution-heading" class="evolution-page__heading">The evolution</h1>
+      <h1 id="evolution-heading" class="evolution-page__heading">{copy.evolution.pageHeading}</h1>
       <p class="evolution-page__intro">
-        Each milestone below is dated and linked to its evidence: a commit, a repository, a public record. Nothing is dated that did not happen.
+        {copy.evolution.intro}
       </p>
     </header>
 
@@ -88,7 +66,7 @@ const phases = [
 
       <div class="evolution-slip__final">
         <p class="evolution-slip__final-text">
-          Today: AI engineering, automation and agentic systems — direction recorded, evidence public, in progress.
+          {copy.evolution.finalText}
         </p>
       </div>
     </div>
