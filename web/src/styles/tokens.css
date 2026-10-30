@@ -35,7 +35,7 @@
   /* Size + companion leading. Display sizes use tight tracking; text sizes use
      comfortable leading (1.45–1.6). Five sizes do the work: four for body/UI,
      one display size (lg) with clamp() for fluid heading scaling. */
-  --text-xs: 12px;
+  --text-xs: 13px;
   --leading-xs: 1.5;
   --text-sm: 14px;
   --leading-sm: 1.55;
