@@ -1116,7 +1116,7 @@ export const en: Copy = {
     resume: 'Download the résumé (HTML)',
     resumePdf: 'Download the resume (PDF)',
     guestbookCta: 'Sign the guestbook',
-    pageHeading: 'Nine years, five companies',
+    pageHeading: 'Since 2017, five companies',
     statement: [
       { text: 'My first production system shipped in ', mark: false },
       { text: '2017', mark: true },
@@ -1714,7 +1714,7 @@ export const es: Copy = {
     resume: 'Descargar el currículum (HTML)',
     resumePdf: 'Descargar el currículum (PDF)',
     guestbookCta: 'Firma el libro de visitas',
-    pageHeading: 'Nueve años, cinco empresas',
+    pageHeading: 'Desde 2017, cinco empresas',
     statement: [
       { text: 'Mi primer sistema en producción se desplegó en ', mark: false },
       { text: '2017', mark: true },
