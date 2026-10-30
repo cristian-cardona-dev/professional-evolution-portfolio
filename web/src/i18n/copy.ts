@@ -144,6 +144,18 @@ export interface Copy {
     filterLabel: string;
     /** The button that clears the tag filter and shows every card. */
     filterAll: string;
+    /** Work ledger heading with project count. */
+    ledgerHeading: (count: number) => string;
+    /** Note under the ledger heading explaining the boundary lists. */
+    ledgerNote: string;
+    /** Label for the "This demonstrates" list in the side panel. */
+    demonstrates: string;
+    /** Label for the "This does not" list in the side panel. */
+    doesNot: string;
+    /** Label for the evidence pointer in the side panel. */
+    evidence: string;
+    /** Label for the side panel disclosure/summary. */
+    flipClaim: string;
   };
   /** Case-study detail page (`/work/<slug>/` and `/es/work/<slug>/`). */
   caseStudy: {
@@ -159,6 +171,14 @@ export interface Copy {
     ctaHeading: string;
     /** Label of the link to the contact section of the home page. */
     ctaContact: string;
+    /** Context section heading (classification + problem). */
+    contextHeading: string;
+    /** Decisions section heading (what was implemented). */
+    decisionsHeading: string;
+    /** Impact section heading (demonstrates + does not demonstrate). */
+    impactHeading: string;
+    /** Learnings section heading (evidence + next boundary). */
+    learningsHeading: string;
   };
   projectStatus: {
     label: Record<'live' | 'mvp' | 'demo' | 'prototype' | 'lab', string>;
@@ -879,6 +899,12 @@ export const en: Copy = {
     screenshotAltFallback: (name) => `Screenshot of ${name}`,
     filterLabel: 'Filter projects by tag',
     filterAll: 'All',
+    ledgerHeading: (count) => `Work ledger (${count})`,
+    ledgerNote: 'Five projects, each with what it demonstrates and what it does not.',
+    demonstrates: 'This demonstrates',
+    doesNot: 'This does not',
+    evidence: 'Evidence',
+    flipClaim: 'Flip the claim',
   },
   caseStudy: {
     eyebrow: 'Case study',
@@ -888,6 +914,10 @@ export const en: Copy = {
       'No case study is published for this project yet. The repository below is the artifact you can inspect; no write-up is invented where none exists.',
     ctaHeading: 'Questions about this work?',
     ctaContact: 'Ask about this work',
+    contextHeading: 'Context',
+    decisionsHeading: 'Decisions',
+    impactHeading: 'Impact',
+    learningsHeading: 'Learnings',
   },
   projectStatus: {
     label: {
@@ -1100,11 +1130,11 @@ export const en: Copy = {
       'Describe what to improve. This opens your email client with the subject and message already filled in.',
     suggestionSubject: 'Portfolio suggestion',
     suggestionCta: 'Compose email',
-submitPending: 'Sending your message…',
-submitSuccess: 'Message sent. Thanks for writing.',
-submitError: 'Sending failed. Try again, or write to the address below.',
-submitSubject: 'New message from your portfolio site',
-submitFrom: 'Portfolio contact form',
+    submitPending: 'Sending your message…',
+    submitSuccess: 'Message sent. Thanks for writing.',
+    submitError: 'Sending failed. Try again, or write to the address below.',
+    submitSubject: 'New message from your portfolio site',
+    submitFrom: 'Portfolio contact form',
   },
   clipboard: {
     email: 'Copy email address',
@@ -1421,6 +1451,12 @@ export const es: Copy = {
     screenshotAltFallback: (name) => `Captura de pantalla de ${name}`,
     filterLabel: 'Filtrar proyectos por etiqueta',
     filterAll: 'Todos',
+    ledgerHeading: (count) => `Registro de trabajo (${count})`,
+    ledgerNote: 'Cinco proyectos, cada uno con lo que demuestra y lo que no.',
+    demonstrates: 'Esto demuestra',
+    doesNot: 'Esto no',
+    evidence: 'Evidencia',
+    flipClaim: 'Voltea la afirmación',
   },
   caseStudy: {
     eyebrow: 'Estudio de caso',
@@ -1430,6 +1466,10 @@ export const es: Copy = {
       'Todavía no hay un estudio de caso publicado para este proyecto. El repositorio de abajo es el artefacto que puedes inspeccionar; no se inventa un resumen donde no lo hay.',
     ctaHeading: '¿Preguntas sobre este trabajo?',
     ctaContact: 'Preguntar sobre este trabajo',
+    contextHeading: 'Contexto',
+    decisionsHeading: 'Decisiones',
+    impactHeading: 'Impacto',
+    learningsHeading: 'Aprendizajes',
   },
   projectStatus: {
     label: {
@@ -1645,11 +1685,11 @@ export const es: Copy = {
       'Describe qué mejorar. Esto abre tu cliente de correo con el asunto y el mensaje ya rellenados.',
     suggestionSubject: 'Sugerencia para el portafolio',
     suggestionCta: 'Redactar correo',
-submitPending: 'Enviando tu mensaje…',
-submitSuccess: 'Mensaje enviado. Gracias por escribir.',
-submitError: 'El envío falló. Inténtalo de nuevo o escribe a la dirección de abajo.',
-submitSubject: 'Nuevo mensaje desde el sitio del portafolio',
-submitFrom: 'Formulario de contacto del portafolio',
+    submitPending: 'Enviando tu mensaje…',
+    submitSuccess: 'Mensaje enviado. Gracias por escribir.',
+    submitError: 'El envío falló. Inténtalo de nuevo o escribe a la dirección de abajo.',
+    submitSubject: 'Nuevo mensaje desde el sitio del portafolio',
+    submitFrom: 'Formulario de contacto del portafolio',
   },
   clipboard: {
     email: 'Copiar dirección de correo',
