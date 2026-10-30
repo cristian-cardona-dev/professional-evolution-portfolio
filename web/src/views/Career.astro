@@ -1,20 +1,14 @@
 ---
 /**
- * Career composition — the intro and the complete employer timeline.
+ * Career composition — "Two columns, highlighted words" (Task 6 redesign).
  *
- * Shared by `/career/` and `/es/career/`, exactly like `Home` and `Work`: the
- * page shells differ only in `locale`, `lang` and `path`, so the two locales
- * cannot drift.
+ * The career page is a single statement in two justified columns with six or
+ * seven flat-highlighted facts. The final highlighted sentence links to
+ * contact. The timeline follows as a separate section.
  *
- * Hero-less on purpose. The hero's job on the home page is to frame the whole
- * portfolio; on this route the framing already happened, and a second hero
- * would push the first employer — the answer to "what does this person do
- * now" — below the fold. The intro is therefore the eyebrow, the page `h1`
- * and the lead, which is also what the `meta` description reuses.
- *
- * The skill matrix that follows the timeline on this route is the complete,
- * filterable version of the compact preview the home page shows under its
- * career section; `id="skills"` below is the anchor that preview links to.
+ * The statement is hardcoded from the copy-deck (Task 2 output). It is
+ * editorial content, not data. The timeline below still reads from
+ * `data/experience.json` via CareerTimeline.
  *
  * Heading order: h1 (page) → h2 (timeline) → h3 (company, from the component)
  * → h2 (skills) → h3 (category, from the matrix).
@@ -35,53 +29,18 @@ interface Props {
 
 const { locale, copy } = Astro.props;
 
-/* The résumé ships as static files, not as Astro routes, so the hrefs are the
-   deployment base plus the locale's filename: all three live at the base root,
-   not under `<base>es/`.
-   - `resume-en.html` / `resume-es.html` are generated from the public snapshot
-     (`scripts/generate-resume.mjs`) and copied into the build;
-   - `resume-en.pdf` / `resume-es.pdf` are printed from the `/print/` route by
-     `scripts/generate-resume-pdf.mjs`, chained into the web build, so the PDF
-     exists in `web/dist` (and therefore in the deployed artifact) on both host
-     builds. */
 const resumeHref = `${import.meta.env.BASE_URL}resume-${locale}.html`;
 const resumePdfHref = `${import.meta.env.BASE_URL}resume-${locale}.pdf`;
 
-/**
- * The canonical URL of this page, on the Pages origin — the same value
- * `BaseLayout` publishes in `<link rel="canonical">`, read from the one
- * shared computation in `lib/urls.ts` so the share intents below can never
- * advertise a different host than the page itself does.
- */
 const pageCanonical = canonicalUrl(locale, 'career/');
 
-/** Internal link to the guestbook of the current locale (base + `<base>es/`). */
 const guestbookHref = route(locale, 'guestbook/');
 
-/**
- * Seed query of the "ask about this page" deep link
- * (`components/AskAboutPage.astro`): the names of the skills this page
- * publishes that a public project stands behind. Those are the page's own
- * words that the assistant can actually answer about — its published index
- * carries work, evidence, milestones and the profile, never an employer — so
- * the seed is restricted to the evidenced skills instead of the whole matrix,
- * and the button still only seeds: the widget runs its own search and shows
- * the honest fallback if nothing matched. English by design, because the
- * canonical datasets (and the index) are English-only, so both locales seed
- * the same words.
- */
 const askQuery = skills
   .filter((skill) => skill.projects.length > 0)
   .map((skill) => skill.name)
   .join(' ');
 
-/**
- * Availability chip. Rendered only when the human filled the field in
- * `data/profile.json` — there is deliberately no default status, so the page
- * can never claim availability on their behalf. The declaration date ships
- * visibly ("as of <date>") so a stale status reads as stale instead of
- * timeless.
- */
 const availability = profile.availability;
 const availabilityLabels: Record<string, string> = {
   available: copy.career.availability.available,
@@ -91,63 +50,68 @@ const availabilityLabels: Record<string, string> = {
 const availabilityText = availability ? availabilityLabels[availability.status] : null;
 ---
 
-<section class="section" id="career" aria-labelledby="career-heading">
+<section class="career-page" id="career" aria-labelledby="career-heading">
   <div class="shell">
-    <header class="section__head reveal">
-      <p class="eyebrow">{copy.career.eyebrow}</p>
-      <h1 id="career-heading">{copy.career.heading}</h1>
-      {
-        availability && availabilityText && (
-          <p class="career__availability" data-availability={availability.status}>
-            <span class="career__availability-chip">
-              <span class="career__availability-dot" aria-hidden="true" />
-              <span class="visually-hidden">{copy.career.availability.label}: </span>
-              {availabilityText}
-            </span>
-            {availability.note && <span class="career__availability-note">{availability.note}</span>}
-            {availability.updated && (
-              <span class="career__availability-date">
-                {copy.career.availability.asOf(availability.updated)}
-              </span>
-            )}
-          </p>
-        )
-      }
-      <p class="lead">{copy.career.summary}</p>
-      <p class="career__resume">
-        <a
-          class="button button--primary career__resume-pdf"
-          href={resumePdfHref}
-          download={`resume-${locale}.pdf`}
-        >
-          {copy.career.resumePdf}
-        </a>
-        <a href={resumeHref} target="_blank" rel="noopener noreferrer">
-          {copy.career.resume}
-          <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
-        </a>
-      </p>
-
-      {/* Sharing the career record is the second thing a reader does after the
-          résumé: the row carries the E1b copy-link control plus the two
-          plain-anchor share intents (no third-party script), pointed at the
-          canonical Pages URL via the shared `canonicalUrl()` helper. The
-          guestbook CTA closes the row: the one place a reader who just
-          assessed the record can leave a note back. */}
-      <div class="career__share">
-        <ShareRow copy={copy} url={pageCanonical?.href} />
-        <AskAboutPage copy={copy} query={askQuery} />
-        <a class="career__guestbook" href={guestbookHref}>{copy.career.guestbookCta}</a>
-      </div>
+    <header class="career-page__header reveal">
+      <h1 id="career-heading" class="career-page__heading">
+        Seven years, five companies
+      </h1>
     </header>
+
+    <div class="career-page__statement reveal">
+      <p class="career-page__prose">
+        My first production system shipped in <mark>2017</mark>. Since then I have built full-stack software for <mark>five companies</mark> — SINCOSOFT, ITEHL, BITS Americas, Siigo and Talan — almost all of it running on <mark>Azure</mark>, from Angular frontends through .NET and Java services to databases and Terraform-managed infrastructure. At <mark>Talan</mark>, where I work today, the stack broadened to React, Node, PostgreSQL and <mark>Azure AI</mark>. That arc is the point: years of shipping production systems are the foundation the new work stands on. Since <mark>October 2026</mark> I have been building public AI engineering evidence — a reliability lab that fails closed, an approval-gated automation workflow with audit trails, and this portfolio, which separates shipped work from planned work and points every claim at something you can inspect.
+      </p>
+      <p class="career-page__cta">
+        <mark class="career-page__cta-mark">
+          <a href={guestbookHref}>Talk to me about AI engineering, automation and cloud work.</a>
+        </mark>
+      </p>
+    </div>
+
+    {
+      availability && availabilityText && (
+        <p class="career__availability" data-availability={availability.status}>
+          <span class="career__availability-chip">
+            <span class="career__availability-dot" aria-hidden="true" />
+            <span class="visually-hidden">{copy.career.availability.label}: </span>
+            {availabilityText}
+          </span>
+          {availability.note && <span class="career__availability-note">{availability.note}</span>}
+          {availability.updated && (
+            <span class="career__availability-date">
+              {copy.career.availability.asOf(availability.updated)}
+            </span>
+          )}
+        </p>
+      )
+    }
+
+    <p class="career__resume">
+      <a
+        class="button button--primary career__resume-pdf"
+        href={resumePdfHref}
+        download={`resume-${locale}.pdf`}
+      >
+        {copy.career.resumePdf}
+      </a>
+      <a href={resumeHref} target="_blank" rel="noopener noreferrer">
+        {copy.career.resume}
+        <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
+      </a>
+    </p>
+
+    <div class="career__share">
+      <ShareRow copy={copy} url={pageCanonical?.href} />
+      <AskAboutPage copy={copy} query={askQuery} />
+      <a class="career__guestbook" href={guestbookHref}>{copy.career.guestbookCta}</a>
+    </div>
 
     <div class="career-block">
       <h2 id="career-timeline-heading">{copy.career.timelineHeading}</h2>
       <CareerTimeline copy={copy} locale={locale} />
     </div>
 
-    <!-- Skill matrix — the full, filterable matrix. `id="skills"` is the
-         anchor the compact home preview points at. -->
     <section class="skills-block" id="skills" aria-labelledby="skills-heading">
       <div class="skills-block__head reveal">
         <h2 id="skills-heading">{copy.skills.heading}</h2>
@@ -162,25 +126,72 @@ const availabilityText = availability ? availabilityLabels[availability.status] 
 <Comments locale={locale} copy={copy} path="career/" />
 
 <style>
-  .section {
+  .career-page {
     padding-block: var(--space-16) var(--space-24);
     scroll-margin-top: var(--header-height);
   }
 
-  .section__head {
-    max-width: 68ch;
-    margin-bottom: var(--space-8);
+  .career-page__header {
+    margin-bottom: var(--space-12);
   }
 
-  .section__head h1 {
-    margin-block: var(--space-2) var(--space-3);
+  .career-page__heading {
+    font-size: clamp(24px, 3vw, 30px);
+    line-height: 1.1;
+    font-weight: 500;
+    margin: 0;
   }
 
-  /* Availability chip: a human-declared status line under the page `h1`.
-     Only the dot recolours per status (the label text carries the meaning for
-     everyone, including assistive tech), so the chip itself stays a neutral
-     surface in both themes. The "as of" date renders muted as provenance: it
-     belongs to the claim's freshness, not to the claim. */
+  .career-page__statement {
+    max-width: 90ch;
+    margin-bottom: var(--space-12);
+  }
+
+  .career-page__prose {
+    font-size: clamp(22px, 2.1vw, 32px);
+    line-height: 1.4;
+    column-count: 2;
+    column-gap: var(--space-8);
+    text-align: justify;
+    margin: 0 0 var(--space-6);
+  }
+
+  .career-page__prose mark {
+    background-color: var(--color-accent-light);
+    color: var(--color-text);
+    padding: 0.1em 0.3em;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+  }
+
+  .career-page__cta {
+    margin: 0;
+    font-size: clamp(22px, 2.1vw, 32px);
+    line-height: 1.4;
+    column-count: 2;
+    column-gap: var(--space-8);
+    text-align: justify;
+  }
+
+  .career-page__cta-mark {
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+    padding: 0.1em 0.3em;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+  }
+
+  .career-page__cta-mark a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .career-page__cta-mark a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  /* Availability chip */
   .career__availability {
     display: flex;
     flex-wrap: wrap;
@@ -225,9 +236,6 @@ const availabilityText = availability ? availabilityLabels[availability.status] 
     font-size: var(--text-xs);
   }
 
-  /* The résumé controls sit with the intro, where a reader assessing the
-     career record looks for a downloadable summary: the PDF download is the
-     primary action, the HTML résumé stays beside it. */
   .career__resume {
     display: flex;
     flex-wrap: wrap;
@@ -237,11 +245,6 @@ const availabilityText = availability ? availabilityLabels[availability.status] 
     font-size: var(--text-sm);
   }
 
-  /* The share row follows the résumé controls in the intro, where a reader
-     deciding to pass the record on looks for them; the "ask about this page"
-     button joins it as a page-level action of the same rank, separated by the
-     wider column gap. (`--space-4` keeps the tighter action gap between the
-     two controls; `--space-5` is the wider layout step.) */
   .career__share {
     display: flex;
     flex-wrap: wrap;
@@ -250,9 +253,6 @@ const availabilityText = availability ? availabilityLabels[availability.status] 
     margin-top: var(--space-3);
   }
 
-  /* The guestbook CTA is a plain internal anchor in the action row: same
-     44px touch target as every other footer/header link (WCAG 2.2 AA), same
-     small size as the row's other controls. */
   .career__guestbook {
     display: inline-flex;
     align-items: center;
@@ -264,9 +264,6 @@ const availabilityText = availability ? availabilityLabels[availability.status] 
     margin-bottom: var(--space-4);
   }
 
-  /* --- Skill matrix ---------------------------------------------------------
-   * The compact home preview links to `#skills`, so this block needs its own
-   * offset from the sticky header (the page `html` rule only covers `:target`). */
   .skills-block {
     margin-top: var(--space-16);
     scroll-margin-top: calc(var(--header-height) + var(--space-6));
@@ -279,5 +276,15 @@ const availabilityText = availability ? availabilityLabels[availability.status] 
 
   .skills-block__head h2 {
     margin-bottom: var(--space-3);
+  }
+
+  /* Phone: one column */
+  @media (max-width: 767px) {
+    .career-page__prose,
+    .career-page__cta {
+      font-size: 20px;
+      column-count: 1;
+      text-align: left;
+    }
   }
 </style>
