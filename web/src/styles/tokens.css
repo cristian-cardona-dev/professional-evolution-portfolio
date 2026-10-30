@@ -20,18 +20,21 @@
   --color-text: #f2efe6; /* warm paper, ~17.75:1 on bg */
   --color-text-muted: #98938a; /* ~7.02:1 on bg, AA */
   --color-border: #2a2a2a; /* decorative only — interactive borders use accent */
-  --color-accent: #f53fd6; /* magenta, buttons only, ~18:1 on bg */
+  --color-accent: #f53fd6; /* magenta, buttons only, ~6.2:1 on bg */
   --color-accent-ink: #0a0a0a; /* text on accent-filled surfaces */
   --color-success: #48bb78; /* ~7.25:1 on bg */
   --color-warn: #f6c177; /* ~10.74:1 on bg */
 
   /* --- Typography --------------------------------------------------------- */
   --font-display: 'Newsreader', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  /* --font-sans is the body font but renders as serif (Newsreader) by design.
+     The name is historical; --font-display is the same face at weight 300. */
   --font-sans: 'Newsreader', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Size + companion leading. Display sizes use tight tracking; text sizes use
-     comfortable leading (1.45–1.6). Five visible sizes do the work. */
+     comfortable leading (1.45–1.6). Five sizes do the work: four for body/UI,
+     one display size (lg) with clamp() for fluid heading scaling. */
   --text-xs: 12px;
   --leading-xs: 1.5;
   --text-sm: 14px;
@@ -40,20 +43,10 @@
   --leading-base: 1.6;
   --text-md: 18px;
   --leading-md: 1.55;
-  --text-lg: 22px;
-  --leading-lg: 1.45;
-  --text-xl: 32px;
-  --leading-xl: 1.2;
-  --text-2xl: 44px;
-  --leading-2xl: 1.1;
-  --text-3xl: 60px;
-  --leading-3xl: 1.05;
-  --text-4xl: 80px;
-  --leading-4xl: 1.0;
-  --text-5xl: 104px;
-  --leading-5xl: 0.95;
+  --text-lg: 32px;
+  --leading-lg: 1.2;
 
-  --tracking-tight: -0.05em; /* display headlines, --text-2xl and up */
+  --tracking-tight: -0.05em; /* display headlines (--text-lg) */
   --tracking-eyebrow: 0.12em; /* uppercase section eyebrows */
 
   /* --- Spacing (4px base scale) ------------------------------------------- */
