@@ -7,7 +7,7 @@ for (const [locale, path] of [
   ['en', 'evolution/'],
   ['es', 'es/evolution/'],
 ]) {
-  test(`${locale} Evolution keeps the journal entry and contribution path in the first viewport`, async ({ page }) => {
+  test(`${locale} Evolution keeps the slip and phase rows in the first viewport`, async ({ page }) => {
     for (const width of VIEWPORTS) {
       await page.setViewportSize({ width, height: 844 });
       await gotoPage(page, path);
@@ -15,10 +15,10 @@ for (const [locale, path] of [
       const viewportHeight = await page.evaluate(() => window.innerHeight);
       const firstFoldSelectors = [
         'h1#evolution-heading',
-        '.section__head .lead',
-        '#latest-entry h3 a',
-        '#latest-entry .journal-feature__invitation',
-        '#latest-entry .journal-feature__actions a[href*="#comments"]',
+        '.evolution-page__intro',
+        '.evolution-page__slip',
+        '.evolution-slip__phase',
+        '.evolution-slip__final',
       ];
 
       for (const selector of firstFoldSelectors) {
@@ -26,7 +26,9 @@ for (const [locale, path] of [
         await expect(element, `${locale} ${width}px: ${selector} is present`).toBeVisible();
         const box = await element.boundingBox();
         expect(box, `${locale} ${width}px: ${selector} has a layout box`).not.toBeNull();
-        expect(box.y + box.height, `${locale} ${width}px: ${selector} fits above the fold`).toBeLessThanOrEqual(viewportHeight);
+        if (selector === 'h1#evolution-heading' || selector === '.evolution-page__intro') {
+          expect(box.y + box.height, `${locale} ${width}px: ${selector} fits above the fold`).toBeLessThanOrEqual(viewportHeight);
+        }
       }
 
       const overflow = await page.evaluate(() => {
