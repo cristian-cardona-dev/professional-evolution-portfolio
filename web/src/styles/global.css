@@ -113,6 +113,12 @@ samp {
   font-size: 0.9em;
 }
 
+/* Tabular figures for numbers in UI (not code) */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-sans);
+}
+
 /* --- Links ---------------------------------------------------------------- */
 a {
   color: var(--color-accent);
