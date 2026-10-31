@@ -21,6 +21,11 @@ interface Props {
 const { copy } = Astro.props;
 
 const year = new Date().getUTCFullYear();
+
+// Detect locale from pathname: /es/ prefix means Spanish, otherwise English
+const isSpanish = Astro.url.pathname.startsWith('/es/') || Astro.url.pathname === '/es';
+const otherLocaleHref = isSpanish ? '/' : '/es/';
+const otherLocaleLabel = isSpanish ? '/en' : '/es';
 ---
 
 <footer class="site-footer">
@@ -28,21 +33,19 @@ const year = new Date().getUTCFullYear();
     <p class="site-footer__name">{profile.name}</p>
 
     <p class="site-footer__tagline">
-      AI engineering on a full-stack and cloud foundation, remote-first.
+      {copy.footer.tagline}
     </p>
 
     <p class="site-footer__colophon">
-      Built with Astro from a canonical data layer. One GitHub Actions run publishes
-      it to two hosts. Every claim on this page points at evidence you can open.
+      {copy.footer.buildNote}
     </p>
 
     <p class="site-footer__credit">
-      Found pictures: title, creator, licence, source — filled in Task 5/6 when
-      the open-collection pictures are chosen.
+      {copy.footer.creditLine}
     </p>
 
     <p class="site-footer__bilingual">
-      This site also exists in Español: <a href="/es/">/es</a>.
+      {copy.footer.bilingualNotice} <a href={otherLocaleHref}>{otherLocaleLabel}</a>.
     </p>
 
     <p class="site-footer__copyright tabular">© {year} {profile.name}</p>

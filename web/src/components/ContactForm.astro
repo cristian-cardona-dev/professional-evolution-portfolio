@@ -32,9 +32,9 @@ const ctaHref = `mailto:${profile.email}?subject=${encodeURIComponent(
 /** The five display rows: name, location, hours, languages, email. */
 const displayRows = [
   { text: profile.name, type: 'name' },
-  { text: 'Remote-first', type: 'text' },
-  { text: 'US-hours aligned', type: 'text' },
-  { text: 'English, Español', type: 'text' },
+  { text: copy.contact.displayRowLocation, type: 'text' },
+  { text: copy.contact.displayRowHours, type: 'text' },
+  { text: copy.contact.displayRowLanguages, type: 'text' },
   { text: profile.email, type: 'email', href: `mailto:${profile.email}` },
 ];
 ---
@@ -59,8 +59,8 @@ const displayRows = [
 
     <div class="contact__row contact__row--greeting contact__row--accent">
       <div class="shell contact__row-inner contact__greeting">
-        <span class="contact__greeting-text">Talk soon</span>
-        <a class="contact__greeting-button" href={ctaHref} aria-label="Book a 15-minute intro call">
+        <span class="contact__greeting-text">{copy.contact.greeting}</span>
+        <a class="contact__greeting-button" href={ctaHref} aria-label={copy.contact.ctaAriaLabel}>
           <svg class="contact__arrow" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>

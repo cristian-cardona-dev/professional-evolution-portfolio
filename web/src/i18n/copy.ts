@@ -495,6 +495,16 @@ export interface Copy {
     suggestionHint: string;
     suggestionSubject: string;
     suggestionCta: string;
+    /** Display row: work location model. */
+    displayRowLocation: string;
+    /** Display row: timezone alignment. */
+    displayRowHours: string;
+    /** Display row: languages spoken. */
+    displayRowLanguages: string;
+    /** Greeting before the CTA button. */
+    greeting: string;
+    /** Accessible label for the CTA button. */
+    ctaAriaLabel: string;
   };
   /**
    * Copy-to-clipboard controls (`lib/clipboard.ts`): one label per button and
@@ -669,6 +679,10 @@ export interface Copy {
     buildPage: string;
     /** Link to the guestbook of the current locale. */
     guestbook: string;
+    /** Credit line for found images. */
+    creditLine: string;
+    /** Bilingual notice pointing to the other locale. */
+    bilingualNotice: string;
   };
   /**
    * "How this site is built" page (`/build/`, `/es/build/`).
@@ -1228,6 +1242,11 @@ export const en: Copy = {
     submitError: 'Sending failed. Try again, or write to the address below.',
     submitSubject: 'New message from your portfolio site',
     submitFrom: 'Portfolio contact form',
+    displayRowLocation: 'Remote-first',
+    displayRowHours: 'US-hours aligned',
+    displayRowLanguages: 'English, Español',
+    greeting: 'Talk soon',
+    ctaAriaLabel: 'Book a 15-minute intro call',
   },
   clipboard: {
     email: 'Copy email address',
@@ -1328,14 +1347,16 @@ export const en: Copy = {
     ],
   },
   footer: {
-    tagline: 'Evidence before confidence.',
+    tagline: 'AI engineering on a full-stack and cloud foundation, remote-first.',
     sourceRepository: 'Source repository',
     snapshotLabel: 'Snapshot',
     themeNote: 'The theme is stored in your own browser; no server controls it.',
-    buildNote: 'Static site built with Astro. Scripts and tracking are disclosed on the build page.',
+    buildNote: 'Built with Astro from a canonical data layer. One GitHub Actions run publishes it to two hosts. Every claim on this page points at evidence you can open.',
     printProfile: 'Print profile',
     buildPage: 'How this site is built',
     guestbook: 'Guestbook',
+    creditLine: 'Found pictures: title, creator, licence, source — filled in Task 5/6 when the open-collection pictures are chosen.',
+    bilingualNotice: 'This site also exists in Español:',
   },
   build: {
     eyebrow: 'How this site is built',
@@ -1828,6 +1849,11 @@ export const es: Copy = {
     submitError: 'El envío falló. Inténtalo de nuevo o escribe a la dirección de abajo.',
     submitSubject: 'Nuevo mensaje desde el sitio del portafolio',
     submitFrom: 'Formulario de contacto del portafolio',
+    displayRowLocation: 'Remoto primero',
+    displayRowHours: 'Horario compatible con EE. UU.',
+    displayRowLanguages: 'Inglés, Español',
+    greeting: 'Hablamos pronto',
+    ctaAriaLabel: 'Reserva una llamada de presentación de 15 minutos',
   },
   clipboard: {
     email: 'Copiar dirección de correo',
@@ -1928,14 +1954,16 @@ export const es: Copy = {
     ],
   },
   footer: {
-    tagline: 'Evidencia antes que confianza.',
+    tagline: 'Ingeniería de IA sobre una base full-stack y cloud, remote-first.',
     sourceRepository: 'Repositorio fuente',
     snapshotLabel: 'Instantánea',
     themeNote: 'El tema se guarda en tu propio navegador; ningún servidor lo controla.',
-    buildNote: 'Sitio estático construido con Astro. Los scripts y el seguimiento se detallan en la página de build.',
+    buildNote: 'Construido con Astro desde una capa de datos canónica. Una ejecución de GitHub Actions lo publica en dos hosts. Cada afirmación de esta página apunta a evidencia que puedes abrir.',
     printProfile: 'Perfil imprimible',
     buildPage: 'Cómo está construido este sitio',
     guestbook: 'Libro de visitas',
+    creditLine: 'Imágenes encontradas: título, creador, licencia, fuente — se completará en la Tarea 5/6 cuando se elijan las imágenes de la colección abierta.',
+    bilingualNotice: 'Este sitio también existe en English:',
   },
   build: {
     eyebrow: 'Cómo está construido este sitio',
