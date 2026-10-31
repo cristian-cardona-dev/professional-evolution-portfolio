@@ -16,3 +16,6 @@ web/playwright-report/
 
 # SDD scratch; the two tracked evidence reports under .superpowers/ predate this rule and stay tracked
 .superpowers/
+
+# Design audit artifacts (design-taste-frontend)
+.taste-skill/
