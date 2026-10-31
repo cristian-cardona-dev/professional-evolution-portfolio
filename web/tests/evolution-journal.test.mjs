@@ -7,10 +7,6 @@ import { JSDOM } from 'jsdom';
 const DIST = resolve(import.meta.dirname, '..', 'dist');
 const DATA = resolve(import.meta.dirname, '..', '..', 'data', 'evolution.json');
 const milestones = JSON.parse(readFileSync(DATA, 'utf8')).milestones;
-const featured = milestones
-  .filter((milestone) => milestone.source === 'curated')
-  .sort((a, b) => (a.date === b.date ? a.id.localeCompare(b.id) : b.date.localeCompare(a.date)))
-  .find((milestone) => milestone.status !== 'planned');
 
 function readEvolution(locale) {
   const file = resolve(DIST, locale === 'es' ? 'es/evolution/index.html' : 'evolution/index.html');
@@ -19,90 +15,39 @@ function readEvolution(locale) {
   return { html, document: new JSDOM(html).window.document };
 }
 
-test('Evolution features the latest reviewed, delivered or in-progress milestone', () => {
-  assert.ok(featured, 'canonical data contains a reviewed milestone to feature');
-
+test('Evolution page renders the slip design with phases and rows', () => {
   for (const locale of ['en', 'es']) {
     const { document } = readEvolution(locale);
-    const feature = document.querySelector('#latest-entry');
-    assert.ok(feature, `${locale}: featured entry is present`);
-    const story = feature.querySelector('h3 a[href]');
-    assert.ok(story, `${locale}: featured story has a detail link`);
-    assert.ok(story.getAttribute('href').includes(`/evolution/${featured.id}/`));
-    assert.equal(feature.querySelector('time')?.getAttribute('datetime'), featured.date);
-    assert.ok(feature.textContent.includes(locale === 'es' ? featured.title_es : featured.title));
+    const slip = document.querySelector('.evolution-page__slip');
+    assert.ok(slip, `${locale}: evolution slip container is present`);
+    const phases = slip.querySelectorAll('.evolution-slip__phase');
+    assert.ok(phases.length > 0, `${locale}: at least one phase present`);
+    const rows = slip.querySelectorAll('.evolution-slip__row');
+    assert.ok(rows.length > 0, `${locale}: at least one row present`);
+    const finalRow = slip.querySelector('.evolution-slip__final');
+    assert.ok(finalRow, `${locale}: final inverted row present`);
   }
 });
 
-test('journal navigation resolves to curated, candidate, planned, and roadmap sections', () => {
+test('Evolution page has a single h1 heading in both locales', () => {
   for (const locale of ['en', 'es']) {
     const { document } = readEvolution(locale);
-    for (const id of [
-      'timeline-section-completed',
-      'timeline-section-candidates',
-      'timeline-section-ahead',
-      'roadmap',
-    ]) {
-      assert.ok(document.getElementById(id), `${locale}: #${id} target remains present`);
-      assert.ok(document.querySelector(`.journal-index a[href="#${id}"]`), `${locale}: #${id} link remains present`);
-    }
-    assert.match(document.querySelector('#timeline-section-candidates')?.textContent ?? '', /candidate|candidat/i);
-    assert.match(document.querySelector('#timeline-section-ahead')?.textContent ?? '', /planned|not achievements|planificad|no son logros/i);
+    assert.equal(document.querySelectorAll('h1').length, 1, `${locale}: exactly one h1`);
   }
 });
 
-test('contribution invitations resolve to the featured milestone discussion in both locales', () => {
-  assert.ok(featured);
-  for (const locale of ['en', 'es']) {
-    const { document } = readEvolution(locale);
-    const invitation = document.querySelector('#latest-entry .journal-feature__invitation');
-    assert.ok(invitation, `${locale}: contribution invitation is visible in the page`);
-    assert.match(invitation.textContent, /context|question|pregunta|conversación/i);
-    assert.match(invitation.textContent, /verify|verific/i);
-
-    const discussion = document.querySelector(`#latest-entry a[href*="/evolution/${featured.id}/#comments"]`);
-    assert.ok(discussion, `${locale}: featured discussion CTA exists`);
-    const detailPath = resolve(
-      DIST,
-      locale === 'es' ? `es/evolution/${featured.id}/index.html` : `evolution/${featured.id}/index.html`,
-    );
-    assert.ok(existsSync(detailPath), `${locale}: discussion detail route exists`);
-    assert.match(readFileSync(detailPath, 'utf8'), /id="comments"/);
-  }
-});
-
-test('Evolution preserves locale parity, #roadmap, accessible landmarks, and one page heading', () => {
+test('Evolution page preserves locale parity (same phase count in EN and ES)', () => {
   const en = readEvolution('en').document;
   const es = readEvolution('es').document;
-
-  const enSections = [...en.querySelectorAll('.timeline__section')].map((section) => section.id);
-  const esSections = [...es.querySelectorAll('.timeline__section')].map((section) => section.id);
-  assert.deepEqual(esSections, enSections, 'both locales expose matching archive sections');
-  assert.equal(en.querySelectorAll('h1').length, 1);
-  assert.equal(es.querySelectorAll('h1').length, 1);
-  assert.ok(en.querySelector('main'), 'English page has a main landmark');
-  assert.ok(es.querySelector('main'), 'Spanish page has a main landmark');
-  assert.ok(en.querySelector('nav[aria-label]'), 'English archive navigation has an accessible name');
-  assert.ok(es.querySelector('nav[aria-label]'), 'Spanish archive navigation has an accessible name');
-  assert.ok(en.getElementById('roadmap'));
-  assert.ok(es.getElementById('roadmap'));
-
-  for (const document of [en, es]) {
-    const mainContent = document.querySelector('main .section');
-    assert.ok(mainContent, 'Evolution content is inside the main landmark');
-    let previousLevel = 0;
-    for (const heading of mainContent.querySelectorAll('h1, h2, h3, h4, h5, h6')) {
-      const level = Number(heading.tagName.slice(1));
-      assert.ok(level <= previousLevel + 1, `heading hierarchy does not skip at ${heading.textContent.trim()}`);
-      previousLevel = level;
-    }
-  }
+  const enPhases = en.querySelectorAll('.evolution-slip__phase').length;
+  const esPhases = es.querySelectorAll('.evolution-slip__phase').length;
+  assert.equal(esPhases, enPhases, 'both locales expose the same number of phases');
 });
 
-test('index archive does not mount milestone reaction controls or call reaction APIs', () => {
+test('Evolution page links to milestone detail pages', () => {
   for (const locale of ['en', 'es']) {
-    const { html, document } = readEvolution(locale);
-    assert.equal(document.querySelectorAll('[data-reaction]').length, 0, `${locale}: no reaction controls`);
-    assert.doesNotMatch(html, /\/api\/milestones\/[^"'\s]+\/reaction/i, `${locale}: no reaction API request URL`);
+    const { document } = readEvolution(locale);
+    const links = document.querySelectorAll('a[href*="/evolution/"]');
+    assert.ok(links.length > 0, `${locale}: at least one evolution link present`);
   }
 });

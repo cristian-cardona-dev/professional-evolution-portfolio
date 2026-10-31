@@ -159,7 +159,7 @@ function getProject(slug: string) {
         const caseStudyHref = caseStudyFor(row.slug) ? route(locale, `work/${row.slug}/`) : null;
 
         return (
-          <li class="ledger__row reveal" style={`--reveal-index: ${index}`}>
+          <li class="ledger__row reveal" id={row.slug} style={`--reveal-index: ${index}`}>
             <div class="ledger__row-content">
               <div class="ledger__row-main">
                 <h2 class="ledger__row-name">

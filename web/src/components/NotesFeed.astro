@@ -89,7 +89,7 @@ const rssHref = `${import.meta.env.BASE_URL}rss.xml`;
               </div>
 
               <h3 class="notes__title">
-                <a href={`${route(locale, 'evolution/')}#${milestone.id}-title`}>
+        <a href={route(locale, `evolution/${milestone.id}/`)}>
                   {milestoneTitle(milestone, locale)}
                 </a>
               </h3>
