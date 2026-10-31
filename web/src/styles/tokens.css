@@ -48,6 +48,7 @@
   --leading-lg: 1.2;
 
   --tracking-tight: -0.05em; /* display headlines (--text-lg) */
+  --tracking-eyebrow: 0; /* removed: no tiny uppercase letter-spaced labels */
 
   /* --- Spacing (4px base scale) ------------------------------------------- */
   --space-1: 4px;
