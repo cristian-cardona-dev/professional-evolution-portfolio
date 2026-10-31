@@ -1,3 +1,4 @@
+html, body { overflow-x: clip; }
 :root {
   --ink: #101820;
   --muted: #596575;
