@@ -1252,7 +1252,7 @@ export const en: Copy = {
     displayRowHours: 'US-hours aligned',
     displayRowLanguages: 'English, Español',
     greeting: 'Talk soon',
-    ctaAriaLabel: 'Send a message',
+    ctaAriaLabel: 'Book a 30-minute call',
   },
   clipboard: {
     email: 'Copy email address',
@@ -1862,7 +1862,7 @@ export const es: Copy = {
     displayRowHours: 'Horario compatible con EE. UU.',
     displayRowLanguages: 'Inglés, Español',
     greeting: 'Hablamos pronto',
-    ctaAriaLabel: 'Enviar un mensaje',
+    ctaAriaLabel: 'Reservar una llamada de 30 minutos',
   },
   clipboard: {
     email: 'Copiar dirección de correo',

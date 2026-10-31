@@ -24,10 +24,8 @@ interface Props {
 
 const { copy } = Astro.props;
 
-/** Cal.com URL pending; the copy deck's fallback is a mailto with a subject. */
-const ctaHref = `mailto:${profile.email}?subject=${encodeURIComponent(
-  copy.hero.ctaSubject,
-)}`;
+/** Cal.com booking URL. */
+const ctaHref = `https://cal.com/cristian-cardona-e2usz7/30min`;
 
 /** The five display rows: name, location, hours, languages, email. */
 const displayRows = [
