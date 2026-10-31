@@ -399,6 +399,32 @@ html.js .reveal.is-visible {
   }
 }
 
+/* --- Ken Burns drift ------------------------------------------------------
+ * A subtle continuous animation applied to featured images. The image scales
+ * from 1 to 1.05 and drifts slightly over 20s, creating a cinematic effect.
+ * Gated behind `prefers-reduced-motion: no-preference` so it never runs when
+ * the user has requested reduced motion.
+ * ======================================================================== */
+@keyframes drift {
+  from {
+    transform: scale(1) translate(0, 0);
+  }
+  to {
+    transform: scale(1.05) translate(-1%, -1%);
+  }
+}
+
+.motion-drift {
+  animation: drift 20s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-drift {
+    animation: none;
+  }
+}
+
 /* --- Print ---------------------------------------------------------------- */
 @media print {
   .site-header,

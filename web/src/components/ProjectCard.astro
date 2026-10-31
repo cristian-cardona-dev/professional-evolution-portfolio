@@ -103,7 +103,7 @@ const screenshotAlt = hasScreenshot
     {
       hasScreenshot ? (
         <Image
-          class="project-card__image"
+          class="project-card__image motion-drift"
           src={siteCareerPng}
           alt={screenshotAlt}
           widths={[320, 640, 960]}
@@ -241,6 +241,7 @@ const screenshotAlt = hasScreenshot
     flex-direction: column;
     gap: var(--space-2);
     padding: var(--space-4) var(--space-4) 0;
+    overflow: hidden;
   }
 
   .project-card__placeholder {
