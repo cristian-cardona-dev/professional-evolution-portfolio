@@ -1,541 +1,239 @@
 ---
 /**
- * Contact form with graceful degradation.
+ * Contact section — "Address in display rows" (redesign Task 7).
  *
- * When `profile.json` carries both `formEndpoint` and `formKey` the component
- * renders a real POST form. The honeypot sits in that branch, before the
- * submit controls, and is hidden from people (`aria-hidden`, `tabindex="-1"`,
- * `autocomplete="off"`); a small inline script adds minimal client-side
- * validation (required fields + email format) and reports the first error
- * through a polite live region. While the endpoint is unset — the current
- * state of the canonical data — it renders an honest fallback: a mailto link
- * to the published address, a note that no message is being collected, and a
- * lightweight suggestion box that composes a prefilled mailto (subject + body)
- * so contact-by-email can still carry structured feedback without a service.
- * Nothing pretends to submit.
+ * The contact block is a stack of five full-width display rows, each set at
+ * clamp(44px, 6vw, 88px) regular weight, text sitting in the lower third of
+ * each ~150px-tall band. Rows alternate between two flat tones of the section
+ * colour as full-width bands. A sixth row holds the greeting ("Talk soon")
+ * followed by a solid round arrow button that opens the Cal.com booking link
+ * (or mailto fallback until the URL is confirmed).
  *
- * Accessibility: every input has a visible `<label>`, hints and errors are
- * wired through `aria-describedby`, invalid fields carry `aria-invalid`, and
- * the status region is a polite live region.
+ * The address of this subject is its reach: no street, no city — a timezone,
+ * two languages, an inbox, a booking link. No heading, no form.
  *
- * The fallback branch additionally renders the copy-address control: a real
- * `<button type="button">` beside the published address, whose value and
- * feedback strings arrive as `data-copy-*` attributes from `copy.ts` and whose
- * behaviour lives in `lib/clipboard.ts` (started by the bundled script below).
- * The POST branch has no address on display, so there is nothing to put the
- * button next to there.
+ * Phone: rows at 9.6vw with 16px insets, ~84px tall; the greeting row becomes
+ * a full-width accent band with a 56px round button at its right end.
  */
 import type { Copy } from '../i18n/copy';
 import { profile } from '../lib/data';
 
 interface Props {
   copy: Copy;
-  /** Optional server-side validation messages, keyed by field name. */
-  errors?: Partial<Record<'name' | 'email' | 'message', string>>;
 }
 
-const { copy, errors = {} } = Astro.props;
+const { copy } = Astro.props;
 
-const canPost = Boolean(profile.formEndpoint && profile.formKey);
-const mailto = `mailto:${profile.email}`;
-const describedBy = (field: 'name' | 'email' | 'message', hintId?: string) =>
-  [hintId, `contact-${field}-error`].filter(Boolean).join(' ');
+/** Cal.com URL pending; the copy deck's fallback is a mailto with a subject. */
+const ctaHref = `mailto:${profile.email}?subject=${encodeURIComponent(
+  copy.hero.ctaSubject,
+)}`;
+
+/** The five display rows: name, location, hours, languages, email. */
+const displayRows = [
+  { text: profile.name, type: 'name' },
+  { text: 'Remote-first', type: 'text' },
+  { text: 'US-hours aligned', type: 'text' },
+  { text: 'English, Español', type: 'text' },
+  { text: profile.email, type: 'email', href: `mailto:${profile.email}` },
+];
 ---
 
-<section class="contact" id="contact" aria-labelledby="contact-heading">
-  <div class="shell contact__inner">
-    <div class="contact__intro reveal">
-      <p class="eyebrow">{copy.contact.eyebrow}</p>
-      <h2 class="contact__heading" id="contact-heading">{copy.contact.heading}</h2>
-      <p class="lead">{copy.contact.summary}</p>
-    </div>
-
-    <div class="contact__panel reveal" style="--reveal-index: 1">
-      {
-        canPost ? (
-          <form
-            class="contact__form"
-            action={profile.formEndpoint ?? undefined}
-            method="POST"
-            accept-charset="UTF-8"
-            novalidate
-            data-contact-post
-            data-required-message={copy.contact.fieldRequired}
-            data-email-message={copy.contact.invalidEmail}
-            data-pending-message={copy.contact.submitPending}
-            data-success-message={copy.contact.submitSuccess}
-            data-error-message={copy.contact.submitError}
-            toolname="contact_message"
-            tooldescription="Sends a contact message to the site owner through this site's configured form endpoint. The endpoint only exists when the canonical data sets it; until then the site renders the mailto fallback below instead of this form."
-          >
-            {/* Web3Forms' public endpoint reads the access key from this field
-                name (`form_key` would make it reject the submission), and it
-                is public by design: the key is bound to the form, and domains
-                are restricted from the service dashboard. */}
-            <input
-              type="hidden"
-              name="access_key"
-              value={profile.formKey ?? ''}
-              toolparamdescription="Service access key added by the site itself, named the way the endpoint expects it; agents must leave it unchanged."
-            />
-
-            {/* Email headers: without a subject the notification arrives with
-                the service's generic default, and the sender reads as
-                "Notifications" instead of this site. */}
-            <input type="hidden" name="subject" value={copy.contact.submitSubject} />
-            <input type="hidden" name="from_name" value={copy.contact.submitFrom} />
-
-            {/* Honeypot: hidden from people, tempting to bots. It renders before
-                the submit controls with aria-hidden + tabindex=-1. The name is
-                the one the endpoint treats as a spam signal, so a filled value
-                is what makes the submission be discarded. */}
-            <div class="contact__honeypot" aria-hidden="true">
-              <label for="contact-website">{copy.contact.honeypot}</label>
-              <input
-                type="text"
-                id="contact-website"
-                name="botcheck"
-                tabindex="-1"
-                autocomplete="off"
-                toolparamdescription="Anti-spam trap field, named the way the endpoint detects automated fills. It must be left empty; a filled value marks the submission as automated."
-              />
-            </div>
-
-            <h3 class="contact__form-heading">{copy.contact.formHeading}</h3>
-
-            <div class="contact__field">
-              <label class="contact__label" for="contact-name">
-                {copy.contact.name} <span class="contact__required">({copy.a11y.required})</span>
-              </label>
-              <input
-                class="contact__input"
-                type="text"
-                id="contact-name"
-                name="name"
-                autocomplete="off"
-                required
-                aria-invalid={errors.name ? 'true' : undefined}
-                aria-describedby={describedBy('name')}
-                toolparamdescription="The visitor's name, as they want to be addressed."
-              />
-              <p
-                class="contact__error"
-                id="contact-name-error"
-                data-contact-error="name"
-                aria-live="polite"
-                hidden={!errors.name}
-              >
-                {errors.name ?? ''}
-              </p>
-            </div>
-
-            <div class="contact__field">
-              <label class="contact__label" for="contact-email">
-                {copy.contact.email} <span class="contact__required">({copy.a11y.required})</span>
-              </label>
-              <input
-                class="contact__input"
-                type="email"
-                id="contact-email"
-                name="email"
-                autocomplete="email"
-                required
-                aria-invalid={errors.email ? 'true' : undefined}
-                aria-describedby={describedBy('email')}
-                toolparamdescription="The visitor's email address, so the site owner can reply."
-              />
-              <p
-                class="contact__error"
-                id="contact-email-error"
-                data-contact-error="email"
-                aria-live="polite"
-                hidden={!errors.email}
-              >
-                {errors.email ?? ''}
-              </p>
-            </div>
-
-            <div class="contact__field">
-              <label class="contact__label" for="contact-message">
-                {copy.contact.message} <span class="contact__required">({copy.a11y.required})</span>
-              </label>
-              <textarea
-                class="contact__input contact__input--textarea"
-                id="contact-message"
-                name="message"
-                rows="6"
-                required
-                aria-invalid={errors.message ? 'true' : undefined}
-                aria-describedby={describedBy('message', 'contact-message-hint')}
-                toolparamdescription="The message the visitor wants to send to the site owner."
-              />
-              <p class="contact__hint" id="contact-message-hint">
-                {copy.contact.messageHint}
-              </p>
-              <p
-                class="contact__error"
-                id="contact-message-error"
-                data-contact-error="message"
-                aria-live="polite"
-                hidden={!errors.message}
-              >
-                {errors.message ?? ''}
-              </p>
-            </div>
-
-            <p class="contact__status" role="status" aria-live="polite" data-contact-status />
-
-            <button class="button button--primary" type="submit">
-              {copy.contact.submit}
-            </button>
-          </form>
-        ) : (
-          <div class="contact__fallback">
-            <h3 class="contact__form-heading">{copy.contact.fallbackHeading}</h3>
-            <p class="contact__fallback-note">{copy.contact.fallbackNote}</p>
-
-            <a class="button button--primary contact__cta" href={mailto}>
-              {copy.contact.mailtoCta}
-            </a>
-
-            {/* Structured fallback: compose a prefilled email instead of only
-                offering a blank mailto. */}
-            <form
-              class="contact__mailto"
-              data-contact-mailto
-              data-mailto={mailto}
-              data-subject={copy.contact.suggestionSubject}
-              toolname="contact_message"
-              tooldescription="Composes a message to the site owner and opens it in the visitor's own email client, prefilled with a subject and body, for the visitor to review and send. The site itself never transmits or stores the message; sending depends on the visitor's mail client."
-            >
-              <div class="contact__field">
-                <label class="contact__label" for="contact-suggestion">
-                  {copy.contact.suggestionLabel}
-                </label>
-                <textarea
-                  class="contact__input contact__input--textarea"
-                  id="contact-suggestion"
-                  name="suggestion"
-                  rows="4"
-                  aria-describedby="contact-suggestion-hint"
-                  data-contact-suggestion
-                  toolparamdescription="The message the visitor wants to send to the site owner; it becomes the body of the prefilled email."
-                />
-                <p class="contact__hint" id="contact-suggestion-hint">
-                  {copy.contact.suggestionHint}
-                </p>
-              </div>
-
-              <button class="button button--ghost contact__cta" type="submit">
-                {copy.contact.suggestionCta}
-              </button>
-            </form>
+<section class="contact" id="contact">
+  <div class="contact__rows">
+    {
+      displayRows.map((row, index) => (
+        <div class={`contact__row contact__row--${row.type} contact__row--tone-${index % 2}`}>
+          <div class="shell contact__row-inner">
+            {row.type === 'email' ? (
+              <a class="contact__row-link" href={row.href}>
+                {row.text}
+              </a>
+            ) : (
+              <span class="contact__row-text">{row.text}</span>
+            )}
           </div>
-        )
-      }
-
-      {/* Direct contact stays visible in either mode: the POST branch sends
-          through the configured endpoint, but the address remains readable,
-          copyable and hand-copyable, which is the fallback for anyone who
-          prefers email or whose client cannot run the form. */}
-      <p class="contact__email-label">{copy.contact.emailLabel}</p>
-
-      <div class="contact__email-line">
-        <a class="contact__email" href={mailto}>{profile.email}</a>
-
-        <div class="copy-control" data-copy-region>
-          <button
-            class="button button--ghost copy-control__button"
-            type="button"
-            data-copy
-            data-copy-text={profile.email}
-            data-copy-success={copy.clipboard.emailCopied}
-            data-copy-error={copy.clipboard.failed}
-          >
-            {copy.clipboard.email}
-          </button>
-          <p class="copy-control__status" role="status" aria-live="polite" data-copy-status />
         </div>
-      </div>
+      ))
+    }
 
-      <p class="contact__privacy">{copy.contact.privacy}</p>
+    <div class="contact__row contact__row--greeting contact__row--accent">
+      <div class="shell contact__row-inner contact__greeting">
+        <span class="contact__greeting-text">Talk soon</span>
+        <a class="contact__greeting-button" href={ctaHref} aria-label="Book a 15-minute intro call">
+          <svg class="contact__arrow" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </a>
+      </div>
     </div>
   </div>
 </section>
 
-<script is:inline>
-  (() => {
-    // POST branch: minimal client-side validation (required fields + email
-    // format). The form is `novalidate` so this owns the inline messaging.
-    const postForm = document.querySelector('[data-contact-post]');
-    if (postForm) {
-      const requiredMessage = postForm.dataset.requiredMessage || '';
-      const emailMessage = postForm.dataset.emailMessage || '';
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const rules = {
-        name: (value) => (value === '' ? requiredMessage : ''),
-        email: (value) =>
-          value === '' ? requiredMessage : emailPattern.test(value) ? '' : emailMessage,
-        message: (value) => (value === '' ? requiredMessage : ''),
-      };
-      const errorFor = (field) => postForm.querySelector('[data-contact-error="' + field + '"]');
-      const inputFor = (field) => postForm.querySelector('[name="' + field + '"]');
-      const status = postForm.querySelector('[data-contact-status]');
-
-      postForm.addEventListener('submit', (event) => {
-        let firstInvalid = null;
-        let firstMessage = '';
-        for (const field of Object.keys(rules)) {
-          const input = inputFor(field);
-          const error = errorFor(field);
-          const message = input ? rules[field](input.value.trim()) : '';
-          if (error) {
-            error.textContent = message;
-            error.hidden = message === '';
-          }
-          if (input) {
-            if (message === '') {
-              input.removeAttribute('aria-invalid');
-            } else {
-              input.setAttribute('aria-invalid', 'true');
-              if (!firstInvalid) {
-                firstInvalid = input;
-                firstMessage = message;
-              }
-            }
-          }
-        }
-        if (firstInvalid) {
-          event.preventDefault();
-          if (status) status.textContent = firstMessage;
-          firstInvalid.focus();
-          return;
-        }
-
-        /* The endpoint answers JSON, so a native POST would leave the visitor
-           on a raw service response page with a "Go Back" link. Valid forms
-           keep the browser on the page instead: the submission goes as JSON
-           (the content type the service answers in kind, never form-urlencoded)
-           and its outcome is reported in the live status region. Non-JS
-           visitors still fall back to the form's native POST, which posts
-           without client-side validation. */
-        const endpoint = postForm.getAttribute('action');
-        if (!endpoint) return;
-
-        event.preventDefault();
-
-        const submit = postForm.querySelector('button[type="submit"]');
-        const readValue = (field) =>
-          postForm.querySelector('[name="' + field + '"]')?.value ?? '';
-
-        if (submit) submit.disabled = true;
-        if (status) status.textContent = postForm.dataset.pendingMessage || '';
-
-        const payload = {
-          access_key: readValue('access_key'),
-          subject: readValue('subject'),
-          from_name: readValue('from_name'),
-          botcheck: readValue('botcheck'),
-          name: readValue('name'),
-          email: readValue('email'),
-          message: readValue('message'),
-        };
-
-        fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify(payload),
-        })
-          .then(async (response) => {
-            const body = await response.json().catch(() => null);
-            const sent = response.ok && (!body || body.success !== false);
-            if (sent) postForm.reset();
-            if (status) {
-              status.textContent = sent
-                ? postForm.dataset.successMessage || ''
-                : postForm.dataset.errorMessage || '';
-            }
-          })
-          .catch(() => {
-            if (status) {
-              status.textContent = postForm.dataset.errorMessage || '';
-            }
-          })
-          .finally(() => {
-            if (submit) submit.disabled = false;
-          });
-      });
-
-      // Clear a field's error as soon as the visitor starts correcting it.
-      postForm.addEventListener('input', (event) => {
-        const input = event.target;
-        if (!input || !input.name) return;
-        const error = errorFor(input.name);
-        if (!error || error.hidden) return;
-        error.textContent = '';
-        error.hidden = true;
-        input.removeAttribute('aria-invalid');
-      });
-    }
-
-    // Fallback branch: compose a mailto with a prefilled subject and body.
-    const mailtoForm = document.querySelector('[data-contact-mailto]');
-    if (mailtoForm) {
-      mailtoForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const textarea = mailtoForm.querySelector('[data-contact-suggestion]');
-        const body = textarea ? textarea.value.trim() : '';
-        const subject = mailtoForm.dataset.subject || '';
-        const query =
-          'subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-        window.location.href = mailtoForm.dataset.mailto + '?' + query;
-      });
-    }
-  })();
-</script>
-
-<script>
-  // Copy-to-clipboard, bundled (never `is:inline`) so it can import the one
-  // shared implementation; the case-study page starts the same helper. Only
-  // the markup differs per component, the behaviour does not.
-  import { enhanceCopyButtons } from '../lib/clipboard';
-
-  enhanceCopyButtons();
-</script>
-
 <style>
+  /* The contact section is a stack of full-width bands. Each row is ~150px tall
+     with the text sitting in its lower third. Rows alternate between two flat
+     tones of the section colour, or use 28px of space alone. */
   .contact {
-    padding-block: var(--space-24);
+    padding-block: 0;
   }
 
-  .contact__inner {
-    display: grid;
-    gap: var(--space-8);
-  }
-
-  .contact__heading {
-    margin-block: var(--space-2) var(--space-3);
-  }
-
-  .contact__panel {
-    padding: var(--space-6);
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .contact__form,
-  .contact__fallback,
-  .contact__mailto {
+  .contact__rows {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
   }
 
-  .contact__form-heading {
-    font-size: var(--text-md);
-    line-height: var(--leading-md);
-  }
-
-  .contact__honeypot {
-    position: absolute;
-    left: -9999px;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-  }
-
-  .contact__field {
+  /* --- Display rows --------------------------------------------------------
+   * Phone size first: 9.6vw per the blueprint (~84px at 390px), with 16px
+   * insets. Each row is a full-width band, text in the lower third.
+   * --------------------------------------------------------------------- */
+  .contact__row {
     display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
+    align-items: flex-end;
+    min-height: 84px;
+    padding-block: 16px;
   }
 
-  .contact__label {
-    color: var(--color-text);
-    font-size: var(--text-sm);
-    font-weight: 600;
-  }
-
-  .contact__required {
-    color: var(--color-text-muted);
-    font-size: var(--text-xs);
-    font-weight: 400;
-  }
-
-  .contact__input {
-    padding: var(--space-3);
+  .contact__row--tone-0 {
     background-color: var(--color-bg);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
+  }
+
+  .contact__row--tone-1 {
+    background-color: var(--color-surface);
+  }
+
+  .contact__row-inner {
+    width: 100%;
+    padding-inline: 16px;
+  }
+
+  .contact__row-text,
+  .contact__row-link {
+    font-size: 9.6vw;
+    line-height: 1.0;
+    font-weight: 400;
+    letter-spacing: -0.02em;
     color: var(--color-text);
-    /* Interactive borders need 3:1, so they follow the accent, not the hairline. */
-    transition: border-color var(--duration-fast) var(--ease-standard);
+    text-decoration: none;
+    display: block;
   }
 
-  .contact__input:hover {
-    border-color: var(--color-accent);
+  .contact__row-link {
+    /* Email is a link; the underline sits at the accent colour, not the
+       text colour, so the row's visual weight is not thrown off by the
+       default link style. */
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+    transition: text-decoration-thickness var(--duration-fast) var(--ease-standard);
   }
 
-  .contact__input:focus-visible {
-    border-color: var(--color-accent);
-    box-shadow: var(--ring-focus);
+  .contact__row-link:hover {
+    text-decoration-thickness: 2px;
   }
 
-  .contact__input--textarea {
-    resize: vertical;
+  .contact__row--name .contact__row-text {
+    font-weight: 500;
   }
 
-  .contact__hint,
-  .contact__privacy,
-  .contact__email-label {
-    color: var(--color-text-muted);
-    font-size: var(--text-sm);
-    line-height: var(--leading-sm);
+  /* --- Greeting row --------------------------------------------------------
+   * The sixth row holds the greeting ("Talk soon") and the round arrow
+   * button. On phone, it becomes a full-width accent band with a 56px round
+   * button at its right end.
+   * --------------------------------------------------------------------- */
+  .contact__row--greeting {
+    background-color: var(--color-accent);
+    min-height: 84px;
   }
 
-  /* Errors are text, not only a red border. */
-  .contact__error {
-    color: var(--color-warn);
-    font-size: var(--text-sm);
-    line-height: var(--leading-sm);
-    font-weight: 600;
-  }
-
-  .contact__status:empty {
-    display: none;
-  }
-
-  .contact__cta {
-    align-self: flex-start;
-  }
-
-  .contact__email {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    font-family: var(--font-mono);
-    font-size: var(--text-md);
-  }
-
-  /* Address + copy control share a line and wrap instead of colliding on a
-     narrow viewport; the shared `.copy-control` styles live in global.css. */
-  .contact__email-line {
+  .contact__greeting {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-3);
+    align-items: baseline;
+    gap: 24px;
   }
 
-  @media (min-width: 1024px) {
-    .contact__inner {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-      align-items: start;
-      gap: var(--space-16);
+  .contact__greeting-text {
+    font-size: 9.6vw;
+    line-height: 1.0;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--color-accent-ink);
+  }
+
+  .contact__greeting-button {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: var(--color-accent-ink);
+    color: var(--color-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform var(--duration-fast) var(--ease-standard),
+                background-color var(--duration-fast) var(--ease-standard);
+  }
+
+  .contact__greeting-button:hover {
+    transform: scale(1.05);
+    background-color: color-mix(in srgb, var(--color-accent-ink) 90%, var(--color-accent));
+  }
+
+  .contact__arrow {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* --- Desktop: the display rows -------------------------------------------
+   * From 900px the rows are clamp(44px, 6vw, 88px) tall, each ~150px with the
+   * text in the lower third. Rows alternate between two flat tones.
+   * --------------------------------------------------------------------- */
+  @media (min-width: 900px) {
+    .contact__row {
+      min-height: 150px;
+      padding-block: 24px;
+    }
+
+    .contact__row-inner {
+      padding-inline: 0;
+    }
+
+    .contact__row-text,
+    .contact__row-link {
+      font-size: clamp(44px, 6vw, 88px);
+    }
+
+    .contact__greeting-text {
+      font-size: clamp(44px, 6vw, 88px);
+    }
+
+    .contact__row--greeting {
+      min-height: 150px;
+    }
+
+    .contact__greeting-button {
+      /* Button is 0.9em across, centred on the x-height of the greeting text */
+      width: 0.9em;
+      height: 0.9em;
+      font-size: clamp(44px, 6vw, 88px);
+    }
+
+    .contact__arrow {
+      width: 1em;
+      height: 1em;
+    }
+  }
+
+  /* --- Print --------------------------------------------------------------- */
+  @media print {
+    .contact__row {
+      min-height: auto;
+      padding-block: 12px;
+    }
+
+    .contact__greeting-button {
+      display: none;
     }
   }
 </style>

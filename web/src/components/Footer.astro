@@ -1,165 +1,139 @@
 ---
 /**
- * Site footer — including the disclosure about how the site is built, which
- * extends the evidence-first identity to the artifact itself.
+ * Footer — "the close" (redesign Task 7).
  *
- * `snapshotId` is an optional slot: it is only rendered when a caller has a
- * public snapshot to name, so no placeholder snapshot claim can ever leak onto
- * the page.
+ * The footer is a designed close, not a sitemap. The name returns at full
+ * width, followed by a one-line tagline, a colophon about how the site is
+ * built, a credit line for found images (placeholder until Task 5/6 fills
+ * it in), and a bilingual notice.
+ *
+ * The footer renders on every route but receives no `locale` prop, so it
+ * reads the locale from the built pathname — the same `<base>es/` signal
+ * the URL helpers use.
  */
 import type { Copy } from '../i18n/copy';
 import { profile } from '../lib/data';
-import { localeFromPathname, route } from '../lib/urls';
 
 interface Props {
   copy: Copy;
-  snapshotId?: string;
 }
 
-const { copy, snapshotId } = Astro.props;
+const { copy } = Astro.props;
 
-/* The footer renders on every route but receives no `locale` prop, so it reads
-   the locale from the built pathname — the same `<base>es/` signal the URL
-   helpers use — and links the printable profile of the current language. */
-const locale = localeFromPathname(Astro.url.pathname);
-const printHref = route(locale, 'print/');
-const buildHref = route(locale, 'build/');
-const guestbookHref = route(locale, 'guestbook/');
-
-const SOURCE_REPO = `https://github.com/${profile.reposOwner}/professional-evolution-portfolio`;
 const year = new Date().getUTCFullYear();
 ---
 
 <footer class="site-footer">
   <div class="shell site-footer__inner">
-    <div class="site-footer__identity">
-      <p class="site-footer__name">{profile.name}</p>
-      <p class="site-footer__tagline">{copy.footer.tagline}</p>
-      <p class="site-footer__print">
-        <a href={printHref}>{copy.footer.printProfile}</a>
-      </p>
-      <p class="site-footer__build">
-        <a href={buildHref}>{copy.footer.buildPage}</a>
-      </p>
-      <p class="site-footer__guestbook">
-        <a href={guestbookHref}>{copy.footer.guestbook}</a>
-      </p>
-    </div>
+    <p class="site-footer__name">{profile.name}</p>
 
-    <dl class="site-footer__meta">
-      {
-        snapshotId && (
-          <>
-            <dt class="site-footer__term">{copy.footer.snapshotLabel}</dt>
-            <dd class="site-footer__value">
-              <code>{snapshotId}</code>
-            </dd>
-          </>
-        )
-      }
-      <dt class="site-footer__term">{copy.footer.sourceRepository}</dt>
-      <dd class="site-footer__value">
-        <a href={SOURCE_REPO} target="_blank" rel="noopener noreferrer">
-          {profile.reposOwner}/professional-evolution-portfolio
-          <span class="visually-hidden">({copy.a11y.opensInNewTab})</span>
-        </a>
-      </dd>
-    </dl>
+    <p class="site-footer__tagline">
+      AI engineering on a full-stack and cloud foundation, remote-first.
+    </p>
 
-    <div class="site-footer__notes">
-      <p class="site-footer__note">{copy.footer.buildNote}</p>
-      <p class="site-footer__note">{copy.footer.themeNote}</p>
-      <p class="site-footer__note tabular">© {year} {profile.name}</p>
-    </div>
+    <p class="site-footer__colophon">
+      Built with Astro from a canonical data layer. One GitHub Actions run publishes
+      it to two hosts. Every claim on this page points at evidence you can open.
+    </p>
+
+    <p class="site-footer__credit">
+      Found pictures: title, creator, licence, source — filled in Task 5/6 when
+      the open-collection pictures are chosen.
+    </p>
+
+    <p class="site-footer__bilingual">
+      This site also exists in Español: <a href="/es/">/es</a>.
+    </p>
+
+    <p class="site-footer__copyright tabular">© {year} {profile.name}</p>
   </div>
 </footer>
 
 <style>
+  /* The footer is a designed close. The name returns at full width, followed
+     by a one-line tagline, a colophon, a credit line for found images, and a
+     bilingual notice. */
   .site-footer {
-    margin-top: var(--space-24);
-    padding-block: var(--space-12);
-    border-top: 1px solid var(--color-border);
+    margin-block-start: 120px;
+    padding-block: 60px 40px;
     background-color: var(--color-surface);
   }
 
   .site-footer__inner {
-    display: grid;
-    gap: var(--space-8);
-  }
-
-  .site-footer__name {
-    font-weight: 700;
-    letter-spacing: var(--tracking-tight);
-  }
-
-  .site-footer__tagline {
-    color: var(--color-accent);
-    font-size: var(--text-sm);
-    line-height: var(--leading-sm);
-  }
-
-  .site-footer__print,
-  .site-footer__build,
-  .site-footer__guestbook {
-    margin-top: var(--space-2);
-  }
-
-  .site-footer__print a,
-  .site-footer__build a,
-  .site-footer__guestbook a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    font-size: var(--text-sm);
-  }
-
-  .site-footer__meta {
-    display: grid;
-    gap: var(--space-1);
-    margin: 0;
-  }
-
-  .site-footer__term {
-    color: var(--color-text-muted);
-    font-size: var(--text-xs);
-    line-height: var(--leading-xs);
-    letter-spacing: var(--tracking-eyebrow);
-    text-transform: uppercase;
-  }
-
-  .site-footer__value {
-    margin: 0 0 var(--space-2);
-    font-size: var(--text-sm);
-    word-break: break-word;
-  }
-
-  .site-footer__value a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-  }
-
-  .site-footer__notes {
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
+    gap: 24px;
   }
 
-  .site-footer__note {
+  /* --- The name returns --------------------------------------------------- */
+  .site-footer__name {
+    font-size: clamp(32px, 5vw, 56px);
+    line-height: 1.0;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: var(--color-text);
+  }
+
+  /* --- The tagline -------------------------------------------------------- */
+  .site-footer__tagline {
+    font-size: var(--text-md);
+    line-height: var(--leading-md);
+    color: var(--color-text);
     max-width: 60ch;
+  }
+
+  /* --- The colophon ------------------------------------------------------- */
+  .site-footer__colophon {
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
     color: var(--color-text-muted);
+    max-width: 60ch;
+  }
+
+  /* --- The credit line ---------------------------------------------------- */
+  .site-footer__credit {
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+    color: var(--color-text-muted);
+    max-width: 60ch;
+    font-style: italic;
+  }
+
+  /* --- The bilingual notice ----------------------------------------------- */
+  .site-footer__bilingual {
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+    color: var(--color-text-muted);
+  }
+
+  .site-footer__bilingual a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+    transition: text-decoration-thickness var(--duration-fast) var(--ease-standard);
+  }
+
+  .site-footer__bilingual a:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  /* --- The copyright ------------------------------------------------------ */
+  .site-footer__copyright {
     font-size: var(--text-xs);
     line-height: var(--leading-xs);
+    color: var(--color-text-muted);
   }
 
-  @media (min-width: 768px) {
-    .site-footer__inner {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      align-items: start;
+  /* --- Print -------------------------------------------------------------- */
+  @media print {
+    .site-footer {
+      margin-block-start: 40px;
+      padding-block: 20px;
     }
 
-    .site-footer__notes {
-      grid-column: 1 / -1;
+    .site-footer__name {
+      font-size: 24px;
     }
   }
 </style>
