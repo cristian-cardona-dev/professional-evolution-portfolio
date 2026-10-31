@@ -38,11 +38,11 @@
      one display size (lg) with clamp() for fluid heading scaling. */
   --text-xs: 13px;
   --leading-xs: 1.5;
-  --text-sm: 14px;
-  --leading-sm: 1.55;
-  --text-base: 16px;
+  --text-sm: 16px;
+  --leading-sm: 1.6;
+  --text-base: 18px;
   --leading-base: 1.6;
-  --text-md: 18px;
+  --text-md: 20px;
   --leading-md: 1.55;
   --text-lg: 32px;
   --leading-lg: 1.2;

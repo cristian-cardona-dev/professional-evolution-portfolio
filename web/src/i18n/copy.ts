@@ -930,7 +930,7 @@ export const en: Copy = {
     switchToEs: 'Leer esta página en español',
   },
   hero: {
-    sentence: 'AI engineer who ships production LLM systems. Formerly full-stack and cloud.',
+    sentence: 'AI engineer shipping production LLM systems. Formerly full-stack & cloud.',
     cta: 'Book a call',
     ctaSubject: 'Portfolio intro call',
   },
@@ -2137,3 +2137,4 @@ export const LOCALE_PAGES: Record<Locale, { locale: Locale; copy: Copy }> = {
   en: { locale: 'en', copy: en },
   es: { locale: 'es', copy: es },
 };
+
