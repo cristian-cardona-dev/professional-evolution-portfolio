@@ -198,6 +198,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
         </ul>
 
         <div class="assistant__out" data-a-out aria-live="polite" hidden>
+          <p class="assistant__error" data-a-error hidden role="alert"></p>
           <p class="assistant__out-label" data-a-label hidden>{copy.assistant.results}</p>
           <ol class="assistant__results" data-a-results hidden></ol>
           <div class="assistant__fallback" data-a-fallback hidden>
@@ -243,6 +244,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
 
 <script>
   import type { AssistantEntry } from '../lib/assistant-search';
+  import { searchEntries } from '../lib/assistant-search';
   // The ranking layer is imported DYNAMICALLY inside the script (see
   // `loadSemantic` and `run`): the bundler emits it as its own chunk, so a
   // visit that never opens the panel never downloads it — the code-split
@@ -270,13 +272,14 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
     const input = root.querySelector<HTMLInputElement>('[data-a-input]');
     const source = root.querySelector<HTMLElement>('[data-a-source]');
     const out = root.querySelector<HTMLElement>('[data-a-out]');
+    const error = root.querySelector<HTMLElement>('[data-a-error]');
     const label = root.querySelector<HTMLElement>('[data-a-label]');
     const results = root.querySelector<HTMLElement>('[data-a-results]');
     const fallback = root.querySelector<HTMLElement>('[data-a-fallback]');
     const mailto = root.querySelector<HTMLAnchorElement>('[data-a-mailto]');
     if (
       !fab || !panel || !closeButton || !form || !input || !source ||
-      !out || !label || !results || !fallback || !mailto
+      !out || !error || !label || !results || !fallback || !mailto
     ) {
       return;
     }
@@ -387,9 +390,11 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
       const trimmed = query.trim();
       if (trimmed === '') {
         out.hidden = true;
+        error.hidden = true;
         return;
       }
       out.hidden = false;
+      error.hidden = true; // Hide any previous error
       // `aria-busy` marks the live region as mid-update while the only real
       // await runs (the at-most-once fetch of the ranking chunk + asset).
       out.setAttribute('aria-busy', 'true');
@@ -400,9 +405,19 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
       // threshold; otherwise exactly the v1 keyword ranking (see
       // `lib/semantic-search.ts`). The import is dynamic so the ranking code
       // downloads on first search, not on page load.
-      const { hybridSearch } = await import('../lib/semantic-search');
-      const hits = hybridSearch(entries, await loadSemantic(), trimmed, 3);
-      out.removeAttribute('aria-busy');
+      let hits;
+      try {
+        const { hybridSearch } = await import('../lib/semantic-search');
+        hits = hybridSearch(entries, await loadSemantic(), trimmed, 3);
+      } catch {
+        // The semantic search module failed to load.
+        // Fall back to keyword-only search.
+        error.hidden = false;
+        error.textContent = 'Search module failed to load. Showing keyword results instead.';
+        hits = searchEntries(entries, trimmed, 3);
+      } finally {
+        out.removeAttribute('aria-busy');
+      }
       if (hits.length > 0) {
         label.hidden = false;
         fallback.hidden = true;
@@ -586,6 +601,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
      not exist. */
   .assistant__panel[hidden],
   .assistant__out[hidden],
+  .assistant__error[hidden],
   .assistant__out-label[hidden],
   .assistant__results[hidden],
   .assistant__fallback[hidden],
@@ -726,6 +742,17 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
     font-weight: 600;
     letter-spacing: var(--tracking-eyebrow);
     text-transform: uppercase;
+  }
+
+  .assistant__error {
+    margin: 0;
+    padding: var(--space-2);
+    background-color: color-mix(in srgb, var(--color-danger, #dc2626) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 30%, transparent);
+    border-radius: var(--radius-sm);
+    color: var(--color-danger, #dc2626);
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
   }
 
   .assistant__results,
