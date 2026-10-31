@@ -8,14 +8,12 @@
  * Sin `activeNav`: la cabecera marca esta ruta por su propio pathname, porque
  * la unión `activeNav` de `BaseLayout` no cambia en esta tarea.
  */
-import type { Locale } from '../../i18n/copy';
-import { getCopy } from '../../i18n/copy';
+import { LOCALE_PAGES } from '../../i18n/copy';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Career from '../../views/Career.astro';
 import { ogCardPath } from '../../lib/urls';
 
-const locale: Locale = 'es';
-const copy = getCopy(locale);
+const { locale, copy } = LOCALE_PAGES.es;
 
 const title = copy.nav.career;
 const description = copy.career.summary;
@@ -23,7 +21,6 @@ const description = copy.career.summary;
 
 <BaseLayout
   locale={locale}
-  lang="es"
   title={title}
   description={description}
   path="career/"

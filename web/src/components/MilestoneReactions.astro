@@ -18,7 +18,7 @@
  *   1. the initial state is `loading`: the button is rendered but disabled and
  *      `aria-busy`, and the status region says so — it never claims a count;
  *   2. if the API cannot be reached the control moves to `unavailable`, stays
- *      disabled and says why;
+ *      disabled, says why, and offers one explicit retry button (no auto-loop);
  *   3. without JavaScript the button stays disabled (never a pretend control)
  *      and a `<noscript>` note explains that nothing is sent.
  * The control is deliberately NOT hidden behind the `html.js` gate: it has to
@@ -55,6 +55,7 @@ const endpoint = `${apiBase}/api/milestones/${encodeURIComponent(milestoneId)}/r
   data-error={copy.reactions.error}
   data-rate-limited={copy.reactions.rateLimited}
   data-unavailable={copy.reactions.unavailable}
+  data-retry={copy.reactions.retry}
 >
   <div class="milestone-reactions__control" role="group" aria-label={copy.reactions.group}>
     <button
@@ -74,6 +75,11 @@ const endpoint = `${apiBase}/api/milestones/${encodeURIComponent(milestoneId)}/r
     <p class="milestone-reactions__status" role="status" aria-live="polite" data-reactions-status>
       {copy.reactions.loading}
     </p>
+    {/* Offered only in the `unavailable` state: one honest retry, not an
+        auto-reload loop. Hidden again the moment a load succeeds. */}
+    <button class="milestone-reactions__retry" type="button" data-reactions-retry hidden>
+      {copy.reactions.retry}
+    </button>
   </div>
   <p class="milestone-reactions__note">{copy.reactions.note}</p>
   <noscript>
@@ -89,6 +95,7 @@ const endpoint = `${apiBase}/api/milestones/${encodeURIComponent(milestoneId)}/r
     const button = root.querySelector('[data-reactions-button]');
     const countEl = root.querySelector('[data-reactions-count]');
     const statusEl = root.querySelector('[data-reactions-status]');
+    const retryEl = root.querySelector('[data-reactions-retry]');
     if (!button || !countEl || !statusEl) return;
 
     const endpoint = root.dataset.endpoint || '';
@@ -155,6 +162,7 @@ const endpoint = `${apiBase}/api/milestones/${encodeURIComponent(milestoneId)}/r
       button.setAttribute('aria-pressed', reacted ? 'true' : 'false');
       button.removeAttribute('aria-busy');
       button.disabled = false;
+      if (retryEl) retryEl.hidden = true;
       root.dataset.state = 'ready';
       return reacted;
     };
@@ -165,6 +173,9 @@ const endpoint = `${apiBase}/api/milestones/${encodeURIComponent(milestoneId)}/r
       button.removeAttribute('aria-busy');
       button.disabled = true;
       setStatus(unavailableText);
+      // The state is honest about the failure AND offers one explicit retry
+      // instead of silently staying dead or auto-looping.
+      if (retryEl) retryEl.hidden = false;
     };
 
     const headers = { accept: 'application/json', 'x-reaction-nonce': nonce };
@@ -208,6 +219,20 @@ const endpoint = `${apiBase}/api/milestones/${encodeURIComponent(milestoneId)}/r
     };
 
     button.addEventListener('click', toggle);
+
+    // Retry the initial load from the `unavailable` state: same honest flow —
+    // `aria-busy` on the control, the loading status in the live region, then
+    // either the real state or the unavailable state again (which re-shows
+    // this button). Hiding the button first also blocks double-clicks.
+    if (retryEl) {
+      retryEl.addEventListener('click', async () => {
+        retryEl.hidden = true;
+        button.setAttribute('aria-busy', 'true');
+        setStatus(loadingText);
+        await load();
+      });
+    }
+
     load();
   })();
 </script>
@@ -295,5 +320,25 @@ const endpoint = `${apiBase}/api/milestones/${encodeURIComponent(milestoneId)}/r
 
   .milestone-reactions__status:empty {
     display: none;
+  }
+
+  /* The retry affordance reads as a quiet inline action, not a form button —
+     the same link-style treatment the comment controls use. */
+  .milestone-reactions__retry {
+    min-height: 44px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--color-accent);
+    font: inherit;
+    font-size: var(--text-sm);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .milestone-reactions__retry:focus-visible {
+    outline: none;
+    box-shadow: var(--ring-focus);
+    border-radius: var(--radius-sm);
   }
 </style>

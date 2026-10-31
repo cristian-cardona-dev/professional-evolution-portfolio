@@ -254,11 +254,29 @@ const items: PaletteItem[] = [...navItems, ...projectItems, ...evidenceItems];
       input.focus();
     };
 
+    /** Rendered and therefore focusable: `offsetParent` misreports
+     *  position:fixed elements (the dialog itself, the assistant FAB), so the
+     *  visibility check uses client rects instead. */
+    const isRendered = (el: HTMLElement): boolean => el.getClientRects().length > 0;
+
+    /** Where focus goes when the palette closes: the element that opened it —
+     *  unless it is no longer rendered (the header trigger is hidden below
+     *  1024px, and the Cmd/Ctrl+K shortcut works there) — then the first
+     *  rendered trigger, then the nav toggle. Focus is never returned into a
+     *  hidden subtree, and with no rendered candidate the browser keeps focus
+     *  where it is instead of throwing it away. */
+    const restoreTarget = (): HTMLElement | null =>
+      opener && isRendered(opener)
+        ? opener
+        : (triggers.find(isRendered) ??
+          document.querySelector<HTMLElement>('[data-site-nav-toggle]'));
+
     const close = () => {
       if (root.hidden) return;
       root.hidden = true;
       for (const trigger of triggers) trigger.setAttribute('aria-expanded', 'false');
-      (opener ?? triggers[0] ?? input).focus();
+      const restore = restoreTarget();
+      if (restore) restore.focus();
       opener = null;
     };
 
@@ -334,6 +352,20 @@ const items: PaletteItem[] = [...navItems, ...projectItems, ...evidenceItems];
       const target = event.target;
       const onTrigger = triggers.some((trigger) => trigger.contains(target as Node));
       if (target instanceof Node && !dialog.contains(target) && !onTrigger) close();
+    });
+
+    // The Tab wrap above contains keyboard focus; this guard contains
+    // PROGRAMMATIC focus too (a page script, a browser extension, focus
+    // following a click on the backdrop's parent). While the modal is open,
+    // any focus landing outside the dialog — except on a trigger, which is
+    // about to toggle the palette closed — is pulled back inside, which is
+    // what `aria-modal` promises assistive tech.
+    document.addEventListener('focusin', (event) => {
+      if (root.hidden) return;
+      const target = event.target;
+      if (target instanceof Node && dialog.contains(target)) return;
+      if (triggers.some((trigger) => trigger.contains(target))) return;
+      input.focus();
     });
   })();
 </script>

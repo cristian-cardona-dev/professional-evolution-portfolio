@@ -243,12 +243,11 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
 
 <script>
   import type { AssistantEntry } from '../lib/assistant-search';
-  import {
-    SEMANTIC_INDEX_FILE,
-    hybridSearch,
-    parseSemanticIndex,
-    type SemanticIndex,
-  } from '../lib/semantic-search';
+  // The ranking layer is imported DYNAMICALLY inside the script (see
+  // `loadSemantic` and `run`): the bundler emits it as its own chunk, so a
+  // visit that never opens the panel never downloads it — the code-split
+  // equivalent of an Astro island for a vanilla-script widget.
+  import type { SemanticIndex } from '../lib/semantic-search';
 
   (() => {
     const root = document.querySelector<HTMLElement>('[data-assistant]');
@@ -300,6 +299,11 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
       if (semanticLoaded) return semanticIndex;
       semanticLoaded = true;
       try {
+        // Dynamic import: the ranking code is a separate chunk, fetched only
+        // when this visit actually needs it.
+        const { SEMANTIC_INDEX_FILE, parseSemanticIndex } = await import(
+          '../lib/semantic-search'
+        );
         const url = `${import.meta.env.BASE_URL}${SEMANTIC_INDEX_FILE}`;
         const response = await fetch(url, { credentials: 'omit' });
         if (!response.ok) return null;
@@ -367,6 +371,18 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
       }
     });
 
+    // Contain PROGRAMMATIC focus too (the Tab wrap only handles keyboard
+    // focus): while the modal panel is open, focus landing outside it —
+    // except on the FAB, which toggles the panel closed — is pulled back to
+    // the input. That is what `aria-modal` promises assistive tech.
+    document.addEventListener('focusin', (event) => {
+      if (panel.hidden) return;
+      const target = event.target;
+      if (target instanceof Node && panel.contains(target)) return;
+      if (target instanceof Node && fab.contains(target)) return;
+      input.focus();
+    });
+
     const run = async (query: string) => {
       const trimmed = query.trim();
       if (trimmed === '') {
@@ -374,13 +390,19 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
         return;
       }
       out.hidden = false;
+      // `aria-busy` marks the live region as mid-update while the only real
+      // await runs (the at-most-once fetch of the ranking chunk + asset).
+      out.setAttribute('aria-busy', 'true');
       // Reset row positions, then append the winners in ranked order; moving
       // a node into `results` empties the previous listing by itself.
       rows.forEach((row) => source.append(row));
       // Semantic when the build shipped vectors and the query clears the
       // threshold; otherwise exactly the v1 keyword ranking (see
-      // `lib/semantic-search.ts`).
+      // `lib/semantic-search.ts`). The import is dynamic so the ranking code
+      // downloads on first search, not on page load.
+      const { hybridSearch } = await import('../lib/semantic-search');
       const hits = hybridSearch(entries, await loadSemantic(), trimmed, 3);
+      out.removeAttribute('aria-busy');
       if (hits.length > 0) {
         label.hidden = false;
         fallback.hidden = true;

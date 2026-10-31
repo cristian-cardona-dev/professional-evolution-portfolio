@@ -16,6 +16,6 @@ test('git-generated milestones are explicitly unreviewed candidates in both loca
   assert.equal(milestone.source, 'git');
   assert.match(milestone.narrative, /candidate/i);
   assert.match(milestone.narrative, /unreviewed/i);
-  assert.match(milestone.narrativeEs, /candidato/i);
-  assert.match(milestone.narrativeEs, /no está revisada/i);
+  assert.match(milestone.narrative_es, /candidato/i);
+  assert.match(milestone.narrative_es, /no está revisada/i);
 });

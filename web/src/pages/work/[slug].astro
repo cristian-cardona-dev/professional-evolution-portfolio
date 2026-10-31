@@ -2,14 +2,16 @@
 /**
  * Case-study route (en) — one static page per project in `data/projects.json`,
  * rendering the case study derived from `case-studies/*.md` when one exists
- * and the honest empty state when it does not.
+ * and the honest empty state when it does not. The page injects the project's
+ * CreativeWork structured data (`lib/seo.ts`) alongside the route metadata.
  */
 import type { Locale } from '../../i18n/copy';
 import { getCopy } from '../../i18n/copy';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import CaseStudy from '../../views/CaseStudy.astro';
-import { caseStudyFor, projects } from '../../lib/data';
+import { caseStudyFor, projectRoutes } from '../../lib/data';
 import type { Project } from '../../lib/data';
+import { projectJsonLd } from '../../lib/seo';
 import { ogCardPath } from '../../lib/urls';
 
 interface Props {
@@ -17,10 +19,7 @@ interface Props {
 }
 
 export function getStaticPaths() {
-  return projects.map((project) => ({
-    params: { slug: project.slug },
-    props: { project },
-  }));
+  return projectRoutes();
 }
 
 const { project } = Astro.props;
@@ -34,6 +33,11 @@ const description = project.summary;
    empty state keeps the site-wide cover. The generator's two-way check fails
    the build if this ever advertises a card it did not draw. */
 const ogImagePath = caseStudyFor(project.slug) ? ogCardPath(locale, `work/${project.slug}/`) : undefined;
+/* Structured data for the project this page documents — the same fields the
+   page renders, and only a card image the build actually drew. */
+const jsonLdBlocks = [projectJsonLd(project, locale, Astro.site, ogImagePath)].filter(
+  (block): block is Record<string, unknown> => block !== null,
+);
 ---
 
 <BaseLayout
@@ -44,6 +48,7 @@ const ogImagePath = caseStudyFor(project.slug) ? ogCardPath(locale, `work/${proj
   path={`work/${project.slug}/`}
   ogImagePath={ogImagePath}
   activeNav="projects"
+  jsonLd={jsonLdBlocks}
 >
   <CaseStudy locale={locale} copy={copy} project={project} />
 </BaseLayout>

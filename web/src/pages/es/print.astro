@@ -16,13 +16,11 @@
  * densidad que exige el contrato, sin eliminar ninguna de las afirmaciones que
  * muestra la pantalla.
  */
-import type { Locale } from '../../i18n/copy';
-import { getCopy } from '../../i18n/copy';
+import { LOCALE_PAGES } from '../../i18n/copy';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { printModel } from '../../lib/print';
 
-const locale: Locale = 'es';
-const copy = getCopy(locale);
+const { locale, copy } = LOCALE_PAGES.es;
 const model = printModel(copy, locale);
 
 const dateFormat = new Intl.DateTimeFormat('es-ES', {
@@ -36,7 +34,6 @@ const formatDate = (iso: string) => dateFormat.format(new Date(`${iso}T00:00:00Z
 
 <BaseLayout
   locale={locale}
-  lang="es"
   title={copy.print.title}
   description={copy.print.note}
   path="print/"

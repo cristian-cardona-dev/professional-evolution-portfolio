@@ -4,9 +4,9 @@
       "id": "2026-10-03-initial-portfolio-build",
       "date": "2026-10-03",
       "title": "Evidence-first portfolio published",
-      "titleEs": "Portafolio con enfoque en evidencia, publicado",
+      "title_es": "Portafolio con enfoque en evidencia, publicado",
       "narrative": "First public version of the portfolio, built as a static site from a public snapshot contract: claims are stored separately from evidence, and every capability statement points at something a reader can inspect.",
-      "narrativeEs": "Se publicó la primera versión pública del portafolio, creada como sitio estático a partir de un contrato de instantánea pública: las afirmaciones se almacenan por separado de la evidencia y cada declaración de capacidad remite a algo que el lector puede inspeccionar.",
+      "narrative_es": "Se publicó la primera versión pública del portafolio, creada como sitio estático a partir de un contrato de instantánea pública: las afirmaciones se almacenan por separado de la evidencia y cada declaración de capacidad remite a algo que el lector puede inspeccionar.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/631cf84",
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/ac25f54"
@@ -22,9 +22,9 @@
       "id": "2026-10-03-evidence-boundary-contract",
       "date": "2026-10-03",
       "title": "Evidence boundaries written down",
-      "titleEs": "Límites de evidencia documentados",
+      "title_es": "Límites de evidencia documentados",
       "narrative": "Each public reproduction gained an explicit boundary: what it demonstrates and, in the same list, what it does not. Documented for the cloud dashboard reproduction, the AI reliability lab and the automation workflow lab, together with deployment ownership notes and a documented products quickstart.",
-      "narrativeEs": "Cada reproducción pública incorporó un límite explícito: qué demuestra y, en la misma lista, qué no demuestra. Esto se documentó para la reproducción del panel de nube, el laboratorio de fiabilidad de IA y el laboratorio de workflows de automatización, junto con notas sobre la responsabilidad del despliegue y una guía de inicio de productos.",
+      "narrative_es": "Cada reproducción pública incorporó un límite explícito: qué demuestra y, en la misma lista, qué no demuestra. Esto se documentó para la reproducción del panel de nube, el laboratorio de fiabilidad de IA y el laboratorio de workflows de automatización, junto con notas sobre la responsabilidad del despliegue y una guía de inicio de productos.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/120f3bf",
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/27612cf",
@@ -46,9 +46,9 @@
       "id": "2026-10-07-dark-first-theme-foundation",
       "date": "2026-10-07",
       "title": "Dark-first theme foundation",
-      "titleEs": "Base del tema oscuro por defecto",
+      "title_es": "Base del tema oscuro por defecto",
       "narrative": "Theme assets were split out of the pages into a shared foundation and the homepage was recomposed around evidence rather than marketing copy, keeping the dark-first default.",
-      "narrativeEs": "Los recursos del tema se separaron de las páginas y pasaron a una base compartida; la página de inicio se reorganizó alrededor de la evidencia en lugar de textos de marketing, manteniendo el modo oscuro como opción predeterminada.",
+      "narrative_es": "Los recursos del tema se separaron de las páginas y pasaron a una base compartida; la página de inicio se reorganizó alrededor de la evidencia en lugar de textos de marketing, manteniendo el modo oscuro como opción predeterminada.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/6f40b2d",
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/6dca28d"
@@ -64,9 +64,9 @@
       "id": "2026-10-08-bilingual-accessibility-release",
       "date": "2026-10-08",
       "title": "Bilingual EN/ES release and accessibility parity",
-      "titleEs": "Lanzamiento EN/ES y paridad de accesibilidad",
+      "title_es": "Lanzamiento EN/ES y paridad de accesibilidad",
       "narrative": "Reviewed English and Spanish locales shipped across the site, followed by homepage parity and accessibility polish so both languages expose the same content and the same interactive affordances.",
-      "narrativeEs": "Se publicaron versiones revisadas en inglés y español en todo el sitio; después se igualó la página de inicio y se pulió la accesibilidad para que ambos idiomas ofrezcan el mismo contenido y las mismas posibilidades de interacción.",
+      "narrative_es": "Se publicaron versiones revisadas en inglés y español en todo el sitio; después se igualó la página de inicio y se pulió la accesibilidad para que ambos idiomas ofrezcan el mismo contenido y las mismas posibilidades de interacción.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/6d445ef",
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/94c56fc"
@@ -82,9 +82,9 @@
       "id": "2026-10-09-portfolio-10x-rebuild",
       "date": "2026-10-09",
       "title": "Portfolio 10x rebuild starts",
-      "titleEs": "Comienza la reconstrucción del portafolio 10x",
+      "title_es": "Comienza la reconstrucción del portafolio 10x",
       "narrative": "The Astro redesign shipped: a research artifact covering dark-first dual-theme tokens, type scale, motion rules and an accessibility checklist replaced the previous text-heavy layout, and the rebuild was merged to main and released through the dual-host deployment pipeline (GitHub Pages plus the Cloudflare Worker mirror). The legacy static site is no longer what the deployment serves.",
-      "narrativeEs": "Se publicó el rediseño en Astro: un artefacto de investigación que abarca tokens para dos temas con prioridad al modo oscuro, escala tipográfica, reglas de movimiento y una lista de verificación de accesibilidad sustituyó el diseño anterior, cargado de texto; la reconstrucción se integró en main y se publicó mediante el flujo de despliegue en dos hosts (GitHub Pages y el espejo de Cloudflare Worker). El despliegue ya no sirve el antiguo sitio estático.",
+      "narrative_es": "Se publicó el rediseño en Astro: un artefacto de investigación que abarca tokens para dos temas con prioridad al modo oscuro, escala tipográfica, reglas de movimiento y una lista de verificación de accesibilidad sustituyó el diseño anterior, cargado de texto; la reconstrucción se integró en main y se publicó mediante el flujo de despliegue en dos hosts (GitHub Pages y el espejo de Cloudflare Worker). El despliegue ya no sirve el antiguo sitio estático.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/7a60cce",
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/a5c0f67",
@@ -107,9 +107,9 @@
       "id": "2026-10-09-portfolio-10x-launch",
       "date": "2026-10-09",
       "title": "Portfolio 10x launch",
-      "titleEs": "Lanzamiento del portafolio 10x",
+      "title_es": "Lanzamiento del portafolio 10x",
       "narrative": "Stated goal recorded on 2026-10-09, not a delivery date. Launch means the rebuilt site replaces the legacy static site once the validation battery and the review gate pass; until then the legacy build is still what the deployment serves. The links below point at the in-progress branch, not at a released site.",
-      "narrativeEs": "Objetivo declarado y registrado el 2026-10-09; no es una fecha de entrega. El lanzamiento significa que el sitio reconstruido sustituirá al antiguo sitio estático cuando se superen la batería de validación y el control de revisión; hasta entonces, el despliegue seguirá sirviendo la versión anterior. Los enlaces siguientes apuntan a la rama en curso, no a un sitio publicado.",
+      "narrative_es": "Objetivo declarado y registrado el 2026-10-09; no es una fecha de entrega. El lanzamiento significa que el sitio reconstruido sustituirá al antiguo sitio estático cuando se superen la batería de validación y el control de revisión; hasta entonces, el despliegue seguirá sirviendo la versión anterior. Los enlaces siguientes apuntan a la rama en curso, no a un sitio publicado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio",
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/6b7a307"
@@ -125,9 +125,9 @@
       "id": "2026-10-09-ai-engineering-evidence-build-out",
       "date": "2026-10-09",
       "title": "AI engineering evidence build-out",
-      "titleEs": "Ampliación de la evidencia de ingeniería de IA",
+      "title_es": "Ampliación de la evidencia de ingeniería de IA",
       "narrative": "Direction recorded on 2026-10-09, with no delivery date implied. The intent is to widen the public AI engineering evidence: a fixed evaluation set for the reliability contract, a provider-neutral adapter seam, and reproducible run artifacts. None of it exists yet — the links below are the reproductions it would extend, not proof that it was built.",
-      "narrativeEs": "Dirección registrada el 2026-10-09, sin que ello implique una fecha de entrega. La intención es ampliar la evidencia pública de ingeniería de IA: un conjunto fijo de evaluación para el contrato de fiabilidad, un punto de adaptación independiente del proveedor y artefactos de ejecución reproducibles. Nada de esto existe todavía: los enlaces siguientes muestran las reproducciones que ampliaría, no demuestran que ya se haya construido.",
+      "narrative_es": "Dirección registrada el 2026-10-09, sin que ello implique una fecha de entrega. La intención es ampliar la evidencia pública de ingeniería de IA: un conjunto fijo de evaluación para el contrato de fiabilidad, un punto de adaptación independiente del proveedor y artefactos de ejecución reproducibles. Nada de esto existe todavía: los enlaces siguientes muestran las reproducciones que ampliaría, no demuestran que ya se haya construido.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/ai-chat-app",
         "https://github.com/cristian-cardona-dev/ai-automation-workflow-lab"
@@ -144,9 +144,9 @@
       "id": "2026-10-09-agentic-workflow-lab-public-iterations",
       "date": "2026-10-09",
       "title": "Agentic workflow lab public iterations",
-      "titleEs": "Iteraciones públicas del laboratorio de workflows agénticos",
+      "title_es": "Iteraciones públicas del laboratorio de workflows agénticos",
       "narrative": "Direction recorded on 2026-10-09, with no delivery date implied. The next iterations would exercise the approval-gated workflow under replay and adversarial conditions while keeping the boundary explicit: still no autonomous actions and no external service integration. The repository below is today's bounded reproduction, not the future one.",
-      "narrativeEs": "Dirección registrada el 2026-10-09, sin que ello implique una fecha de entrega. Las próximas iteraciones pondrían a prueba el workflow sujeto a aprobación mediante reproducciones y condiciones adversariales, manteniendo explícito el límite: todavía no habría acciones autónomas ni integración con servicios externos. El repositorio siguiente es la reproducción acotada de hoy, no la futura.",
+      "narrative_es": "Dirección registrada el 2026-10-09, sin que ello implique una fecha de entrega. Las próximas iteraciones pondrían a prueba el workflow sujeto a aprobación mediante reproducciones y condiciones adversariales, manteniendo explícito el límite: todavía no habría acciones autónomas ni integración con servicios externos. El repositorio siguiente es la reproducción acotada de hoy, no la futura.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/ai-automation-workflow-lab"
       ],
@@ -161,9 +161,9 @@
       "id": "git-2026-10-03-ai-snapshot-add-public-snapshot-contract",
       "date": "2026-10-03",
       "title": "Add public snapshot contract",
-      "titleEs": "Contrato de instantánea pública",
+      "title_es": "Contrato de instantánea pública",
       "narrative": "Derived from commit 10e5325: \"ai(snapshot): add public snapshot contract\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit 10e5325: \"ai(snapshot): add public snapshot contract\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit 10e5325: \"ai(snapshot): add public snapshot contract\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/10e5325c15b407842b20a36894fa98c7d9b8b113",
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/bbbc75e742a9b0c90f89c6da93ad222e6696b151",
@@ -181,9 +181,9 @@
       "id": "git-2026-10-03-ai-ui-add-evidence-first-static-portfolio",
       "date": "2026-10-03",
       "title": "Add evidence-first static portfolio",
-      "titleEs": "Portafolio estático con enfoque en evidencia",
+      "title_es": "Portafolio estático con enfoque en evidencia",
       "narrative": "Derived from commit ac25f54: \"ai(ui): add evidence-first static portfolio\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit ac25f54: \"ai(ui): add evidence-first static portfolio\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit ac25f54: \"ai(ui): add evidence-first static portfolio\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/ac25f544d105905a90ea04ff94fd990cbcacd2f0",
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/0245cfaa1e00934d232ee082eaac1bfeac420207",
@@ -202,9 +202,9 @@
       "id": "git-2026-10-03-ai-i18n-add-reviewed-english-and-spanish-locales",
       "date": "2026-10-03",
       "title": "Add reviewed English and Spanish locales",
-      "titleEs": "Locales revisados en inglés y español",
+      "title_es": "Locales revisados en inglés y español",
       "narrative": "Derived from commit 6d445ef: \"ai(i18n): add reviewed English and Spanish locales\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit 6d445ef: \"ai(i18n): add reviewed English and Spanish locales\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit 6d445ef: \"ai(i18n): add reviewed English and Spanish locales\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/6d445efb691f044ff9712a1e2f791ae42811f31c",
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/4018d37f2423e38cfaa9eda3f7fae3531dcf5208",
@@ -224,9 +224,9 @@
       "id": "git-2026-10-03-ai-evidence-add-ai-reliability-lab-evidence",
       "date": "2026-10-03",
       "title": "Add AI reliability lab evidence",
-      "titleEs": "Evidencia del laboratorio de fiabilidad de IA",
+      "title_es": "Evidencia del laboratorio de fiabilidad de IA",
       "narrative": "Derived from commit 27612cf: \"ai(evidence): add AI reliability lab evidence\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit 27612cf: \"ai(evidence): add AI reliability lab evidence\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit 27612cf: \"ai(evidence): add AI reliability lab evidence\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/27612cf4a7f599c27261bb105b590988abbfa324"
       ],
@@ -242,9 +242,9 @@
       "id": "git-2026-10-03-ai-evidence-add-automation-workflow-evidence",
       "date": "2026-10-03",
       "title": "Add automation workflow evidence",
-      "titleEs": "Evidencia del flujo de automatización",
+      "title_es": "Evidencia del flujo de automatización",
       "narrative": "Derived from commit 36cff4a: \"ai(evidence): add automation workflow evidence\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit 36cff4a: \"ai(evidence): add automation workflow evidence\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit 36cff4a: \"ai(evidence): add automation workflow evidence\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/36cff4a2f3eccc2a3886cd69e19e3277f880dcbc"
       ],
@@ -260,9 +260,9 @@
       "id": "git-2026-10-03-docs-quickstart-document-portfolio-products-and-verification",
       "date": "2026-10-03",
       "title": "Document portfolio products and verification",
-      "titleEs": "Productos y verificación del portafolio",
+      "title_es": "Productos y verificación del portafolio",
       "narrative": "Derived from commit 992c25e: \"docs(quickstart): document portfolio products and verification\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit 992c25e: \"docs(quickstart): document portfolio products and verification\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit 992c25e: \"docs(quickstart): document portfolio products and verification\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/992c25e81d893185410048350bd4c5bd2a9ebbcf"
       ],
@@ -280,9 +280,9 @@
       "id": "git-2026-10-03-ai-portfolio-add-public-github-activity-snapshot",
       "date": "2026-10-03",
       "title": "Add public github activity snapshot",
-      "titleEs": "Instantánea pública de actividad de GitHub",
+      "title_es": "Instantánea pública de actividad de GitHub",
       "narrative": "Derived from commit 8402487: \"ai(portfolio): add public github activity snapshot\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit 8402487: \"ai(portfolio): add public github activity snapshot\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit 8402487: \"ai(portfolio): add public github activity snapshot\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/840248795ed8921a55e045e73c2be3cc47fbad8b"
       ],
@@ -297,9 +297,9 @@
       "id": "git-2026-10-07-ai-portfolio-add-dark-first-theme-foundation",
       "date": "2026-10-07",
       "title": "Add dark-first theme foundation",
-      "titleEs": "Base del tema oscuro por defecto",
+      "title_es": "Base del tema oscuro por defecto",
       "narrative": "Derived from commit 6f40b2d: \"ai(portfolio): add dark-first theme foundation\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit 6f40b2d: \"ai(portfolio): add dark-first theme foundation\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit 6f40b2d: \"ai(portfolio): add dark-first theme foundation\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/6f40b2d707f8f5f553a1b5d4925dc9f0ee19c2f7"
       ],
@@ -314,9 +314,9 @@
       "id": "git-2026-10-07-ai-portfolio-redesign-evidence-led-homepage",
       "date": "2026-10-07",
       "title": "Redesign evidence-led homepage",
-      "titleEs": "Rediseño de la página basada en evidencia",
+      "title_es": "Rediseño de la página basada en evidencia",
       "narrative": "Derived from commit 6dca28d: \"ai(portfolio): redesign evidence-led homepage\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit 6dca28d: \"ai(portfolio): redesign evidence-led homepage\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit 6dca28d: \"ai(portfolio): redesign evidence-led homepage\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/6dca28dae0a34459a565793f2a453f457c42a7c5"
       ],
@@ -331,9 +331,9 @@
       "id": "git-2026-10-09-ai-portfolio-document-design-research-and-tokens",
       "date": "2026-10-09",
       "title": "Document design research and tokens",
-      "titleEs": "Investigación de diseño y tokens",
+      "title_es": "Investigación de diseño y tokens",
       "narrative": "Derived from commit 7a60cce: \"ai(portfolio): document design research and tokens\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit 7a60cce: \"ai(portfolio): document design research and tokens\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit 7a60cce: \"ai(portfolio): document design research and tokens\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/7a60cce468f08666e2646f373e7f074178dcb981"
       ],
@@ -348,9 +348,9 @@
       "id": "git-2026-10-09-ai-portfolio-scaffold-astro-and-canonical-data-layer",
       "date": "2026-10-09",
       "title": "Scaffold Astro and canonical data layer",
-      "titleEs": "Estructura de Astro y capa de datos canónica",
+      "title_es": "Estructura de Astro y capa de datos canónica",
       "narrative": "Derived from commit a5c0f67: \"ai(portfolio): scaffold Astro and canonical data layer\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit a5c0f67: \"ai(portfolio): scaffold Astro and canonical data layer\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit a5c0f67: \"ai(portfolio): scaffold Astro and canonical data layer\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/a5c0f6716f8d3d8f2bd0bb1d16fccf8a98e7edc4"
       ],
@@ -365,9 +365,9 @@
       "id": "git-2026-10-09-ai-portfolio-build-design-system-and-component-library",
       "date": "2026-10-09",
       "title": "Build design system and component library",
-      "titleEs": "Sistema de diseño y biblioteca de componentes",
+      "title_es": "Sistema de diseño y biblioteca de componentes",
       "narrative": "Derived from commit 76a404f: \"ai(portfolio): build design system and component library\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit 76a404f: \"ai(portfolio): build design system and component library\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit 76a404f: \"ai(portfolio): build design system and component library\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/76a404fff67ae8dfa54db5f1dd92f3d5a38eaab1"
       ],
@@ -382,9 +382,9 @@
       "id": "git-2026-10-09-ai-portfolio-compose-work-and-evolution-pages-bilingual",
       "date": "2026-10-09",
       "title": "Compose work and evolution pages bilingual",
-      "titleEs": "Páginas de trabajo y evolución bilingües",
+      "title_es": "Páginas de trabajo y evolución bilingües",
       "narrative": "Derived from commit c4d7936: \"ai(portfolio): compose work and evolution pages bilingual\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit c4d7936: \"ai(portfolio): compose work and evolution pages bilingual\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit c4d7936: \"ai(portfolio): compose work and evolution pages bilingual\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/c4d79360f78ca41d6fbbdbb21e090ceecf9cfebf"
       ],
@@ -399,9 +399,9 @@
       "id": "git-2026-10-09-ai-portfolio-add-evidence-system-and-contact-plumbing",
       "date": "2026-10-09",
       "title": "Add evidence system and contact plumbing",
-      "titleEs": "Sistema de evidencia y contacto",
+      "title_es": "Sistema de evidencia y contacto",
       "narrative": "Derived from commit 43fb841: \"ai(portfolio): add evidence system and contact plumbing\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit 43fb841: \"ai(portfolio): add evidence system and contact plumbing\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit 43fb841: \"ai(portfolio): add evidence system and contact plumbing\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/43fb841de9b215a9196fd384bd92d131070c6c43"
       ],
@@ -416,9 +416,9 @@
       "id": "git-2026-10-09-ai-portfolio-add-case-study-pages-with-progressive-disclosure",
       "date": "2026-10-09",
       "title": "Add case study pages with progressive disclosure",
-      "titleEs": "Estudios de caso con revelación progresiva",
+      "title_es": "Estudios de caso con revelación progresiva",
       "narrative": "Derived from commit 6b7a307: \"ai(portfolio): add case study pages with progressive disclosure\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit 6b7a307: \"ai(portfolio): add case study pages with progressive disclosure\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit 6b7a307: \"ai(portfolio): add case study pages with progressive disclosure\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/6b7a3070d3ad389dbef013f42e79b39ed61be8c5"
       ],
@@ -433,9 +433,9 @@
       "id": "git-2026-10-09-ai-portfolio-curate-evolution-timeline-and-roadmap",
       "date": "2026-10-09",
       "title": "Curate evolution timeline and roadmap",
-      "titleEs": "Línea de tiempo de evolución y hoja de ruta",
+      "title_es": "Línea de tiempo de evolución y hoja de ruta",
       "narrative": "Derived from commit ed06595: \"ai(portfolio): curate evolution timeline and roadmap\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit ed06595: \"ai(portfolio): curate evolution timeline and roadmap\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit ed06595: \"ai(portfolio): curate evolution timeline and roadmap\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/ed0659564f372ed53833f99c25e5e53b4b05c26b"
       ],
@@ -446,9 +446,9 @@
       "id": "git-2026-10-09-ai-portfolio-add-honest-search-based-portfolio-assistant",
       "date": "2026-10-09",
       "title": "Add honest search-based portfolio assistant",
-      "titleEs": "Asistente honesto de búsqueda del portafolio",
+      "title_es": "Asistente honesto de búsqueda del portafolio",
       "narrative": "Derived from commit 46fd67b: \"ai(portfolio): add honest search-based portfolio assistant\". Candidate entry — review the narrative before promoting it to a curated milestone.",
-      "narrativeEs": "Derivado del commit 46fd67b: \"ai(portfolio): add honest search-based portfolio assistant\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
+      "narrative_es": "Derivado del commit 46fd67b: \"ai(portfolio): add honest search-based portfolio assistant\". Entrada candidata: revisa la narración antes de promoverla a un hito curado.",
       "evidence": [
         "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/46fd67b3682b15dd8ef232b95b51a5b24fe402fa"
       ],

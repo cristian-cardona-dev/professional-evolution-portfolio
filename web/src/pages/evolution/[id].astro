@@ -1,14 +1,17 @@
 ---
 /**
  * Milestone detail route (en) — one static page per milestone in
- * `data/evolution.json`, rendered by the shared `MilestonePost` view.
+ * `data/evolution.json`, rendered by the shared `MilestonePost` view. The
+ * page injects Article structured data (`lib/seo.ts`): the milestone's own
+ * declared date is the honest `datePublished`, never a guessed timestamp.
  */
 import type { Locale } from '../../i18n/copy';
 import { getCopy } from '../../i18n/copy';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import MilestonePost from '../../views/MilestonePost.astro';
-import { milestones, milestoneNarrative, milestoneTitle } from '../../lib/data';
+import { milestoneNarrative, milestoneRoutes, milestoneTitle } from '../../lib/data';
 import type { Milestone } from '../../lib/data';
+import { articleJsonLd } from '../../lib/seo';
 import { ogCardPath } from '../../lib/urls';
 
 interface Props {
@@ -16,10 +19,7 @@ interface Props {
 }
 
 export function getStaticPaths() {
-  return milestones.map((milestone) => ({
-    params: { id: milestone.id },
-    props: { milestone },
-  }));
+  return milestoneRoutes();
 }
 
 const { milestone } = Astro.props;
@@ -28,6 +28,18 @@ const locale: Locale = 'en';
 const copy = getCopy(locale);
 const title = milestoneTitle(milestone, locale);
 const description = milestoneNarrative(milestone, locale);
+const path = `evolution/${milestone.id}/`;
+const jsonLdBlocks = [
+  articleJsonLd({
+    headline: title,
+    description,
+    path,
+    locale,
+    datePublished: milestone.date,
+    imagePath: ogCardPath(locale, path),
+    site: Astro.site,
+  }),
+].filter((block): block is Record<string, unknown> => block !== null);
 ---
 
 <BaseLayout
@@ -35,9 +47,10 @@ const description = milestoneNarrative(milestone, locale);
   title={title}
   description={description}
   ogType="article"
-  path={`evolution/${milestone.id}/`}
-  ogImagePath={ogCardPath(locale, `evolution/${milestone.id}/`)}
+  path={path}
+  ogImagePath={ogCardPath(locale, path)}
   activeNav="evolution"
+  jsonLd={jsonLdBlocks}
 >
   <MilestonePost milestone={milestone} locale={locale} copy={copy} />
 </BaseLayout>

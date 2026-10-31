@@ -182,7 +182,7 @@ revert PR; never force-push or `git reset --hard`).
   them on `/es/work/<slug>/` with the English sections as the fallback.
   Section anchors stay position-derived, so they are identical across locales.
 - **Localized print and assistant milestone titles** — `/es/print/` and the es
-  assistant index now use the `titleEs` (machine-drafted, pending human review) through the same
+  assistant index now use the `title_es` (machine-drafted, pending human review) through the same
   `milestoneTitle` helper as the timeline, instead of leaking the English
   curated title.
 

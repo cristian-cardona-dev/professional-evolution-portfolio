@@ -191,7 +191,7 @@ export function toMilestone(candidate, hashes) {
     date: candidate.date,
     title: candidate.title,
     narrative: `Git-derived candidate from commit ${hashes[0].slice(0, 7)}: "${candidate.subject}". This narrative is unreviewed and is not curated history.`,
-    narrativeEs: `Candidato derivado de git del commit ${hashes[0].slice(0, 7)}: "${candidate.subject}". Esta narración no está revisada y no es historia curada.`,
+    narrative_es: `Candidato derivado de git del commit ${hashes[0].slice(0, 7)}: "${candidate.subject}". Esta narración no está revisada y no es historia curada.`,
     evidence: hashes.map((hash) => `${REPO_URL}/commit/${hash}`),
     status: 'shipped',
     source: 'git',

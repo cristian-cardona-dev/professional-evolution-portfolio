@@ -94,10 +94,10 @@ interface MilestoneFields {
   date: string;
   title: string;
   /** Optional reviewed Spanish translation of `title`, used on the es locale. */
-  titleEs?: string;
+  title_es?: string;
   narrative: string;
   /** Required static Spanish narrative; git source marks unreviewed candidates. */
-  narrativeEs: string;
+  narrative_es: string;
   evidence: string[];
   status: MilestoneStatus;
   /** Roadmap phase; absent when the milestone is not part of the roadmap. */
@@ -306,6 +306,27 @@ export function roadmapRows(entries: Milestone[] = milestones): RoadmapRow[] {
 
 export function getProjectBySlug(slug: string): Project | undefined {
   return projects.find((project) => project.slug === slug);
+}
+
+/**
+ * `getStaticPaths` entries for the per-project case-study routes, shared by the
+ * `en` and `es` route files so the two cannot drift into different param or
+ * prop shapes. `data-validate.mjs` gates the slugs; this only maps them.
+ */
+export function projectRoutes(): { params: { slug: string }; props: { project: Project } }[] {
+  return projects.map((project) => ({ params: { slug: project.slug }, props: { project } }));
+}
+
+/**
+ * `getStaticPaths` entries for the per-milestone detail routes, shared by the
+ * `en` and `es` route files. One entry per canonical milestone id — the
+ * locale is the route file's own concern, not a param.
+ */
+export function milestoneRoutes(): { params: { id: string }; props: { milestone: Milestone } }[] {
+  return milestones.map((milestone) => ({
+    params: { id: milestone.id },
+    props: { milestone },
+  }));
 }
 
 /**

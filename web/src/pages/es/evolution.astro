@@ -3,14 +3,12 @@
  * Ruta de evolución (es) — la línea de tiempo completa con la leyenda que
  * explica las insignias de origen (curado, derivado de git, instantánea).
  */
-import type { Locale } from '../../i18n/copy';
-import { getCopy } from '../../i18n/copy';
+import { LOCALE_PAGES } from '../../i18n/copy';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Evolution from '../../views/Evolution.astro';
 import { ogCardPath } from '../../lib/urls';
 
-const locale: Locale = 'es';
-const copy = getCopy('es');
+const { locale, copy } = LOCALE_PAGES.es;
 
 const title = copy.nav.evolution;
 const description = copy.evolution.summary;
@@ -18,7 +16,6 @@ const description = copy.evolution.summary;
 
 <BaseLayout
   locale={locale}
-  lang="es"
   title={title}
   description={description}
   path="evolution/"

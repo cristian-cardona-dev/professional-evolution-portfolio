@@ -20,6 +20,14 @@
  * The no-JS path is the same shape as the contact form: a static note plus a
  * mailto link, never a pretend submission.
  *
+ * Client resilience (Task 8): a non-silent load announces "loading" in the
+ * polite live region, and a failed one degrades to the explicit unavailable
+ * state WITH a retry button that re-runs the probe (and re-attempts the
+ * verification widget) instead of an auto-reload loop. The expensive parts —
+ * the third-party Turnstile script, the realtime socket and its poll — start
+ * only when the section is near the viewport, deep-linked, or interacted
+ * with; the eager API probe and every no-JS contract above are unchanged.
+ *
  * F-B: the realtime presence/WebSocket wiring attaches in the marked place in
  * the inline script below. Presence is rendered best-effort (`~N viendo ahora`)
  * and a dropped socket reconnects with exponential backoff, falling back to a
@@ -82,6 +90,8 @@ const mailto = `mailto:${profile.email}?subject=${encodeURIComponent(mailtoSubje
       data-original-shown={copy.comments.originalShown}
       data-submit={copy.comments.submit}
       data-submitting={copy.comments.submitting}
+      data-loading={copy.comments.loading}
+      data-retry={copy.comments.retry}
       data-turnstile-blocked={copy.comments.turnstileBlocked}
       data-status-posted={copy.comments.statusPosted}
       data-status-queued={copy.comments.statusQueued}
@@ -142,6 +152,18 @@ const mailto = `mailto:${profile.email}?subject=${encodeURIComponent(mailtoSubje
           <p class="comments__unavailable" data-comments-unavailable hidden={configured}>
             <strong>{copy.comments.unavailableHeading}</strong> {copy.comments.unavailableNote}
           </p>
+
+          {/* Offered only after a failed load: one explicit retry (which also
+              re-attempts the verification widget), never an auto-reload loop.
+              Hidden again the moment a load succeeds. */}
+          <button
+            class="button button--ghost comments__retry"
+            type="button"
+            data-comments-retry
+            hidden
+          >
+            {copy.comments.retry}
+          </button>
 
           <form
             class="comments__form"
@@ -266,6 +288,7 @@ const mailto = `mailto:${profile.email}?subject=${encodeURIComponent(mailtoSubje
     const configured = root.dataset.configured === 'true';
     const presenceTemplate = root.dataset.presenceTemplate || '';
     const reconnectingText = root.dataset.reconnecting || '';
+    const loadingText = root.dataset.loading || '';
     const newCommentText = root.dataset.newComment || '';
     const replyLabel = root.dataset.reply || 'Reply';
     const replyingToTemplate = root.dataset.replyingTo || 'Replying to {name}';
@@ -290,6 +313,7 @@ const mailto = `mailto:${profile.email}?subject=${encodeURIComponent(mailtoSubje
     const langSelect = root.querySelector('[data-comments-lang]');
     const submit = root.querySelector('[data-comments-submit]');
     const unavailable = root.querySelector('[data-comments-unavailable]');
+    const retryEl = root.querySelector('[data-comments-retry]');
     const turnstileSlot = root.querySelector('[data-comments-turnstile]');
     const presenceEl = root.querySelector('[data-comments-presence]');
     const reconnectEl = root.querySelector('[data-comments-reconnect]');
@@ -725,10 +749,13 @@ const mailto = `mailto:${profile.email}?subject=${encodeURIComponent(mailtoSubje
     /**
      * Load the published list. `silent` is the background refresh (polling or
      * post-reconnect resync): it must never disable the form or shout an error
-     * over the status line.
+     * over the status line. A non-silent load announces itself in the polite
+     * live region first (loading), then either renders the list quietly or
+     * degrades to the explicit unavailable state WITH a retry button.
      */
     const load = async (options) => {
       const silent = !!(options && options.silent);
+      if (!silent) setStatus(loadingText);
       try {
         const response = await fetch(endpoint, { headers: { accept: 'application/json' } });
         if (!response.ok) throw new Error('list failed');
@@ -737,12 +764,19 @@ const mailto = `mailto:${profile.email}?subject=${encodeURIComponent(mailtoSubje
           renderThread(data.comments);
         }
         if (typeof data.presence === 'number') setPresence(data.presence);
-        if (!silent) enableForm();
+        if (!silent) {
+          enableForm();
+          if (retryEl) retryEl.hidden = true;
+          // The rendered list is directly below the status line; clearing the
+          // loading message keeps the live region from narrating stale state.
+          setStatus('');
+        }
         return true;
       } catch {
         if (!silent) {
           disableForm();
           setStatus(root.dataset.statusUnavailable);
+          if (retryEl) retryEl.hidden = false;
         }
         return false;
       }
@@ -985,9 +1019,30 @@ const mailto = `mailto:${profile.email}?subject=${encodeURIComponent(mailtoSubje
       connect();
     };
 
-    if (configured) {
-      load();
-      startRealtime();
+    // --- Deferred heavy work (Task 8) ----------------------------------------
+    // The expensive parts of this component are the third-party Turnstile
+    // script, the realtime socket and its poll. They now wait until the
+    // comments section is about to matter: near the viewport
+    // (IntersectionObserver with a head start), deep-linked (`#comments`), or
+    // on the first pointer interaction inside the section. The honest
+    // degradation probe (the eager REST load above) and every no-JS contract
+    // are unchanged — only WHEN the heavy work starts moved. Without
+    // IntersectionObserver the fallback is today's immediate start.
+    let turnstileAttempts = 0;
+    const injectTurnstile = () => {
+      if (!turnstileSlot) return;
+      if (window.turnstile) {
+        renderTurnstile();
+        return;
+      }
+      // Bounded: the initial attempt plus retries driven by the retry button,
+      // never an unbounded pile of script tags.
+      if (turnstileAttempts >= 3) {
+        setStatus(root.dataset.turnstileBlocked);
+        disableForm();
+        return;
+      }
+      turnstileAttempts += 1;
       const script = document.createElement('script');
       script.src =
         'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
@@ -996,6 +1051,55 @@ const mailto = `mailto:${profile.email}?subject=${encodeURIComponent(mailtoSubje
       script.onload = () => window.dispatchEvent(new Event('comments-turnstile-ready'));
       script.onerror = () => window.dispatchEvent(new Event('comments-turnstile-error'));
       document.head.appendChild(script);
+    };
+
+    let realtimeStarted = false;
+    const startDeferred = () => {
+      if (realtimeStarted) return;
+      realtimeStarted = true;
+      startRealtime();
+      injectTurnstile();
+    };
+
+    if (retryEl) {
+      retryEl.addEventListener('click', async () => {
+        retryEl.hidden = true;
+        setStatus(loadingText);
+        const ok = await load();
+        if (ok) {
+          // The probe recovered: re-attempt whatever failed around it — the
+          // verification widget, and the deferred realtime work if the click
+          // beat the observer to it.
+          if (turnstileSlot && !window.turnstile) injectTurnstile();
+          startDeferred();
+        }
+      });
+    }
+
+    if (configured) {
+      load();
+      if (window.location.hash === '#comments') {
+        startDeferred();
+      } else if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) {
+              observer.disconnect();
+              startDeferred();
+            }
+          },
+          { rootMargin: '400px 0px' },
+        );
+        observer.observe(root);
+        // A pointer inside the section is intent even if the scroll event has
+        // not caught up yet (the retry button lives here too).
+        root.addEventListener('pointerdown', () => startDeferred(), {
+          once: true,
+          capture: true,
+        });
+      } else {
+        startDeferred();
+      }
     }
   })();
 </script>
@@ -1311,7 +1415,8 @@ const mailto = `mailto:${profile.email}?subject=${encodeURIComponent(mailtoSubje
   }
 
   .comments__submit,
-  .comments__cta {
+  .comments__cta,
+  .comments__retry {
     align-self: flex-start;
   }
 

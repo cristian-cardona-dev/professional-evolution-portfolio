@@ -40,22 +40,22 @@ test('data validation accepts non-empty static Spanish narratives on every miles
   assert.equal(result.status, 0, result.stdout + result.stderr);
 });
 
-test('data validation rejects a missing narrativeEs', () => {
+test('data validation rejects a missing narrative_es', () => {
   const invalid = structuredClone(originalEvolution);
-  delete invalid.milestones[0].narrativeEs;
+  delete invalid.milestones[0].narrative_es;
   writeEvolution(invalid);
   const result = validate();
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /"narrativeEs" must be a non-empty static Spanish narrative/);
+  assert.match(result.stderr, /"narrative_es" must be a non-empty static Spanish narrative/);
 });
 
-test('data validation rejects an empty narrativeEs', () => {
+test('data validation rejects an empty narrative_es', () => {
   const invalid = structuredClone(originalEvolution);
-  invalid.milestones[0].narrativeEs = '   ';
+  invalid.milestones[0].narrative_es = '   ';
   writeEvolution(invalid);
   const result = validate();
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /"narrativeEs" must be a non-empty static Spanish narrative/);
+  assert.match(result.stderr, /"narrative_es" must be a non-empty static Spanish narrative/);
 });
 
 test('data validation rejects git candidates that omit the unreviewed candidate label', () => {
@@ -63,10 +63,10 @@ test('data validation rejects git candidates that omit the unreviewed candidate 
   const candidate = invalid.milestones.find((milestone) => milestone.source === 'git');
   assert.ok(candidate, 'fixture includes generated git candidates');
   candidate.narrative = 'A polished English narrative.';
-  candidate.narrativeEs = 'Una narración en español.';
+  candidate.narrative_es = 'Una narración en español.';
   writeEvolution(invalid);
   const result = validate();
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /git-derived "narrative" must identify itself as a candidate/);
-  assert.match(result.stderr, /git-derived "narrativeEs" must identify itself as a candidate/);
+  assert.match(result.stderr, /git-derived "narrative_es" must identify itself as a candidate/);
 });

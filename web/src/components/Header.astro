@@ -14,6 +14,14 @@
  * never loses the navigation to a button that cannot work — the same
  * progressive-enhancement contract the work-page filter uses.
  *
+ * Focus management (disclosure, not a modal trap): opening the menu with the
+ * keyboard moves focus to the first nav link so it is operable without a
+ * pointer (a pointer activation keeps focus on the button — the links are
+ * next in DOM order anyway); Escape, or closing while focus is inside the
+ * panel, returns focus to the toggle so it is never stranded in a hidden
+ * subtree. The panel itself is never focus-trapped: it is a disclosure, and
+ * the page behind it stays reachable.
+ *
  * From 1024px up the button is removed from the layout and the panel is always
  * visible. At tablet widths it remains a disclosure so the nav and controls fit
  * without horizontal overflow; exactly one nav landmark exists at every width.
@@ -131,19 +139,50 @@ const isCurrent = (id: NavId): boolean =>
 <CommandPalette copy={copy} locale={locale} />
 
 <script>
-  // Disclosure state for the mobile menu: `aria-expanded` on the button and a
-  // `data-open` marker on the header (which the scoped CSS keys off). No
-  // focus management is needed — the panel contains no focus trap and the
-  // links stay in DOM order right after the button.
+  // Disclosure state + focus management for the mobile menu: `aria-expanded`
+  // on the button and a `data-open` marker on the header (which the scoped CSS
+  // keys off). Keyboard opens move focus to the first link; Escape and
+  // close-while-focused-inside return it to the toggle. No focus trap: the
+  // panel is a disclosure, not a modal, and the rest of the page stays
+  // reachable while it is open.
   const header = document.querySelector('.site-header');
   const toggle = document.querySelector('[data-site-nav-toggle]');
-  if (header instanceof HTMLElement && toggle instanceof HTMLButtonElement) {
-    toggle.addEventListener('click', () => {
-      const open = toggle.getAttribute('aria-expanded') !== 'true';
+  const panel = document.getElementById('site-nav-panel');
+  if (header instanceof HTMLElement && toggle instanceof HTMLButtonElement && panel) {
+    const setOpen = (open: boolean) => {
       toggle.setAttribute('aria-expanded', String(open));
       if (open) header.setAttribute('data-open', '');
       else header.removeAttribute('data-open');
+    };
+    const isOpen = () => toggle.getAttribute('aria-expanded') === 'true';
+
+    toggle.addEventListener('click', (event: MouseEvent) => {
+      const open = !isOpen();
+      setOpen(open);
+      if (open) {
+        // `detail === 0` marks a keyboard-activated click (Enter/Space): move
+        // focus into the panel so the links are the next Tab stop. A pointer
+        // click keeps focus on the button — the panel follows it in DOM order.
+        if (event.detail === 0) {
+          panel.querySelector<HTMLElement>('a[href]')?.focus();
+        }
+      } else if (panel.contains(document.activeElement)) {
+        // Closing while focus is inside the panel: hand it back to the toggle
+        // so it is never lost inside a now-hidden subtree.
+        toggle.focus();
+      }
     });
+
+    // Escape closes the open disclosure from anywhere inside it (or from the
+    // toggle itself) and restores focus to the toggle.
+    for (const element of [toggle, panel]) {
+      element.addEventListener('keydown', (event: Event) => {
+        if (!(event instanceof KeyboardEvent) || event.key !== 'Escape' || !isOpen()) return;
+        event.preventDefault();
+        setOpen(false);
+        if (element === panel || panel.contains(document.activeElement)) toggle.focus();
+      });
+    }
   }
 
   // Scroll-spy (home only): keep `aria-current` on the nav link of the home

@@ -77,13 +77,24 @@ export function canonicalUrl(locale: Locale, path: string, site?: string | URL):
  * Locale implied by a built pathname (`Astro.url.pathname`).
  *
  * Used by components that render on every route but do not receive the
- * `locale` prop (the footer), so they can still link to the matching-language
- * route without a second source of truth. Spanish routes live under `<base>es/`
- * (see `localeRoot`), so the `es` segment is the only signal needed; anything
- * else is English.
+ * `locale` prop, so they can still link to the matching-language route
+ * without a second source of truth. Spanish routes live under `<base>es/`
+ * (see `localeRoot`), so the FIRST path segment after the deployment base is
+ * the only signal needed; anything else is English.
+ *
+ * The check is segment-based, never a substring: `pathname.includes('/es/')`
+ * would also match any future route that merely contains those letters in a
+ * longer segment, and would miss a locale root served without its trailing
+ * slash. The base is stripped first so an `es` segment deeper in the path can
+ * never masquerade as the locale prefix.
  */
 export function localeFromPathname(pathname: string): Locale {
-  return pathname.includes('/es/') ? 'es' : 'en';
+  const base = BASE.endsWith('/') ? BASE : `${BASE}/`;
+  const withoutBase = pathname.startsWith(base)
+    ? pathname.slice(base.length)
+    : pathname.replace(/^\/+/, '');
+  const firstSegment = withoutBase.split('/')[0];
+  return firstSegment === 'es' ? 'es' : 'en';
 }
 
 /**

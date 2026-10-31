@@ -7,29 +7,29 @@
  * built, a credit line for found images (placeholder until Task 5/6 fills
  * it in), and a bilingual notice.
  *
- * The footer renders on every route but receives no `locale` prop, so it
- * detects the locale from the copy metadata — `copy.meta.languageName` is
- * 'Español' on Spanish pages and 'English' on English pages. This is more
- * reliable than `Astro.url.pathname` during static build, which may not
- * correctly reflect the `/es/` prefix.
+ * The bilingual notice links to the SAME PAGE's other locale through
+ * `localeRoot` (Task 8): the site deploys under a base path, so a bare
+ * `/es/` or `/` href would leave the site and 404 at the domain root. The
+ * locale arrives as a prop from `BaseLayout` — the layout already knows it,
+ * so no pathname guessing is needed here.
  */
-import type { Copy } from '../i18n/copy';
+import type { Copy, Locale } from '../i18n/copy';
 import { profile } from '../lib/data';
+import { localeRoot } from '../lib/urls';
 
 interface Props {
   copy: Copy;
+  locale: Locale;
 }
 
-const { copy } = Astro.props;
+const { copy, locale } = Astro.props;
 
 const year = new Date().getUTCFullYear();
 
-// Detect locale from copy metadata: Spanish pages have languageName 'Español',
-// English pages have 'English'. This is more reliable than Astro.url.pathname
-// during static build, which may not correctly reflect the /es/ prefix.
-const isSpanish = copy.meta.languageName === 'Español';
-const otherLocaleHref = isSpanish ? '/' : '/es/';
-const otherLocaleLabel = isSpanish ? '/en' : '/es';
+// The other locale's root, base-aware: `/base/` ↔ `/base/es/`.
+const otherLocale = locale === 'es' ? 'en' : 'es';
+const otherLocaleHref = localeRoot(otherLocale);
+const otherLocaleLabel = `/${otherLocale}`;
 ---
 
 <footer class="site-footer">

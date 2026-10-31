@@ -49,27 +49,27 @@ import type {
 /**
  * Title of a milestone in the requested locale — the one place that decides
  * English vs reviewed Spanish. `title` is the canonical English title;
- * `titleEs`, when present, is the reviewed Spanish translation rendered on the
- * es locale. A milestone without one — every git-derived candidate, which is
- * raw machine output rather than human content — falls back to the English
+ * `title_es`, when present, is the reviewed Spanish translation rendered on
+ * the es locale. A milestone without one — every git-derived candidate, which
+ * is raw machine output rather than human content — falls back to the English
  * title instead of an empty heading.
  *
  * Exported so `lib/data.ts` (`milestoneTitle`) and the embedding generator use
  * the same rule.
  */
 export function resolveMilestoneTitle(
-  milestone: Pick<Milestone, 'title' | 'titleEs'>,
+  milestone: Pick<Milestone, 'title' | 'title_es'>,
   locale: Locale,
 ): string {
-  return locale === 'es' && milestone.titleEs ? milestone.titleEs : milestone.title;
+  return locale === 'es' && milestone.title_es ? milestone.title_es : milestone.title;
 }
 
 /** Selects the published static milestone narrative; it never translates at runtime. */
 export function resolveMilestoneNarrative(
-  milestone: Pick<Milestone, 'narrative' | 'narrativeEs'>,
+  milestone: Pick<Milestone, 'narrative' | 'narrative_es'>,
   locale: Locale,
 ): string {
-  return locale === 'es' ? milestone.narrativeEs : milestone.narrative;
+  return locale === 'es' ? milestone.narrative_es : milestone.narrative;
 }
 
 /** Badge chip variant per project status — mirrors `ProjectCard.astro`. */
@@ -238,7 +238,7 @@ export function buildAssistantEntries(
 
   for (const milestone of milestones) {
     // `buildAssistantEntries` is called per locale, so the result row carries
-    // the same title the page shows: the reviewed Spanish `titleEs` on es, the
+    // the same title the page shows: the reviewed Spanish `title_es` on es, the
     // English title otherwise. The English title words stay in the strong-token
     // list too, so an English query still matches on the es index.
     const title = env.milestoneTitle(milestone, locale);

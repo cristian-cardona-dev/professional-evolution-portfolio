@@ -235,7 +235,7 @@ const ogImageAlt = ogImagePath ? (title ?? copy.meta.title) : copy.meta.title;
       <slot />
     </main>
 
-    <Footer copy={copy} snapshotId={snapshotId} />
+    <Footer copy={copy} locale={locale} snapshotId={snapshotId} />
 
     {/* Honest keyword-search assistant (v1). The canonical data is always
         available at build, so the widget renders on every page; it hides

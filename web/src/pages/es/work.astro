@@ -3,14 +3,12 @@
  * Ruta de trabajo (es) — los cinco proyectos de `data/projects.json`,
  * agrupados por estado, con una tarjeta anclada por `id="<slug>"`.
  */
-import type { Locale } from '../../i18n/copy';
-import { getCopy } from '../../i18n/copy';
+import { LOCALE_PAGES } from '../../i18n/copy';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Work from '../../views/Work.astro';
 import { ogCardPath } from '../../lib/urls';
 
-const locale: Locale = 'es';
-const copy = getCopy('es');
+const { locale, copy } = LOCALE_PAGES.es;
 
 const title = copy.nav.work;
 const description = copy.work.summary;
@@ -18,7 +16,6 @@ const description = copy.work.summary;
 
 <BaseLayout
   locale={locale}
-  lang="es"
   title={title}
   description={description}
   path="work/"

@@ -30,7 +30,7 @@ test('Evolution features the latest reviewed, delivered or in-progress milestone
     assert.ok(story, `${locale}: featured story has a detail link`);
     assert.ok(story.getAttribute('href').includes(`/evolution/${featured.id}/`));
     assert.equal(feature.querySelector('time')?.getAttribute('datetime'), featured.date);
-    assert.ok(feature.textContent.includes(locale === 'es' ? featured.titleEs : featured.title));
+    assert.ok(feature.textContent.includes(locale === 'es' ? featured.title_es : featured.title));
   }
 });
 

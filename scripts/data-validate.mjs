@@ -10,7 +10,7 @@
  *   - optional project `summary_es`, when present, is a non-empty string
  *   - every milestone has non-empty static Spanish narrative content; git
  *     candidates are visibly marked unreviewed in both locales
- *   - optional milestone `titleEs`, when present, is a non-empty string
+ *   - optional milestone `title_es`, when present, is a non-empty string
  *   - project status and milestone status/source/phase enums
  *   - unique project slugs and unique milestone ids
  *   - every project `repo` URL lives under github.com/cristian-cardona-dev/
@@ -316,14 +316,14 @@ function validateEvolution(data, projectSlugs) {
     // Every milestone has static Spanish narrative content. Git-derived
     // candidates are explicitly unreviewed; they are never silently presented
     // as reviewed editorial copy or allowed to fall back to English.
-    if (!isNonEmptyString(milestone.narrativeEs)) {
-      fail(`${label}: "narrativeEs" must be a non-empty static Spanish narrative`);
+    if (!isNonEmptyString(milestone.narrative_es)) {
+      fail(`${label}: "narrative_es" must be a non-empty static Spanish narrative`);
     }
     // Optional reviewed Spanish translation of `title`; when present it must be
     // a non-empty string so the es locale never renders an empty heading. An
-    // absent `titleEs` is valid — the renderer falls back to the English title.
-    if (milestone.titleEs !== undefined && !isNonEmptyString(milestone.titleEs)) {
-      fail(`${label}: "titleEs" must be a non-empty string when present`);
+    // absent `title_es` is valid — the renderer falls back to the English title.
+    if (milestone.title_es !== undefined && !isNonEmptyString(milestone.title_es)) {
+      fail(`${label}: "title_es" must be a non-empty string when present`);
     }
     if (isNonEmptyString(milestone.id)) {
       if (!SLUG.test(milestone.id)) fail(`${label}: "id" must be lowercase kebab-case: ${milestone.id}`);
@@ -345,8 +345,8 @@ function validateEvolution(data, projectSlugs) {
       if (!/\bcandidate\b/i.test(milestone.narrative ?? '')) {
         fail(`${label}: git-derived "narrative" must identify itself as a candidate, never reviewed editorial`);
       }
-      if (!/\bcandidat[oa]\b/i.test(milestone.narrativeEs ?? '')) {
-        fail(`${label}: git-derived "narrativeEs" must identify itself as a candidate, never reviewed editorial`);
+      if (!/\bcandidat[oa]\b/i.test(milestone.narrative_es ?? '')) {
+        fail(`${label}: git-derived "narrative_es" must identify itself as a candidate, never reviewed editorial`);
       }
     }
     if (milestone.phase !== undefined) {

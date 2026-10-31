@@ -798,6 +798,10 @@ export interface Copy {
     privacy: string;
     listHeading: string;
     empty: string;
+    /** Polite live-region text while the published list loads. */
+    loading: string;
+    /** Label of the retry button offered when the initial list load fails. */
+    retry: string;
     anonymous: string;
     report: string;
     pendingBadge: string;
@@ -881,6 +885,8 @@ export interface Copy {
     rateLimited: string;
     /** Status when the reaction API is not reachable on this deployment. */
     unavailable: string;
+    /** Label of the retry button offered in the `unavailable` state. */
+    retry: string;
     /** Honest note: lightweight feedback, not a verdict on the evidence. */
     note: string;
     /** No-JS fallback: reactions need JavaScript; nothing is sent without it. */
@@ -1428,6 +1434,8 @@ export const en: Copy = {
       'No account, no tracking cookies, no email collection. Your comment is public once it passes review, and you can ask for its removal at any time.',
     listHeading: 'Comments',
     empty: 'No comments yet. Be the first.',
+    loading: 'Loading comments…',
+    retry: 'Try again',
     anonymous: 'Anonymous',
     report: 'Report',
     pendingBadge: 'In review',
@@ -1483,6 +1491,7 @@ export const en: Copy = {
     error: 'Could not save your reaction. Please try again.',
     rateLimited: 'Too many reactions in a short time. Please try again later.',
     unavailable: 'Reactions are temporarily unavailable.',
+    retry: 'Try again',
     note: 'Lightweight feedback, not a verdict on the evidence.',
     noJs: 'Reactions need JavaScript; nothing is sent without it.',
   },
@@ -2035,6 +2044,8 @@ export const es: Copy = {
       'Sin cuenta, sin cookies de seguimiento y sin recogida de correo. Tu comentario es público cuando pasa la revisión, y puedes pedir su eliminación en cualquier momento.',
     listHeading: 'Comentarios',
     empty: 'Todavía no hay comentarios. Sé el primero.',
+    loading: 'Cargando comentarios…',
+    retry: 'Reintentar',
     anonymous: 'Anónimo',
     report: 'Denunciar',
     pendingBadge: 'En revisión',
@@ -2090,6 +2101,7 @@ export const es: Copy = {
     error: 'No se ha podido guardar tu reacción. Inténtalo de nuevo.',
     rateLimited: 'Demasiadas reacciones en poco tiempo. Inténtalo más tarde.',
     unavailable: 'Las reacciones no están disponibles temporalmente.',
+    retry: 'Reintentar',
     note: 'Una señal ligera, no un veredicto sobre la evidencia.',
     noJs: 'Las reacciones necesitan JavaScript; sin él no se envía nada.',
   },
@@ -2111,3 +2123,17 @@ export function isLocale(value: unknown): value is Locale {
 export function getCopy(locale: string | undefined | null): Copy {
   return isLocale(locale) ? copyByLocale[locale] : copyByLocale[DEFAULT_LOCALE];
 }
+
+/**
+ * Pre-bound locale + copy pairs, one per published locale.
+ *
+ * A locale route page otherwise repeats the same three lines — the `Locale`
+ * type import, `getCopy`, and the two consts — so the pair is resolved once
+ * here and a page binds its whole context in a single destructure:
+ * `const { locale, copy } = LOCALE_PAGES.es;`. `getCopy` stays the public
+ * entry point for callers that resolve a locale at request time.
+ */
+export const LOCALE_PAGES: Record<Locale, { locale: Locale; copy: Copy }> = {
+  en: { locale: 'en', copy: en },
+  es: { locale: 'es', copy: es },
+};

@@ -60,7 +60,7 @@ test('milestone detail pages render their canonical static narrative in each loc
       const html = readFileSync(pagePath(locale, milestone.id), 'utf8');
       const leadRaw = html.match(/<p class="lead"[^>]*>([\s\S]*?)<\/p>/)?.[1];
       const lead = leadRaw === undefined ? undefined : decodeHtml(leadRaw);
-      const expected = locale === 'es' ? milestone.narrativeEs : milestone.narrative;
+      const expected = locale === 'es' ? milestone.narrative_es : milestone.narrative;
       if (lead !== expected) {
         failures.push(`${locale}/evolution/${milestone.id}/ rendered ${JSON.stringify(lead)}`);
       }
@@ -108,7 +108,7 @@ test('Spanish home notes feed renders the reviewed Spanish milestone excerpt', (
 
   assert.ok(excerptRaw, 'Spanish home page contains a notes feed excerpt');
   const actual = decodeHtml(excerptRaw);
-  assert.equal(actual, excerpt(latestCurated.narrativeEs));
+  assert.equal(actual, excerpt(latestCurated.narrative_es));
   assert.notEqual(actual, excerpt(latestCurated.narrative), 'English narrative must not leak into ES');
 });
 
