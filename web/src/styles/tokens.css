@@ -22,6 +22,7 @@
   --color-border: #2a2a2a; /* decorative only — interactive borders use accent */
   --color-accent: #f53fd6; /* magenta, buttons only, ~6.2:1 on bg */
   --color-accent-ink: #0a0a0a; /* text on accent-filled surfaces */
+  --color-accent-light: rgba(245, 63, 214, 0.15); /* highlight tint on dark bg */
   --color-success: #48bb78; /* ~7.25:1 on bg */
   --color-warn: #f6c177; /* ~10.74:1 on bg */
 
@@ -112,6 +113,7 @@
   --color-border: #d0cdc4; /* decorative */
   --color-accent: #c4009e; /* darker magenta for light bg, ~6.5:1 on bg */
   --color-accent-ink: #ffffff; /* text on accent-filled surfaces */
+  --color-accent-light: rgba(196, 0, 158, 0.12); /* highlight tint on light bg */
   --color-success: #2f855a; /* ~6.42:1 on bg */
   --color-warn: #b7791f; /* ~6.25:1 on bg */
 
