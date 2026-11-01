@@ -1,10 +1,10 @@
 /**
- * Chat API Endpoint — /api/chat
+ * Chat API Endpoint - /api/chat
  * Handles streaming chat with grounding in canonical portfolio data
  */
 
 import { getFullKB, getKBSections } from '../lib/kb';
-import { createProviderChain } from '../lib/providers';
+import { createProviderChain, Message } from '../lib/providers';
 
 export interface Env {
 	GROQ_API_KEY?: string;
@@ -16,7 +16,7 @@ export interface Env {
 
 interface ChatRequest {
 	message: string;
-	history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+	history?: Array<Pick<Message, 'role' | 'content'>>;
 	locale?: 'en' | 'es';
 }
 
@@ -43,7 +43,6 @@ CONOCIMIENTO DISPONIBLE:`;
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		// CORS
 		const corsHeaders = {
 			'Access-Control-Allow-Origin': '*',
 			'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -59,7 +58,7 @@ export default {
 		}
 
 		try {
-			const body: ChatRequest = await request.json();
+			const body = await request.json() as { message?: string; history?: Array<{ role: 'user' | 'assistant'; content: string }>; locale?: 'en' | 'es' };
 			const { message, history = [], locale = 'en' } = body;
 
 			if (!message || typeof message !== 'string') {
@@ -69,21 +68,17 @@ export default {
 				});
 			}
 
-			// Load KB
 			const kb = getFullKB();
 			const systemPrompt = buildSystemPrompt(kb, locale);
 
-			// Build messages
-			const messages = [
+			const messages: Message[] = [
 				{ role: 'system', content: systemPrompt },
-				...history.slice(-6).map(h => ({ role: h.role, content: h.content })),
+				...history.slice(-6).map(h => ({ role: h.role, content: h.content })) as Message[],
 				{ role: 'user', content: message },
 			];
 
-			// Create provider chain
 			const providerChain = createProviderChain(env);
 
-			// Stream response
 			const stream = new ReadableStream({
 				async start(controller) {
 					const encoder = new TextEncoder();

@@ -1,7 +1,7 @@
 ﻿export interface Provider {
 	name: string;
 	call(messages: Message[], options?: CallOptions): Promise<ProviderResponse>;
-	stream?(messages: Message[], options?: CallOptions): AsyncIterable<StreamChunk>;
+	stream(messages: Message[], options?: CallOptions): AsyncIterable<StreamChunk>;
 }
 
 export interface Message {
@@ -26,7 +26,9 @@ export interface StreamChunk {
 	content: string;
 	done: boolean;
 	provider: string;
-}/**
+}
+
+/**
  * Groq Provider (Primary) — Llama 3.3 70B
  * Free tier: https://console.groq.com
  */
@@ -42,10 +44,10 @@ export class GroqProvider implements Provider {
 	}
 
 	async call(messages: Message[], options: CallOptions = {}): Promise<ProviderResponse> {
-		const response = await fetch(${this.baseUrl}/chat/completions, {
+		const response = await fetch(`${this.baseUrl}/chat/completions`, {
 			method: 'POST',
 			headers: {
-				'Authorization': Bearer ,
+				'Authorization': `Bearer ${this.apiKey}`,
 				'Content-Type': 'application/json',
 			},
 			body: JSON.stringify({
@@ -59,12 +61,12 @@ export class GroqProvider implements Provider {
 
 		if (!response.ok) {
 			const error = await response.text();
-			throw new Error(Groq API error:  - );
+			throw new Error(`Groq API error: ${response.status} - ${error}`);
 		}
 
-		const data = await response.json();
+		const data = await response.json() as any;
 		return {
-			content: data.choices[0]?.message?.content ?? '',
+			content: data.choices?.[0]?.message?.content ?? '',
 			provider: 'groq',
 			model: this.model,
 			usage: data.usage,
@@ -72,10 +74,10 @@ export class GroqProvider implements Provider {
 	}
 
 	async *stream(messages: Message[], options: CallOptions = {}): AsyncIterable<StreamChunk> {
-		const response = await fetch(${this.baseUrl}/chat/completions, {
+		const response = await fetch(`${this.baseUrl}/chat/completions`, {
 			method: 'POST',
 			headers: {
-				'Authorization': Bearer ,
+				'Authorization': `Bearer ${this.apiKey}`,
 				'Content-Type': 'application/json',
 			},
 			body: JSON.stringify({
@@ -89,7 +91,7 @@ export class GroqProvider implements Provider {
 
 		if (!response.ok) {
 			const error = await response.text();
-			throw new Error(Groq API error:  - );
+			throw new Error(`Groq API error: ${response.status} - ${error}`);
 		}
 
 		const reader = response.body?.getReader();
@@ -118,7 +120,7 @@ export class GroqProvider implements Provider {
 					}
 					try {
 						const parsed = JSON.parse(data);
-						const content = parsed.choices[0]?.delta?.content ?? '';
+						const content = parsed.choices?.[0]?.delta?.content ?? '';
 						if (content) {
 							yield { content, done: false, provider: 'groq' };
 						}
@@ -129,7 +131,9 @@ export class GroqProvider implements Provider {
 			}
 		}
 	}
-}/**
+}
+
+/**
  * Anthropic Provider (Fallback) — Claude Haiku
  * Free tier: https://console.anthropic.com
  */
@@ -148,7 +152,7 @@ export class AnthropicProvider implements Provider {
 		const systemMessage = messages.find(m => m.role === 'system');
 		const userMessages = messages.filter(m => m.role !== 'system');
 
-		const response = await fetch(${this.baseUrl}/messages, {
+		const response = await fetch(`${this.baseUrl}/messages`, {
 			method: 'POST',
 			headers: {
 				'x-api-key': this.apiKey,
@@ -167,12 +171,12 @@ export class AnthropicProvider implements Provider {
 
 		if (!response.ok) {
 			const error = await response.text();
-			throw new Error(Anthropic API error:  - );
+			throw new Error(`Anthropic API error: ${response.status} - ${error}`);
 		}
 
-		const data = await response.json();
+		const data = await response.json() as any;
 		return {
-			content: data.content[0]?.text ?? '',
+			content: data.content?.[0]?.text ?? '',
 			provider: 'anthropic',
 			model: this.model,
 			usage: data.usage,
@@ -183,7 +187,7 @@ export class AnthropicProvider implements Provider {
 		const systemMessage = messages.find(m => m.role === 'system');
 		const userMessages = messages.filter(m => m.role !== 'system');
 
-		const response = await fetch(${this.baseUrl}/messages, {
+		const response = await fetch(`${this.baseUrl}/messages`, {
 			method: 'POST',
 			headers: {
 				'x-api-key': this.apiKey,
@@ -202,7 +206,7 @@ export class AnthropicProvider implements Provider {
 
 		if (!response.ok) {
 			const error = await response.text();
-			throw new Error(Anthropic API error:  - );
+			throw new Error(`Anthropic API error: ${response.status} - ${error}`);
 		}
 
 		const reader = response.body?.getReader();
@@ -240,7 +244,9 @@ export class AnthropicProvider implements Provider {
 			}
 		}
 	}
-}/**
+}
+
+/**
  * Cloudflare AI Provider (Backup) — Always available on Workers
  * Models: @cf/meta/llama-3.1-8b-instruct, @cf/meta/llama-3.3-70b-instruct
  */
@@ -313,12 +319,12 @@ export class ProviderChain {
 
 		for (const provider of this.providers) {
 			try {
-				console.log(Trying provider: );
+				console.log(`Trying provider: ${provider.name}`);
 				const response = await provider.call(messages, options);
-				console.log(Provider  succeeded);
+				console.log(`Provider ${provider.name} succeeded`);
 				return response;
 			} catch (error) {
-				console.warn(Provider  failed:, error instanceof Error ? error.message : error);
+				console.warn(`Provider ${provider.name} failed:`, error instanceof Error ? error.message : error);
 				lastError = error instanceof Error ? error : new Error(String(error));
 				continue;
 			}
@@ -330,7 +336,11 @@ export class ProviderChain {
 	async *stream(messages: Message[], options: CallOptions = {}): AsyncIterable<StreamChunk> {
 		for (const provider of this.providers) {
 			try {
-				console.log(Trying streaming provider: );
+				console.log(`Trying streaming provider: ${provider.name}`);
+				if (!provider.stream) {
+					console.warn(`Provider ${provider.name} does not support streaming`);
+					continue;
+				}
 				let hasContent = false;
 				for await (const chunk of provider.stream(messages, options)) {
 					hasContent = true;
@@ -338,14 +348,14 @@ export class ProviderChain {
 				}
 				if (hasContent) return;
 			} catch (error) {
-				console.warn(Streaming provider  failed:, error instanceof Error ? error.message : error);
+				console.warn(`Streaming provider ${provider.name} failed:`, error instanceof Error ? error.message : error);
 				continue;
 			}
 		}
 
 		// All providers failed
 		yield {
-			content: 'El chat no está disponible ahora. Usa el formulario de contacto.',
+			content: 'El chat no est� disponible ahora. Usa el formulario de contacto.',
 			done: true,
 			provider: 'fallback',
 		};

@@ -1,5 +1,5 @@
-/**
- * Worker Entry Point — routes to API endpoints
+﻿/**
+ * Worker Entry Point - routes to API endpoints
  */
 
 import chat from './api/chat';

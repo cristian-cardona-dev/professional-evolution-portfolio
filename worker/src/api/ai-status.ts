@@ -1,5 +1,5 @@
-/**
- * AI Status Endpoint — /api/ai-status
+﻿/**
+ * AI Status Endpoint - /api/ai-status
  * Health check for AI providers
  */
 
@@ -33,27 +33,18 @@ export default {
 		try {
 			const kbSections = getKBSections();
 
-			// Check which providers are configured
-			const providers = [];
 			const configured = [];
-
-			if (process.env.GROQ_API_KEY || process.env.GROQ_API_KEY) {
-				configured.push('groq');
-			}
-			if (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY) {
-				configured.push('anthropic');
-			}
+			if (env.GROQ_API_KEY) configured.push('groq');
+			if (env.ANTHROPIC_API_KEY) configured.push('anthropic');
 			configured.push('cloudflare-ai');
 
-			// Try to test each provider quickly
 			const providerStatus = [];
 			for (const name of configured) {
 				try {
-					const chain = await import('../lib/providers').then(m => m.createProviderChain({}));
-					// Quick test - just check if provider initializes
-					providerStatus.push({ name: name, available: true });
+					const chain = await import('../lib/providers.js').then(m => m.createProviderChain({}));
+					providerStatus.push({ name, available: true });
 				} catch (e) {
-					providerStatus.push({ name: name, available: false, error: String(e) });
+					providerStatus.push({ name, available: false, error: String(e) });
 				}
 			}
 

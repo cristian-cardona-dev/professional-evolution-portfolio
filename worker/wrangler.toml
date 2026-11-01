@@ -21,7 +21,7 @@ binding = "AI"
 [[d1_databases]]
 binding = "DB"
 database_name = "portfolio-leads"
-database_id = ""
+database_id = "38a41618-6b70-4e32-9200-f267be599a96"
 
 # KV namespace for rate limiting (optional)
 [[kv_namespaces]]

@@ -1,5 +1,5 @@
-/**
- * Lead Capture API — /api/lead
+﻿/**
+ * Lead Capture API - /api/lead
  * Stores leads in Cloudflare D1 + sends email notification
  */
 
@@ -31,7 +31,7 @@ export default {
 		}
 
 		try {
-			const body: LeadRequest = await request.json();
+			const body = await request.json() as LeadRequest;
 			const { name, email, intent, message, locale, timestamp } = body;
 
 			if (!email || !message) {
@@ -41,15 +41,13 @@ export default {
 				});
 			}
 
-			// Store in D1
 			if (env.DB) {
-				await env.DB.prepare(`
-					INSERT INTO leads (name, email, intent, message, locale, timestamp, created_at)
-					VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-				`).bind(name || null, email, intent, message, locale, timestamp).run();
+				await env.DB.prepare(
+					`INSERT INTO leads (name, email, intent, message, locale, timestamp, created_at)
+					VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`
+				).bind(name || null, email, intent, message, locale, timestamp).run();
 			}
 
-			// Send email notification (Resend or SMTP)
 			if (env.RESEND_API_KEY) {
 				await sendEmailNotification(env, { name, email, intent, message, locale, timestamp });
 			}

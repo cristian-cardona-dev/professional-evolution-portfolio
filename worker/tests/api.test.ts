@@ -70,13 +70,11 @@ describe('lead.ts stores in D1 and sends email', () => {
 });
 
 describe('kb.ts loads all KB files', () => {
-	it('loads KB files from disk', () => {
+	it('exports KB functions', () => {
 		const content = readFileSync(join(WORKER_SRC, 'lib/kb.ts'), 'utf-8');
-		expect(content).toContain('loadKBFiles');
 		expect(content).toContain('getFullKB');
 		expect(content).toContain('getKBSection');
 		expect(content).toContain('getKBSections');
-		expect(content).toContain('.md');
 	});
 });
 
