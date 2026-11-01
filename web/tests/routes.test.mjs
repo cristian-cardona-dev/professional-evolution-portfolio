@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Route contract tests — verify that milestone detail routes are generated
  * for both locales and that canonical feed links point at them.
  *
