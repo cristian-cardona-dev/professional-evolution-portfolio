@@ -1,0 +1,25 @@
+{
+  "name": "Cristian Cardona — Professional Evolution",
+  "short_name": "Cristian Cardona",
+  "description": "Full Stack + Cloud foundation transitioning toward AI Engineering, AI Automation and Agentic Systems. Evidence-backed portfolio with case studies, evolution narrative, and public artifacts.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "lang": "en",
+  "dir": "ltr"
+}

@@ -127,3 +127,76 @@ export function articleJsonLd(input: ArticleLdInput): Record<string, unknown> | 
   if (input.imagePath) entity.image = [new URL(input.imagePath, base).href];
   return entity;
 }
+
+/**
+ * BreadcrumbList JSON-LD for the current page.
+ *
+ * Builds the breadcrumb trail from the locale root through each path segment.
+ * The path is locale-relative (e.g., 'work/', 'work/ai-chat-app/', 'evolution/2026-10-09/').
+ */
+export interface BreadcrumbItem {
+  name: string;
+  path: string; // locale-relative path segment
+}
+
+export function breadcrumbJsonLd(
+  path: string,
+  locale: Locale,
+  site?: URL,
+  customItems?: BreadcrumbItem[],
+): Record<string, unknown> | null {
+  const base = entityBase(site);
+  if (!base) return null;
+
+  // If custom items provided, use those; otherwise build from path segments
+  const items: BreadcrumbItem[] = customItems ?? buildBreadcrumbItems(path, locale);
+
+  const itemListElements = items.map((item, index) => {
+    const itemUrl = canonicalUrl(locale, item.path, site);
+    return {
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: itemUrl?.href,
+    };
+  });
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: itemListElements,
+  };
+}
+
+/**
+ * Build breadcrumb items from a locale-relative path.
+ * e.g., 'work/ai-chat-app/' -> [{ name: 'Home', path: '' }, { name: 'Work', path: 'work/' }, { name: 'AI Chat API Lab', path: 'work/ai-chat-app/' }]
+ */
+function buildBreadcrumbItems(path: string, locale: Locale): BreadcrumbItem[] {
+  const items: BreadcrumbItem[] = [
+    { name: locale === 'es' ? 'Inicio' : 'Home', path: '' },
+  ];
+
+  if (!path || path === '') return items;
+
+  const segments = path.replace(/^\/+/, '').replace(/\/+$/, '').split('/');
+  let accumulatedPath = '';
+
+  // Labels for common path segments
+  const segmentLabels: Record<string, string> = {
+    work: locale === 'es' ? 'Trabajo' : 'Work',
+    evolution: locale === 'es' ? 'Evolución' : 'Evolution',
+    evidence: locale === 'es' ? 'Evidencia' : 'Evidence',
+    career: locale === 'es' ? 'Carrera' : 'Career',
+    contact: locale === 'es' ? 'Contacto' : 'Contact',
+    build: locale === 'es' ? 'Construcción' : 'Build',
+  };
+
+  for (const segment of segments) {
+    accumulatedPath += `${segment}/`;
+    const label = segmentLabels[segment] ?? segment.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    items.push({ name: label, path: accumulatedPath });
+  }
+
+  return items;
+}

@@ -25,6 +25,7 @@
   --color-accent-light: rgba(245, 63, 214, 0.15); /* highlight tint on dark bg */
   --color-success: #48bb78; /* ~7.25:1 on bg */
   --color-warn: #f6c177; /* ~10.74:1 on bg */
+  --color-danger: #e03e3e; /* ~6.1:1 on bg, error/destructive actions */
 
   /* --- Typography --------------------------------------------------------- */
   --font-display: 'Newsreader', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
