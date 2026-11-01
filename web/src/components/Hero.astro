@@ -21,13 +21,15 @@
  * 28px above the bottom edge.
  */
 import type { Copy } from '../i18n/copy';
-import { profile } from '../lib/data';
+import { profile, projects, milestones } from '../lib/data';
+import { route } from '../lib/urls';
 
 interface Props {
   copy: Copy;
+  locale: 'en' | 'es';
 }
 
-const { copy } = Astro.props;
+const { copy, locale } = Astro.props;
 
 /** Two authored lines from the canonical name; extra words join the last line. */
 const nameWords = profile.name.trim().split(/\s+/);
@@ -36,10 +38,14 @@ const statementLines =
     ? [nameWords[0], nameWords.slice(1).join(' ')]
     : [profile.name];
 
-/** Cal.com URL pending; the copy deck's fallback is a mailto with a subject. */
-const ctaHref = `mailto:${profile.email}?subject=${encodeURIComponent(
-  copy.hero.ctaSubject,
-)}`;
+/** Cal.com URL confirmed. */
+const ctaHref = `https://cal.com/cristian-cardona-e2usz7/30min`;
+
+/** Primary CTA: View projects. */
+const projectsHref = route(locale, 'work/');
+
+/** Trust signal: verifiable counts from canonical data. */
+const trustSignal = `${projects.length} public repositories · ${milestones.length} milestones · bilingual EN/ES`;
 ---
 
 <section class="hero" aria-labelledby="hero-heading">
@@ -58,9 +64,12 @@ const ctaHref = `mailto:${profile.email}?subject=${encodeURIComponent(
 
     <p class="hero__sentence reveal" style="--reveal-index: 1">{copy.hero.sentence}</p>
 
-    <a class="button button--primary hero__cta reveal" style="--reveal-index: 1" href={ctaHref}>
-      {copy.hero.cta}
-    </a>
+    <div class="hero__cta-group reveal" style="--reveal-index: 2">
+      <a class="button button--primary" href={projectsHref}>View projects</a>
+      <a class="button button--ghost" href={ctaHref}>{copy.hero.cta}</a>
+    </div>
+
+    <p class="hero__trust reveal" style="--reveal-index: 3">{trustSignal}</p>
   </div>
 </section>
 
@@ -191,6 +200,32 @@ const ctaHref = `mailto:${profile.email}?subject=${encodeURIComponent(
     to {
       transform: none;
     }
+  }
+
+  /* --- CTA group ----------------------------------------------------------- */
+  .hero__cta-group {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+
+  .button--ghost {
+    background: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+  }
+
+  .button--ghost:hover {
+    background-color: var(--color-surface-raised);
+    border-color: var(--color-accent);
+  }
+
+  /* --- Trust signal -------------------------------------------------------- */
+  .hero__trust {
+    margin-block-start: var(--space-6);
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+    color: var(--color-text-muted);
   }
 
   @media print {
