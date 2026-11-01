@@ -81,6 +81,8 @@ export interface Copy {
     cta: string;
     /** mailto subject for the CTA until the Cal.com URL is confirmed. */
     ctaSubject: string;
+    /** Primary CTA: View projects. */
+    viewProjects: string;
   };
   /**
    * Verified metrics strip on the home page (`views/Home.astro`).
@@ -941,6 +943,7 @@ export const en: Copy = {
     sentence: 'AI engineer shipping production LLM systems. Formerly full-stack & cloud.',
     cta: 'Book a call',
     ctaSubject: 'Portfolio intro call',
+    viewProjects: 'View projects',
   },
   metrics: {
     heading: 'Verified metrics',
@@ -1545,13 +1548,10 @@ export const es: Copy = {
     switchToEs: 'Leer esta pÃ¡gina en espaÃ±ol',
   },
   hero: {
-    // Interim translation: the reviewed Spanish copy deck is a follow-up
-    // task (copy deck, "For client confirmation" #7); keep parity so the
-    // shared markup renders a complete hero in both locales until then.
-    sentence:
-      'Ingeniero de IA que entrega sistemas LLM en producciÃ³n. Antes, full-stack y cloud.',
-    cta: 'Agendar una llamada',
-    ctaSubject: 'Llamada de presentaciÃ³n del portafolio',
+    sentence: 'Ingeniero de IA que entrega sistemas LLM en producci��n. Antes, full-stack y cloud.',
+    cta: 'Reservar una llamada de 30 minutos',
+    ctaSubject: 'Llamada de presentaci��n del portafolio',
+    viewProjects: 'Ver proyectos',
   },
   metrics: {
     heading: 'Cifras verificadas',
