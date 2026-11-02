@@ -12,7 +12,7 @@ describe('Worker source files', () => {
 		'src/api/lead.ts',
 		'src/lib/kb.ts',
 		'src/lib/providers.ts',
-		'wrangler.toml',
+		'wrangler.jsonc',
 		'package.json',
 		'tsconfig.json',
 		'migrations/0001_leads.sql',
@@ -39,13 +39,14 @@ describe('index.ts routes to all three endpoints', () => {
 });
 
 describe('chat.ts has streaming SSE endpoint', () => {
-	it('has streaming and provider config', () => {
+	it('has streaming and the free-only provider chain', () => {
 		const content = readFileSync(join(WORKER_SRC, 'api/chat.ts'), 'utf-8');
 		expect(content).toContain('text/event-stream');
 		expect(content).toContain('ReadableStream');
 		expect(content).toContain('providerChain.stream');
-		expect(content).toContain('GROQ_API_KEY');
-		expect(content).toContain('ANTHROPIC_API_KEY');
+		// Free-only policy: no Groq/Anthropic activation path may exist.
+		expect(content).not.toContain('GROQ_');
+		expect(content).not.toContain('ANTHROPIC_');
 	});
 });
 
@@ -78,27 +79,38 @@ describe('kb.ts loads all KB files', () => {
 	});
 });
 
-describe('providers.ts has three providers with fallback chain', () => {
-	it('has Groq, Anthropic, Cloudflare AI providers', () => {
+describe('providers.ts has the free-only Cloudflare provider', () => {
+	it('has only CloudflareAIProvider with the allowlisted model', () => {
 		const content = readFileSync(join(WORKER_SRC, 'lib/providers.ts'), 'utf-8');
-		expect(content).toContain('GroqProvider');
-		expect(content).toContain('AnthropicProvider');
 		expect(content).toContain('CloudflareAIProvider');
 		expect(content).toContain('ProviderChain');
 		expect(content).toContain('createProviderChain');
-		expect(content).toContain('GROQ_API_KEY');
-		expect(content).toContain('ANTHROPIC_API_KEY');
+		expect(content).toContain('@cf/mistral/mistral-7b-instruct-v0.1');
 		expect(content).toContain('env.AI');
+		// Free-only policy: no other provider adapter or activation variable.
+		expect(content).not.toContain('GroqProvider');
+		expect(content).not.toContain('AnthropicProvider');
+		expect(content).not.toContain('GROQ_');
+		expect(content).not.toContain('ANTHROPIC_');
 	});
 });
 
-describe('wrangler.toml has correct configuration', () => {
-	it('has worker config, AI binding, D1, KV', () => {
-		const content = readFileSync(resolve(WORKER_SRC, '..', 'wrangler.toml'), 'utf-8');
+describe('wrangler.jsonc has correct configuration', () => {
+	it('has worker config, AI binding, D1, KV and no provider vars', () => {
+		const content = readFileSync(resolve(WORKER_SRC, '..', 'wrangler.jsonc'), 'utf-8');
 		expect(content).toContain('portfolio-ai-chat-worker');
-		expect(content).toContain('binding = "AI"');
+		expect(content).toContain('"binding": "AI"');
 		expect(content).toContain('d1_databases');
 		expect(content).toContain('portfolio-leads');
+		// Free-only policy: no provider API keys or model vars in config.
+		expect(content).not.toContain('GROQ_');
+		expect(content).not.toContain('ANTHROPIC_');
+	});
+});
+
+describe('wrangler.toml is removed (wrangler.jsonc is authoritative)', () => {
+	it('no stale TOML config exists next to wrangler.jsonc', () => {
+		expect(existsSync(resolve(WORKER_SRC, '..', 'wrangler.toml'))).toBe(false);
 	});
 });
 

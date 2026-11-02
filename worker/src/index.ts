@@ -5,14 +5,11 @@
 import chat from './api/chat';
 import aiStatus from './api/ai-status';
 import lead from './api/lead';
+import { WorkersAIBinding } from './lib/providers';
 
 export interface Env {
-	GROQ_API_KEY?: string;
-	GROQ_MODEL?: string;
-	ANTHROPIC_API_KEY?: string;
-	ANTHROPIC_MODEL?: string;
-	AI?: any;
-	DB?: any;
+	AI?: WorkersAIBinding;
+	DB?: D1Database;
 	RESEND_API_KEY?: string;
 }
 

@@ -1,149 +1,224 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createProviderChain, GroqProvider, AnthropicProvider, CloudflareAIProvider, ProviderChain } from '../src/lib/providers';
+import { describe, it, expect, vi } from 'vitest';
+import {
+	createProviderChain,
+	CloudflareAIProvider,
+	ProviderChain,
+	Provider,
+	Message,
+	StreamChunk,
+} from '../src/lib/providers';
 
-describe('ProviderChain Configuration', () => {
+/** The only allowlisted model in this tranche (free-tier Cloudflare Workers AI). */
+const ALLOWED_MODEL = '@cf/mistral/mistral-7b-instruct-v0.1';
+
+function makeEnv(overrides: Record<string, unknown> = {}) {
+	return { AI: { run: vi.fn() }, ...overrides } as any;
+}
+
+function asyncIterableFrom<T>(chunks: T[], errorAfter?: Error): AsyncIterable<T> {
+	return {
+		async *[Symbol.asyncIterator]() {
+			for (const chunk of chunks) {
+				yield chunk;
+			}
+			if (errorAfter) {
+				throw errorAfter;
+			}
+		},
+	};
+}
+
+function mockProvider(name: string, stream: () => AsyncIterable<StreamChunk>): Provider {
+	return { name, call: vi.fn(), stream };
+}
+
+async function collectStream(chain: ProviderChain, messages: Message[] = []): Promise<StreamChunk[]> {
+	const chunks: StreamChunk[] = [];
+	for await (const chunk of chain.stream(messages)) {
+		chunks.push(chunk);
+	}
+	return chunks;
+}
+
+describe('Free-only provider policy', () => {
 	describe('createProviderChain', () => {
-		it('includes Groq only when both GROQ_API_KEY and GROQ_MODEL are present', () => {
-			const env = {
-				GROQ_API_KEY: 'test-key',
-				GROQ_MODEL: 'test-model',
-				AI: { run: vi.fn() },
-			};
-			const chain = createProviderChain(env);
-			const providerNames = chain.providers.map(p => p.name);
-			expect(providerNames).toContain('groq');
-			expect(providerNames[0]).toBe('groq'); // Groq should be first when configured
+		it('configures Cloudflare Workers AI as the sole provider when env.AI exists', () => {
+			const chain = createProviderChain(makeEnv());
+			expect(chain.providers.map(p => p.name)).toEqual(['cloudflare-ai']);
+			expect(chain.providers[0]).toBeInstanceOf(CloudflareAIProvider);
 		});
 
-		it('skips Groq when GROQ_API_KEY is present but GROQ_MODEL is missing', () => {
-			const env = {
-				GROQ_API_KEY: 'test-key',
-				AI: { run: vi.fn() },
-			};
+		it('ignores Groq credentials and model variables', () => {
+			const env = makeEnv({
+				GROQ_API_KEY: 'gsk-legacy-key',
+				GROQ_MODEL: 'llama-3.3-70b-versatile',
+			});
 			const chain = createProviderChain(env);
-			const providerNames = chain.providers.map(p => p.name);
-			expect(providerNames).not.toContain('groq');
+			expect(chain.providers.map(p => p.name)).toEqual(['cloudflare-ai']);
 		});
 
-		it('skips Groq when GROQ_MODEL is present but GROQ_API_KEY is missing', () => {
-			const env = {
-				GROQ_MODEL: 'test-model',
-				AI: { run: vi.fn() },
-			};
+		it('ignores Anthropic credentials and model variables', () => {
+			const env = makeEnv({
+				ANTHROPIC_API_KEY: 'sk-ant-legacy-key',
+				ANTHROPIC_MODEL: 'claude-3-haiku-20240307',
+			});
 			const chain = createProviderChain(env);
-			const providerNames = chain.providers.map(p => p.name);
-			expect(providerNames).not.toContain('groq');
+			expect(chain.providers.map(p => p.name)).toEqual(['cloudflare-ai']);
 		});
 
-		it('always includes Cloudflare AI as fallback', () => {
-			const env = { AI: { run: vi.fn() } };
+		it('ignores every legacy provider variable at once', () => {
+			const env = makeEnv({
+				GROQ_API_KEY: 'gsk-legacy-key',
+				GROQ_MODEL: 'llama-3.3-70b-versatile',
+				ANTHROPIC_API_KEY: 'sk-ant-legacy-key',
+				ANTHROPIC_MODEL: 'claude-3-haiku-20240307',
+			});
 			const chain = createProviderChain(env);
-			const providerNames = chain.providers.map(p => p.name);
-			expect(providerNames).toContain('cloudflare-ai');
+			expect(chain.providers.map(p => p.name)).toEqual(['cloudflare-ai']);
 		});
 
-		it('includes Anthropic only when ANTHROPIC_API_KEY is present', () => {
-			const envWithKey = {
-				ANTHROPIC_API_KEY: 'test-key',
-				AI: { run: vi.fn() },
-			};
-			const chainWithKey = createProviderChain(envWithKey);
-			expect(chainWithKey.providers.map(p => p.name)).toContain('anthropic');
-
-			const envWithoutKey = { AI: { run: vi.fn() } };
-			const chainWithoutKey = createProviderChain(envWithoutKey);
-			expect(chainWithoutKey.providers.map(p => p.name)).not.toContain('anthropic');
+		it('fails closed with a sanitized error when the AI binding is missing', () => {
+			expect(() => createProviderChain({} as any)).toThrowError(/Cloudflare Workers AI binding/);
+			expect(() => createProviderChain(undefined as any)).toThrowError(/Cloudflare Workers AI binding/);
 		});
 
-		it('orders providers correctly: Groq (if configured) → Cloudflare AI → Anthropic', () => {
-			const env = {
-				GROQ_API_KEY: 'test-key',
-				GROQ_MODEL: 'test-model',
-				ANTHROPIC_API_KEY: 'anthropic-key',
-				AI: { run: vi.fn() },
-			};
+		it('fails closed when only API-key variables are present (no key alone may activate a provider)', () => {
+			expect(() => createProviderChain({ GROQ_API_KEY: 'gsk-legacy-key', GROQ_MODEL: 'llama-3.3-70b-versatile' } as any)).toThrowError(/Cloudflare Workers AI binding/);
+			expect(() => createProviderChain({ ANTHROPIC_API_KEY: 'sk-ant-legacy-key' } as any)).toThrowError(/Cloudflare Workers AI binding/);
+		});
+
+		it('the fail-closed error leaks no credential material', () => {
+			const secret = 'sk-ant-super-secret-value';
+			let message = '';
+			try {
+				createProviderChain({ ANTHROPIC_API_KEY: secret } as any);
+			} catch (error) {
+				message = error instanceof Error ? error.message : String(error);
+			}
+			expect(message).toMatch(/Cloudflare Workers AI binding/);
+			expect(message).not.toContain(secret);
+		});
+	});
+
+	describe('allowlisted model', () => {
+		it('is exactly the approved Cloudflare Workers AI literal', () => {
+			const provider = new CloudflareAIProvider(makeEnv());
+			expect(provider.model).toBe(ALLOWED_MODEL);
+			const chain = createProviderChain(makeEnv());
+			expect((chain.providers[0] as CloudflareAIProvider).model).toBe(ALLOWED_MODEL);
+		});
+
+		it('is not environment-selectable', () => {
+			const env = makeEnv({
+				CLOUDFLARE_MODEL: '@cf/other-model',
+				AI_MODEL: '@cf/other-model',
+				WORKERS_AI_MODEL: '@cf/other-model',
+				GROQ_MODEL: 'llama-3.3-70b-versatile',
+				ANTHROPIC_MODEL: 'claude-3-haiku-20240307',
+			});
 			const chain = createProviderChain(env);
-			const providerNames = chain.providers.map(p => p.name);
-			expect(providerNames).toEqual(['groq', 'cloudflare-ai', 'anthropic']);
+			expect((chain.providers[0] as CloudflareAIProvider).model).toBe(ALLOWED_MODEL);
 		});
 	});
 });
 
-describe('ProviderChain Streaming', () => {
-	it('advances to fallback when provider yields only empty done marker', async () => {
-		const mockProvider1 = {
-			name: 'mock-1',
-			call: vi.fn(),
-			stream: vi.fn().mockImplementation(async function* () {
-				yield { content: '', done: true, provider: 'mock-1' };
-			}),
-		};
-		const mockProvider2 = {
-			name: 'mock-2',
-			call: vi.fn(),
-			stream: vi.fn().mockImplementation(async function* () {
-				yield { content: 'Hello', done: false, provider: 'mock-2' };
-				yield { content: '', done: true, provider: 'mock-2' };
-			}),
-		};
+describe('CloudflareAIProvider streaming', () => {
+	it('does not retry the same inference after output has begun', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			asyncIterableFrom([{ response: 'partial answer' }], new Error('raw provider failure after output'))
+		);
+		const provider = new CloudflareAIProvider({ AI: { run } } as any);
+		const chain = new ProviderChain([provider]);
 
-		const chain = new ProviderChain([mockProvider1, mockProvider2]);
-		const chunks = [];
-		for await (const chunk of chain.stream([])) {
-			chunks.push(chunk);
-		}
+		const chunks = await collectStream(chain, [{ role: 'user', content: 'hi' }]);
+
+		expect(run).toHaveBeenCalledTimes(1);
+		const text = chunks.map(c => c.content).join('');
+		expect(text).toContain('partial answer');
+		expect(text).toContain('El chat no está disponible');
+		expect(chunks[chunks.length - 1].done).toBe(true);
+		expect(text).not.toContain('raw provider failure');
+	});
+
+	it('may retry once non-streaming when the stream fails before any content', async () => {
+		const run = vi.fn()
+			.mockRejectedValueOnce(new Error('stream failed before content'))
+			.mockResolvedValueOnce({ response: 'complete answer' });
+		const provider = new CloudflareAIProvider({ AI: { run } } as any);
+		const chain = new ProviderChain([provider]);
+
+		const chunks = await collectStream(chain);
+
+		expect(run).toHaveBeenCalledTimes(2);
+		expect(run).toHaveBeenNthCalledWith(2, ALLOWED_MODEL, expect.objectContaining({ stream: false }));
+		const text = chunks.map(c => c.content).join('');
+		expect(text).toContain('complete answer');
+		expect(chunks[chunks.length - 1].done).toBe(true);
+	});
+
+	it('falls back to one non-streaming call when the stream yields no content', async () => {
+		const run = vi.fn()
+			.mockResolvedValueOnce(asyncIterableFrom([]))
+			.mockResolvedValueOnce({ response: 'complete answer' });
+		const provider = new CloudflareAIProvider({ AI: { run } } as any);
+		const chain = new ProviderChain([provider]);
+
+		const chunks = await collectStream(chain);
+
+		expect(run).toHaveBeenCalledTimes(2);
+		expect(run).toHaveBeenNthCalledWith(2, ALLOWED_MODEL, expect.objectContaining({ stream: false }));
+		const text = chunks.map(c => c.content).join('');
+		expect(text).toContain('complete answer');
+		expect(chunks[chunks.length - 1].done).toBe(true);
+	});
+
+	it('call() fails closed when the AI binding is absent', async () => {
+		const provider = new CloudflareAIProvider({} as any);
+		await expect(provider.call([{ role: 'user', content: 'hi' }])).rejects.toThrowError(/Cloudflare Workers AI binding/);
+	});
+});
+
+describe('ProviderChain streaming semantics', () => {
+	it('advances to a fallback provider only when no content was emitted', async () => {
+		const provider1 = mockProvider('mock-1', async function* () {
+			yield { content: '', done: true, provider: 'mock-1' };
+		});
+		const provider2 = mockProvider('mock-2', async function* () {
+			yield { content: 'Hello', done: false, provider: 'mock-2' };
+			yield { content: '', done: true, provider: 'mock-2' };
+		});
+
+		const chain = new ProviderChain([provider1, provider2]);
+		const chunks = await collectStream(chain);
 
 		expect(chunks.some(c => c.content === 'Hello')).toBe(true);
 		expect(chunks[chunks.length - 1].done).toBe(true);
 	});
 
 	it('does not yield empty done markers as successful content', async () => {
-		const mockProvider = {
-			name: 'mock',
-			call: vi.fn(),
-			stream: vi.fn().mockImplementation(async function* () {
-				yield { content: '', done: true, provider: 'mock' };
-			}),
-		};
+		const provider = mockProvider('mock', async function* () {
+			yield { content: '', done: true, provider: 'mock' };
+		});
 
-		const chain = new ProviderChain([mockProvider]);
-		const chunks = [];
-		for await (const chunk of chain.stream([])) {
-			chunks.push(chunk);
-		}
+		const chain = new ProviderChain([provider]);
+		const chunks = await collectStream(chain);
 
-		// Should have fallback message since mock yielded no content
+		// No content means the sanitized fallback message ends the stream.
 		expect(chunks.some(c => c.provider === 'fallback')).toBe(true);
 	});
 
 	it('sanitizes errors and does not expose raw provider error bodies', async () => {
-		const mockProvider = {
-			name: 'mock',
-			call: vi.fn(),
-			stream: vi.fn().mockImplementation(async function* () {
-				throw new Error('API error: secret-key-12345 - detailed error info');
-			}),
-		};
+		const provider = mockProvider('mock', async function* () {
+			throw new Error('API error: secret-key-12345 - detailed error info');
+		});
 
-		const chain = new ProviderChain([mockProvider]);
-		const chunks = [];
-		for await (const chunk of chain.stream([])) {
-			chunks.push(chunk);
-		}
+		const chain = new ProviderChain([provider]);
+		const chunks = await collectStream(chain);
 
 		const fallbackChunk = chunks.find(c => c.provider === 'fallback');
 		expect(fallbackChunk).toBeDefined();
-		expect(fallbackChunk.content).not.toContain('secret-key-12345');
-		expect(fallbackChunk.content).not.toContain('detailed error info');
-		expect(fallbackChunk.content).toContain('El chat no está disponible');
-	});
-});
-
-describe('GroqProvider', () => {
-	it('requires explicit model parameter (no default)', () => {
-		expect(() => new GroqProvider('key', '')).toBeDefined();
-		// TypeScript enforces this, but we verify the constructor signature
-		const provider = new GroqProvider('key', 'custom-model');
-		expect((provider as any).model).toBe('custom-model');
+		expect(fallbackChunk!.content).not.toContain('secret-key-12345');
+		expect(fallbackChunk!.content).not.toContain('detailed error info');
+		expect(fallbackChunk!.content).toContain('El chat no está disponible');
 	});
 });

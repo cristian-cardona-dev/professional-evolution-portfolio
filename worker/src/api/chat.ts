@@ -4,14 +4,10 @@
  */
 
 import { getFullKB, getKBSections } from '../lib/kb';
-import { createProviderChain, Message } from '../lib/providers';
+import { createProviderChain, Message, WorkersAIBinding } from '../lib/providers';
 
 export interface Env {
-	GROQ_API_KEY?: string;
-	GROQ_MODEL?: string;
-	ANTHROPIC_API_KEY?: string;
-	ANTHROPIC_MODEL?: string;
-	AI?: any;
+	AI?: WorkersAIBinding;
 }
 
 interface ChatRequest {

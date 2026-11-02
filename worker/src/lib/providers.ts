@@ -1,4 +1,14 @@
-﻿export interface Provider {
+﻿/**
+ * Free-only provider chain.
+ *
+ * Binding policy (2026-11 free-worker tranche): Cloudflare Workers AI is the
+ * ONLY provider. No API-key environment variable can activate any other
+ * provider, and the model is a fixed allowlisted literal — never selected from
+ * the environment. When the `AI` binding is absent the chain fails closed with
+ * a sanitized configuration error; no fallback inference path exists.
+ */
+
+export interface Provider {
 	name: string;
 	call(messages: Message[], options?: CallOptions): Promise<ProviderResponse>;
 	stream(messages: Message[], options?: CallOptions): AsyncIterable<StreamChunk>;
@@ -29,241 +39,65 @@ export interface StreamChunk {
 }
 
 /**
- * Groq Provider — optional, only activated when both GROQ_API_KEY and
- * GROQ_MODEL are explicitly configured. No default model is provided
- * because prior defaults (llama3-70b-8192, llama-3.3-70b-versatile) have
- * been decommissioned and available free models require explicit opt-in.
- * Free tier: https://console.groq.com
+ * Minimal structural type for the Cloudflare Workers AI binding declared in
+ * `worker/wrangler.jsonc` (`"ai": { "binding": "AI" }`). Kept structural so
+ * tests can inject mocks without the full Workers runtime.
  */
-export class GroqProvider implements Provider {
-	name = 'groq';
-	private apiKey: string;
-	private model: string;
-	private baseUrl = 'https://api.groq.com/openai/v1';
+export interface WorkersAIBinding {
+	run(model: string, input: unknown): Promise<unknown>;
+}
 
-	constructor(apiKey: string, model: string) {
-		this.apiKey = apiKey;
-		this.model = model;
-	}
-
-	async call(messages: Message[], options: CallOptions = {}): Promise<ProviderResponse> {
-		const response = await fetch(`${this.baseUrl}/chat/completions`, {
-			method: 'POST',
-			headers: {
-				'Authorization': `Bearer ${this.apiKey}`,
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify({
-				model: this.model,
-				messages: messages.map(m => ({ role: m.role, content: m.content })),
-				temperature: options.temperature ?? 0.3,
-				max_tokens: options.maxTokens ?? 1024,
-				stream: false,
-			}),
-		});
-
-		if (!response.ok) {
-			console.warn(`Groq API error: ${response.status}`);
-			throw new Error(`Groq API error: ${response.status}`);
-		}
-
-		const data = await response.json() as any;
-		return {
-			content: data.choices?.[0]?.message?.content ?? '',
-			provider: 'groq',
-			model: this.model,
-			usage: data.usage,
-		};
-	}
-
-	async *stream(messages: Message[], options: CallOptions = {}): AsyncIterable<StreamChunk> {
-		const response = await fetch(`${this.baseUrl}/chat/completions`, {
-			method: 'POST',
-			headers: {
-				'Authorization': `Bearer ${this.apiKey}`,
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify({
-				model: this.model,
-				messages: messages.map(m => ({ role: m.role, content: m.content })),
-				temperature: options.temperature ?? 0.3,
-				max_tokens: options.maxTokens ?? 1024,
-				stream: true,
-			}),
-		});
-
-		if (!response.ok) {
-			console.warn(`Groq API error: ${response.status}`);
-			throw new Error(`Groq API error: ${response.status}`);
-		}
-
-		const reader = response.body?.getReader();
-		const decoder = new TextDecoder();
-
-		if (!reader) {
-			throw new Error('No response body');
-		}
-
-		let buffer = '';
-
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
-
-			buffer += decoder.decode(value, { stream: true });
-			const lines = buffer.split('\n');
-			buffer = lines.pop() ?? '';
-
-			for (const line of lines) {
-				if (line.startsWith('data: ')) {
-					const data = line.slice(6);
-					if (data === '[DONE]') {
-						yield { content: '', done: true, provider: 'groq' };
-						return;
-					}
-					try {
-						const parsed = JSON.parse(data);
-						const content = parsed.choices?.[0]?.delta?.content ?? '';
-						if (content) {
-							yield { content, done: false, provider: 'groq' };
-						}
-					} catch {
-						// Ignore parse errors
-					}
-				}
-			}
-		}
-	}
+/** Environment accepted by the provider chain: only the `AI` binding matters. */
+export interface ProviderEnv {
+	AI?: WorkersAIBinding;
 }
 
 /**
- * Anthropic Provider (Fallback) — Claude Haiku
- * Free tier: https://console.anthropic.com
+ * The only allowlisted inference model in this tranche: Cloudflare Workers AI
+ * (free-tier eligible). Literal by design — not environment-selectable.
  */
-export class AnthropicProvider implements Provider {
-	name = 'anthropic';
-	private apiKey: string;
-	private model: string;
-	private baseUrl = 'https://api.anthropic.com/v1';
+export const CLOUDFLARE_MODEL = '@cf/mistral/mistral-7b-instruct-v0.1';
 
-	constructor(apiKey: string, model = 'claude-3-haiku-20240307') {
-		this.apiKey = apiKey;
-		this.model = model;
-	}
+/** Sanitized configuration error — carries no secret or provider detail. */
+const AI_CONFIG_ERROR =
+	'AI provider not configured: the Cloudflare Workers AI binding (env.AI) is required';
 
-	async call(messages: Message[], options: CallOptions = {}): Promise<ProviderResponse> {
-		const systemMessage = messages.find(m => m.role === 'system');
-		const userMessages = messages.filter(m => m.role !== 'system');
+/** Sanitized internal error used when inference fails after output began. */
+const AI_STREAM_ENDED_ERROR =
+	'Cloudflare AI stream ended with an error after output began';
 
-		const response = await fetch(`${this.baseUrl}/messages`, {
-			method: 'POST',
-			headers: {
-				'x-api-key': this.apiKey,
-				'Content-Type': 'application/json',
-				'anthropic-version': '2023-06-01',
-			},
-			body: JSON.stringify({
-				model: this.model,
-				system: systemMessage?.content ?? '',
-				messages: userMessages.map(m => ({ role: m.role, content: m.content })),
-				temperature: options.temperature ?? 0.3,
-				max_tokens: options.maxTokens ?? 1024,
-				stream: false,
-			}),
-		});
+/** Sanitized message shown to visitors when no provider content is available. */
+const CHAT_UNAVAILABLE_MESSAGE =
+	'El chat no está disponible ahora. Usa el formulario de contacto.';
 
-		if (!response.ok) {
-			throw new Error(`Anthropic API error: ${response.status}`);
-		}
+interface WorkersAIStreamChunk {
+	response?: string;
+	text?: string;
+	delta?: string;
+}
 
-		const data = await response.json() as any;
-		return {
-			content: data.content?.[0]?.text ?? '',
-			provider: 'anthropic',
-			model: this.model,
-			usage: data.usage,
-		};
-	}
-
-	async *stream(messages: Message[], options: CallOptions = {}): AsyncIterable<StreamChunk> {
-		const systemMessage = messages.find(m => m.role === 'system');
-		const userMessages = messages.filter(m => m.role !== 'system');
-
-		const response = await fetch(`${this.baseUrl}/messages`, {
-			method: 'POST',
-			headers: {
-				'x-api-key': this.apiKey,
-				'Content-Type': 'application/json',
-				'anthropic-version': '2023-06-01',
-			},
-			body: JSON.stringify({
-				model: this.model,
-				system: systemMessage?.content ?? '',
-				messages: userMessages.map(m => ({ role: m.role, content: m.content })),
-				temperature: options.temperature ?? 0.3,
-				max_tokens: options.maxTokens ?? 1024,
-				stream: true,
-			}),
-		});
-
-		if (!response.ok) {
-			throw new Error(`Anthropic API error: ${response.status}`);
-		}
-
-		const reader = response.body?.getReader();
-		const decoder = new TextDecoder();
-
-		if (!reader) {
-			throw new Error('No response body');
-		}
-
-		let buffer = '';
-
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
-
-			buffer += decoder.decode(value, { stream: true });
-			const lines = buffer.split('\n');
-			buffer = lines.pop() ?? '';
-
-			for (const line of lines) {
-				if (line.startsWith('data: ')) {
-					const data = line.slice(6);
-					try {
-						const parsed = JSON.parse(data);
-						if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
-							yield { content: parsed.delta.text, done: false, provider: 'anthropic' };
-						} else if (parsed.type === 'message_stop') {
-							yield { content: '', done: true, provider: 'anthropic' };
-							return;
-						}
-					} catch {
-						// Ignore parse errors
-					}
-				}
-			}
-		}
-	}
+interface WorkersAIResponse {
+	response?: string;
 }
 
 /**
- * Cloudflare AI Provider (Fallback) — Always available on Workers
- * Uses Mistral 7B as the fallback model when Groq is not configured
+ * Cloudflare AI Provider — the sole provider in this tranche, activated
+ * exclusively by the `AI` binding (no API key, no env-selected model).
  */
 export class CloudflareAIProvider implements Provider {
 	name = 'cloudflare-ai';
-	private env: any;
-	private model: string;
+	/** Allowlisted model — a fixed literal, never read from the environment. */
+	readonly model = CLOUDFLARE_MODEL;
+	private env: ProviderEnv;
 
-	constructor(env: any, model = '@cf/mistral/mistral-7b-instruct-v0.1') {
+	constructor(env: ProviderEnv) {
 		this.env = env;
-		this.model = model;
 	}
 
 	async call(messages: Message[], options: CallOptions = {}): Promise<ProviderResponse> {
-		if (!this.env?.AI) {
-			throw new Error('Cloudflare AI not available (no env.AI binding)');
+		const ai = this.env?.AI;
+		if (!ai) {
+			throw new Error(AI_CONFIG_ERROR);
 		}
 
 		const input = {
@@ -273,18 +107,19 @@ export class CloudflareAIProvider implements Provider {
 			stream: false,
 		};
 
-		const response = await this.env.AI.run(this.model, input);
+		const response = (await ai.run(this.model, input)) as WorkersAIResponse;
 
 		return {
 			content: response.response ?? '',
-			provider: 'cloudflare-ai',
+			provider: this.name,
 			model: this.model,
 		};
 	}
 
 	async *stream(messages: Message[], options: CallOptions = {}): AsyncIterable<StreamChunk> {
-		if (!this.env?.AI) {
-			throw new Error('Cloudflare AI not available');
+		const ai = this.env?.AI;
+		if (!ai) {
+			throw new Error(AI_CONFIG_ERROR);
 		}
 
 		const input = {
@@ -294,47 +129,44 @@ export class CloudflareAIProvider implements Provider {
 			stream: true,
 		};
 
+		let hasContent = false;
 		try {
-			const stream = await this.env.AI.run(this.model, input);
-
-			let hasContent = false;
-			for await (const chunk of stream as any) {
-				if (chunk.response) {
+			const streamResult = (await ai.run(this.model, input)) as AsyncIterable<WorkersAIStreamChunk>;
+			for await (const chunk of streamResult) {
+				const content = chunk?.response || chunk?.text || chunk?.delta;
+				if (content) {
 					hasContent = true;
-					yield { content: chunk.response, done: false, provider: 'cloudflare-ai' };
-				} else if (chunk.text) {
-					hasContent = true;
-					yield { content: chunk.text, done: false, provider: 'cloudflare-ai' };
-				} else if (chunk.delta) {
-					hasContent = true;
-					yield { content: chunk.delta, done: false, provider: 'cloudflare-ai' };
-				}
-			}
-
-			// If streaming didn't yield any content, fall back to non-streaming
-			if (!hasContent) {
-				const nonStreamInput = { ...input, stream: false };
-				const response = await this.env.AI.run(this.model, nonStreamInput);
-				if (response.response) {
-					yield { content: response.response, done: false, provider: 'cloudflare-ai' };
+					yield { content, done: false, provider: this.name };
 				}
 			}
 		} catch (error) {
-			console.warn('Cloudflare AI streaming failed, falling back to non-streaming');
-			// Fallback to non-streaming on any error
+			if (hasContent) {
+				// Output already began: no retry of the same inference and no
+				// second response appended. End with a sanitized error so the
+				// chain closes the stream without exposing provider details.
+				throw new Error(AI_STREAM_ENDED_ERROR);
+			}
+			console.warn('Cloudflare AI streaming failed before any content; one non-streaming attempt follows');
+		}
+
+		if (!hasContent) {
+			// Pre-output fallback only: a single non-streaming attempt is
+			// allowed before the first non-empty content chunk.
 			const nonStreamInput = { ...input, stream: false };
-			const response = await this.env.AI.run(this.model, nonStreamInput);
-			if (response.response) {
-				yield { content: response.response, done: false, provider: 'cloudflare-ai' };
+			const response = (await ai.run(this.model, nonStreamInput)) as WorkersAIResponse;
+			if (response?.response) {
+				yield { content: response.response, done: false, provider: this.name };
 			}
 		}
 
-		yield { content: '', done: true, provider: 'cloudflare-ai' };
+		yield { content: '', done: true, provider: this.name };
 	}
 }
 
 /**
- * Provider chain with fallback
+ * Provider chain. In this tranche it is always constructed with the single
+ * Cloudflare provider; a provider is only advanced past when it emitted no
+ * content at all, so fallback never happens after output has begun.
  */
 export class ProviderChain {
 	readonly providers: Provider[];
@@ -391,9 +223,9 @@ export class ProviderChain {
 			}
 		}
 
-		// All providers failed or yielded nothing
+		// All providers failed or yielded nothing: end with a sanitized error.
 		yield {
-			content: 'El chat no está disponible ahora. Usa el formulario de contacto.',
+			content: CHAT_UNAVAILABLE_MESSAGE,
 			done: true,
 			provider: 'fallback',
 		};
@@ -401,34 +233,17 @@ export class ProviderChain {
 }
 
 /**
- * Create provider chain from environment
+ * Create the provider chain from the Worker environment.
+ *
+ * Free-only policy: Cloudflare Workers AI is the sole provider. The chain is
+ * built only when the `AI` binding exists; every other environment variable
+ * (API key or model name) is ignored and can never add a provider. Without
+ * the binding the chain fails closed with a sanitized configuration error.
  */
-export function createProviderChain(env: any): ProviderChain {
-	const providers: Provider[] = [];
-
-	// Provider order (highest to lowest priority):
-	// 1. Groq - only when BOTH GROQ_API_KEY and explicit GROQ_MODEL are configured
-	// 2. Cloudflare Mistral - fallback, always available on Workers
-	// 3. Anthropic - optional, only when ANTHROPIC_API_KEY is configured
-
-	// Base fallback: Cloudflare Mistral (always available on Workers)
-	providers.push(new CloudflareAIProvider(env, '@cf/mistral/mistral-7b-instruct-v0.1'));
-
-	// Highest priority: Groq only when BOTH key and explicit model are configured.
-	// No default model - prior defaults (llama3-70b-8192, llama-3.3-70b-versatile)
-	// are decommissioned. Must be explicitly configured.
-	if (env.GROQ_API_KEY && env.GROQ_MODEL) {
-		providers.unshift(new GroqProvider(env.GROQ_API_KEY, env.GROQ_MODEL));
+export function createProviderChain(env: ProviderEnv): ProviderChain {
+	if (!env?.AI) {
+		throw new Error(AI_CONFIG_ERROR);
 	}
 
-	// Lowest priority: Anthropic (optional, only when key is configured)
-	if (env.ANTHROPIC_API_KEY) {
-		providers.push(new AnthropicProvider(env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL ?? 'claude-3-haiku-20240307'));
-	}
-
-	if (providers.length === 0) {
-		throw new Error('No AI providers configured');
-	}
-
-	return new ProviderChain(providers);
+	return new ProviderChain([new CloudflareAIProvider(env)]);
 }
