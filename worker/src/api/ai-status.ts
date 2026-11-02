@@ -1,17 +1,32 @@
 ﻿/**
  * AI Status Endpoint - /api/ai-status
- * Reports configured providers (not tested). No provider calls, no secret values.
+ *
+ * Passive configuration report for the free-only provider chain. Cloudflare
+ * Workers AI is the sole allowlisted provider, so the endpoint only reports
+ * whether the `AI` binding exists: `configured_not_probed` when it does,
+ * `unavailable` when it does not. It never calls `AI.run`, never sends a
+ * provider request, and returns no key, prompt, raw error, or
+ * unsupported-provider state.
  */
 
 import { getKBSections } from '../lib/kb';
+import type { WorkersAIBinding } from '../lib/providers';
+
+/** The only allowlisted provider in this tranche. */
+const PROVIDER_NAME = 'cloudflare-ai';
+
+/**
+ * The only allowlisted model — a fixed literal, never selected from the
+ * environment and never echoed from any other variable.
+ */
+const MODEL = '@cf/mistral/mistral-7b-instruct-v0.1';
 
 export interface Env {
-	GROQ_API_KEY?: string;
-	GROQ_MODEL?: string;
-	ANTHROPIC_API_KEY?: string;
-	ANTHROPIC_MODEL?: string;
-	AI?: any;
+	AI?: WorkersAIBinding;
 }
+
+/** Binding present but never probed, or binding absent. */
+export type AiStatusState = 'configured_not_probed' | 'unavailable';
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
@@ -32,25 +47,21 @@ export default {
 		try {
 			const kbSections = getKBSections();
 
-			const providers = [];
-			if (env.GROQ_API_KEY && env.GROQ_MODEL) {
-				providers.push({ name: 'groq', model: env.GROQ_MODEL, status: 'configured' });
-			} else if (env.GROQ_API_KEY) {
-				providers.push({ name: 'groq', model: null, status: 'configured_incomplete', note: 'GROQ_API_KEY set but GROQ_MODEL missing' });
-			}
-			if (env.ANTHROPIC_API_KEY) {
-				providers.push({ name: 'anthropic', model: env.ANTHROPIC_MODEL ?? 'claude-3-haiku-20240307', status: 'configured' });
-			}
-			if (env.AI) {
-				providers.push({ name: 'cloudflare-ai', model: '@cf/mistral/mistral-7b-instruct-v0.1', status: 'configured' });
-			}
+			const configured = Boolean(env?.AI);
+			const state: AiStatusState = configured ? 'configured_not_probed' : 'unavailable';
+			const providers = configured
+				? [{ name: PROVIDER_NAME, model: MODEL, status: state }]
+				: [];
 
-			const configuredProviders = providers.filter(p => p.status === 'configured');
 			return new Response(JSON.stringify({
-				available: configuredProviders.length > 0,
+				available: configured,
+				state,
 				kbSections,
 				providers,
-				status_note: 'available = at least one provider fully configured (not just key present); not probed at runtime',
+				status_note:
+					'Configuration report only: available means the allowlisted Cloudflare Workers AI binding is configured, ' +
+					'configured_not_probed means configured but not probed at runtime; ' +
+					'this endpoint makes no provider request and exposes no key, prompt, or raw error',
 			}, null, 2), {
 				headers: {
 					...corsHeaders,
@@ -58,9 +69,10 @@ export default {
 					'Cache-Control': 'no-cache',
 				},
 			});
-		} catch (error) {
-			console.error('AI Status error:', error);
-			return new Response(JSON.stringify({ available: false, error: 'Internal server error' }), {
+		} catch {
+			// Sanitized: the raw error object is never logged or returned by this surface.
+			console.error('AI Status error: internal failure');
+			return new Response(JSON.stringify({ available: false, state: 'unavailable', error: 'Internal server error' }), {
 				status: 500,
 				headers: { ...corsHeaders, 'Content-Type': 'application/json' },
 			});

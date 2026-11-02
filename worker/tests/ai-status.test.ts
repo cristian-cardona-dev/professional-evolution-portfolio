@@ -1,107 +1,139 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import aiStatusHandler from '../src/api/ai-status';
 
-describe('ai-status.ts - honest available field', () => {
+const ALLOWLISTED_PROVIDER = 'cloudflare-ai';
+const ALLOWLISTED_MODEL = '@cf/mistral/mistral-7b-instruct-v0.1';
+
+describe('ai-status.ts - passive allowlisted status', () => {
 	const createRequest = (method = 'GET') => {
 		return new Request('http://localhost/api/ai-status', { method });
 	};
 
-	it('returns available: false when no providers are configured', async () => {
-		const env = {};
-		const response = await aiStatusHandler.fetch(createRequest(), env);
-		const data = await response.json();
+	const getStatus = async (env: unknown) => {
+		const response = await aiStatusHandler.fetch(createRequest(), env as any);
+		return { response, data: await response.json() as any };
+	};
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('never calls AI.run and never issues a provider request', async () => {
+		const run = vi.fn();
+		const fetchSpy = vi.fn();
+		vi.stubGlobal('fetch', fetchSpy);
+
+		const { response, data } = await getStatus({ AI: { run } });
+
+		expect(response.status).toBe(200);
+		expect(run).not.toHaveBeenCalled();
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(data.available).toBe(true);
+	});
+
+	it('reports exactly the allowlisted provider and model as configured_not_probed', async () => {
+		const run = vi.fn();
+		const { data } = await getStatus({ AI: { run } });
+
+		expect(data.state).toBe('configured_not_probed');
+		expect(data.providers).toEqual([
+			{ name: ALLOWLISTED_PROVIDER, model: ALLOWLISTED_MODEL, status: 'configured_not_probed' },
+		]);
+		expect(Object.keys(data).sort()).toEqual([
+			'available',
+			'kbSections',
+			'providers',
+			'state',
+			'status_note',
+		]);
+		expect(data.kbSections).toContain('SYSTEM_PROMPT');
+		expect(run).not.toHaveBeenCalled();
+	});
+
+	it('reports unavailable when the AI binding is absent', async () => {
+		const { data } = await getStatus({ GROQ_API_KEY: 'gsk-obsolete-groq-secret', ANTHROPIC_API_KEY: 'sk-ant-obsolete-secret' });
+
 		expect(data.available).toBe(false);
+		expect(data.state).toBe('unavailable');
 		expect(data.providers).toEqual([]);
+		expect(data.error).toBeUndefined();
 	});
 
-	it('returns available: true when Cloudflare AI is configured', async () => {
-		const env = { AI: {} };
-		const response = await aiStatusHandler.fetch(createRequest(), env);
-		const data = await response.json();
+	it('never reports credential or model values supplied through obsolete Anthropic/Groq variables', async () => {
+		const run = vi.fn();
+		const { data } = await getStatus({
+			AI: { run },
+			GROQ_API_KEY: 'gsk-obsolete-groq-secret',
+			GROQ_MODEL: 'llama-3.3-70b-versatile',
+			ANTHROPIC_API_KEY: 'sk-ant-obsolete-secret',
+			ANTHROPIC_MODEL: 'claude-3-haiku-20240307',
+		});
+
 		expect(data.available).toBe(true);
+		expect(data.state).toBe('configured_not_probed');
 		expect(data.providers).toHaveLength(1);
-		expect(data.providers[0].name).toBe('cloudflare-ai');
+
+		const body = JSON.stringify(data).toLowerCase();
+		for (const forbidden of [
+			'gsk-obsolete-groq-secret',
+			'llama-3.3-70b-versatile',
+			'sk-ant-obsolete-secret',
+			'claude-3-haiku-20240307',
+			'groq',
+			'anthropic',
+			'configured_incomplete',
+		]) {
+			expect(body).not.toContain(forbidden.toLowerCase());
+		}
+		expect(run).not.toHaveBeenCalled();
 	});
 
-	it('returns available: true when Groq is fully configured', async () => {
-		const env = {
-			GROQ_API_KEY: 'test-key',
-			GROQ_MODEL: 'test-model',
-		};
-		const response = await aiStatusHandler.fetch(createRequest(), env);
-		const data = await response.json();
-		expect(data.available).toBe(true);
-		expect(data.providers).toHaveLength(1);
-		expect(data.providers[0].name).toBe('groq');
-		expect(data.providers[0].status).toBe('configured');
-	});
+	it('exposes no key, prompt, raw error, or unsupported-provider state', async () => {
+		const { data } = await getStatus({
+			GROQ_API_KEY: 'gsk-obsolete-groq-secret',
+			GROQ_MODEL: 'llama-3.3-70b-versatile',
+			ANTHROPIC_API_KEY: 'sk-ant-obsolete-secret',
+			ANTHROPIC_MODEL: 'claude-3-haiku-20240307',
+			RESEND_API_KEY: 're_omit-me-too',
+			CHAT_GUARD_SECRET: 'guard-secret-value',
+		});
 
-	it('returns available: false but marks Groq as incomplete when only API key is set', async () => {
-		const env = { GROQ_API_KEY: 'test-key' };
-		const response = await aiStatusHandler.fetch(createRequest(), env);
-		const data = await response.json();
 		expect(data.available).toBe(false);
-		expect(data.providers).toHaveLength(1);
-		expect(data.providers[0].name).toBe('groq');
-		expect(data.providers[0].status).toBe('configured_incomplete');
-		expect(data.providers[0].note).toContain('GROQ_MODEL missing');
+		expect(data.state).toBe('unavailable');
+		expect(data.providers).toEqual([]);
+
+		const body = JSON.stringify(data).toLowerCase();
+		for (const forbidden of [
+			'gsk-obsolete-groq-secret',
+			'llama-3.3-70b-versatile',
+			'sk-ant-obsolete-secret',
+			'claude-3-haiku-20240307',
+			're_omit-me-too',
+			'guard-secret-value',
+			'unsupported',
+			'configured_incomplete',
+		]) {
+			expect(body).not.toContain(forbidden.toLowerCase());
+		}
 	});
 
-	it('returns available: true when Groq is incomplete but Anthropic is configured', async () => {
-		const env = {
-			GROQ_API_KEY: 'test-key',
-			ANTHROPIC_API_KEY: 'test-key',
-		};
-		const response = await aiStatusHandler.fetch(createRequest(), env);
-		const data = await response.json();
-		expect(data.available).toBe(true);
-		expect(data.providers).toHaveLength(2);
-		expect(data.providers[0].name).toBe('groq');
-		expect(data.providers[0].status).toBe('configured_incomplete');
-		expect(data.providers[1].name).toBe('anthropic');
-		expect(data.providers[1].status).toBe('configured');
-	});
+	it('states configured-not-probed explicitly in status_note', async () => {
+		const { data } = await getStatus({ AI: { run: vi.fn() } });
 
-	it('returns available: true when Anthropic is configured', async () => {
-		const env = { ANTHROPIC_API_KEY: 'test-key' };
-		const response = await aiStatusHandler.fetch(createRequest(), env);
-		const data = await response.json();
-		expect(data.available).toBe(true);
-		expect(data.providers).toHaveLength(1);
-		expect(data.providers[0].name).toBe('anthropic');
-	});
-
-	it('returns available: true with multiple providers configured', async () => {
-		const env = {
-			GROQ_API_KEY: 'test-key',
-			GROQ_MODEL: 'test-model',
-			ANTHROPIC_API_KEY: 'test-key',
-			AI: {},
-		};
-		const response = await aiStatusHandler.fetch(createRequest(), env);
-		const data = await response.json();
-		expect(data.available).toBe(true);
-		expect(data.providers).toHaveLength(3);
-	});
-
-	it('includes status_note explaining available field', async () => {
-		const env = { AI: {} };
-		const response = await aiStatusHandler.fetch(createRequest(), env);
-		const data = await response.json();
-		expect(data.status_note).toBeDefined();
 		expect(data.status_note).toContain('configured');
 		expect(data.status_note).toContain('not probed at runtime');
+		expect(data.status_note).toContain('no provider request');
 	});
 
 	it('returns 405 for non-GET requests', async () => {
-		const env = { AI: {} };
-		const response = await aiStatusHandler.fetch(createRequest('POST'), env);
+		const env = { AI: { run: vi.fn() } };
+		const response = await aiStatusHandler.fetch(createRequest('POST'), env as any);
 		expect(response.status).toBe(405);
 	});
 
 	it('handles CORS preflight', async () => {
 		const env = {};
-		const response = await aiStatusHandler.fetch(createRequest('OPTIONS'), env);
+		const response = await aiStatusHandler.fetch(createRequest('OPTIONS'), env as any);
 		expect(response.status).toBe(200);
 		expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
 	});
