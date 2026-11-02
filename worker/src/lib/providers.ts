@@ -293,13 +293,43 @@ export class CloudflareAIProvider implements Provider {
 			stream: true,
 		};
 
-		const stream = await this.env.AI.run(this.model, input);
+		try {
+			const stream = await this.env.AI.run(this.model, input);
 
-		for await (const chunk of stream as any) {
-			if (chunk.response) {
-				yield { content: chunk.response, done: false, provider: 'cloudflare-ai' };
+			let hasContent = false;
+			for await (const chunk of stream as any) {
+				console.log('Cloudflare AI stream chunk:', JSON.stringify(chunk));
+				if (chunk.response) {
+					hasContent = true;
+					yield { content: chunk.response, done: false, provider: 'cloudflare-ai' };
+				} else if (chunk.text) {
+					hasContent = true;
+					yield { content: chunk.text, done: false, provider: 'cloudflare-ai' };
+				} else if (chunk.delta) {
+					hasContent = true;
+					yield { content: chunk.delta, done: false, provider: 'cloudflare-ai' };
+				}
+			}
+			
+			// If streaming didn't yield any content, fall back to non-streaming
+			if (!hasContent) {
+				console.log('Streaming yielded no content, falling back to non-streaming');
+				const nonStreamInput = { ...input, stream: false };
+				const response = await this.env.AI.run(this.model, nonStreamInput);
+				if (response.response) {
+					yield { content: response.response, done: false, provider: 'cloudflare-ai' };
+				}
+			}
+		} catch (error) {
+			console.error('Cloudflare AI streaming error, falling back to non-streaming:', error);
+			// Fallback to non-streaming on any error
+			const nonStreamInput = { ...input, stream: false };
+			const response = await this.env.AI.run(this.model, nonStreamInput);
+			if (response.response) {
+				yield { content: response.response, done: false, provider: 'cloudflare-ai' };
 			}
 		}
+		
 		yield { content: '', done: true, provider: 'cloudflare-ai' };
 	}
 }
@@ -368,18 +398,18 @@ export class ProviderChain {
 export function createProviderChain(env: any): ProviderChain {
 	const providers: Provider[] = [];
 
-	// Primary: Groq
+	// Primary: Cloudflare AI (always available on Workers, no external key needed)
+	providers.push(new CloudflareAIProvider(env, '@cf/mistral/mistral-7b-instruct-v0.1'));
+
+	// Fallback: Groq (only if key exists and has access to current models)
 	if (env.GROQ_API_KEY) {
-		providers.push(new GroqProvider(env.GROQ_API_KEY, env.GROQ_MODEL ?? 'llama-3.3-70b-versatile'));
+		providers.push(new GroqProvider(env.GROQ_API_KEY, env.GROQ_MODEL ?? 'llama3-70b-8192'));
 	}
 
 	// Fallback: Anthropic
 	if (env.ANTHROPIC_API_KEY) {
 		providers.push(new AnthropicProvider(env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL ?? 'claude-3-haiku-20240307'));
 	}
-
-	// Backup: Cloudflare AI (always available on Workers)
-	providers.push(new CloudflareAIProvider(env, '@cf/meta/llama-3.3-70b-instruct'));
 
 	if (providers.length === 0) {
 		throw new Error('No AI providers configured');

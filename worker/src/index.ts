@@ -5,6 +5,7 @@
 import chat from './api/chat';
 import aiStatus from './api/ai-status';
 import lead from './api/lead';
+import testAI from './api/test-ai';
 
 export interface Env {
 	GROQ_API_KEY?: string;
@@ -30,6 +31,9 @@ export default {
 		}
 		if (path.startsWith('/api/lead')) {
 			return lead.fetch(request, env);
+		}
+		if (path.startsWith('/api/test-ai')) {
+			return testAI.fetch(request, env);
 		}
 
 		// 404 for other paths
