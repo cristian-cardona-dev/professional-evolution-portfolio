@@ -49,6 +49,17 @@ jobs:
         # production never sets it and the client bundle has no reference to it.
         run: node --test web/tests/semantic-index.test.mjs
 
+      - name: Assistant stays local (no Worker endpoint in the Pages widget)
+        # Free-only Worker provider chain, Task 5: the shipped
+        # AssistantWidget.astro must keep the local semantic/keyword search
+        # described in docs/assistant.md — exactly one same-origin fetch of the
+        # build-generated semantic index and no /api/chat or /api/assistant
+        # call. This gate fails the moment anyone wires the Pages widget to the
+        # chat Worker. Source-level on purpose: it needs no build artifact and
+        # targets only the assistant component (the legacy ChatWidget is not
+        # part of this contract).
+        run: node --test web/tests/assistant-local.test.mjs
+
       - name: Accessibility in a real browser (axe-core WCAG 2.2 AA, dark + light)
         # Runs the DOM-based axe spec against the production build, which the
         # harness serves through `astro preview` (port 4322) so the GitHub Pages
@@ -142,3 +153,31 @@ jobs:
         run: |
           if [ -f /tmp/preview.pid ]; then kill $(cat /tmp/preview.pid) 2>/dev/null || true; fi
           pkill -f "astro preview" || true
+
+  worker:
+    # Free-only Worker provider chain, Task 5: the chat Worker's gates were
+    # running only locally, so a regression could reach main unnoticed. This
+    # job installs strictly from worker/package-lock.json (`npm ci`), runs the
+    # Vitest suite and the TypeScript build (`tsc --noEmit`) on the same Node
+    # 22 as the Pages job. It is a separate job so the Pages steps above are
+    # untouched and a Worker failure is attributable at a glance. It installs,
+    # tests and typechecks only — no provider smoke call, no deploy, no
+    # publication.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install worker dependencies
+        run: npm --prefix worker ci
+
+      - name: Worker tests (Vitest)
+        run: npm --prefix worker test
+
+      - name: Worker typecheck (TypeScript build)
+        run: npm --prefix worker run build
