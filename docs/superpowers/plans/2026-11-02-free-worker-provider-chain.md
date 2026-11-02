@@ -16,6 +16,7 @@
 - The assistant may only expose data already published by the portfolio and must never read, index, retrieve, or paraphrase private Personal OS data.
 - No paid provider path or paid fallback may be active. Cloudflare Workers AI is the only provider in this implementation tranche; the account-level free/billing eligibility of Workers, Workers AI, and Durable Objects must be verified before any live smoke test or deployment.
 - Provider fallback is allowed only before the first non-empty SSE content chunk. After output begins, the stream ends with a sanitized error and must not append another provider's response or retry the same inference.
+- Chat Worker browser CORS allows only `https://cristian-cardona-dev.github.io`; missing/disallowed Origins never receive `Access-Control-Allow-Origin: *`.
 - The Worker rejects chat request bodies larger than **131,072 bytes (128 KiB)** before JSON parsing/quota/AI; it counts streamed bytes even when `Content-Length` is absent or inaccurate and cancels the request reader on overflow or the 30-second deadline.
 - No API key, raw provider error, visitor IP, or prompt may be persisted, returned by status/telemetry surfaces, or included in model context. The contact-form `Key` remains in canonical profile/form behavior but is excluded from the assistant-bound KB.
 - Client cancellation and response timeout propagate an abort signal to the Cloudflare provider adapter, which cancels an active Workers AI readable stream where its reader supports cancellation. This does **not** establish cancellation of a still-pending `AI.run`, server-side inference execution, or provider billing.
@@ -183,21 +184,24 @@ Expected: Worker suite and typecheck pass; Pages assertion passes; no existing P
 - Create: `worker/src/lib/cors.ts`
 - Modify: `worker/src/api/chat.ts`
 - Modify: `worker/src/api/ai-status.ts`
+- Modify: `worker/src/api/lead.ts`
 - Modify: `worker/tests/api.test.ts`
 - Modify: `worker/tests/ai-status.test.ts`
+- Create: `worker/tests/lead.test.ts`
 
 **Interfaces:**
 - `corsHeaders(origin: string | null, methods: string) -> Record<string, string>` allows only the official Pages origin `https://cristian-cardona-dev.github.io`; disallowed/absent origins receive `Vary: Origin` without `Access-Control-Allow-Origin`. Chat methods are `POST, OPTIONS`; status methods are `GET, OPTIONS`.
+- The lead endpoint also uses the shared CORS helper. When preview bindings omit D1, `/api/lead` returns a generic 503 before reading the body or claiming success; raw lead/email exceptions are never logged.
 - `worker/wrangler.jsonc` adds a `previews` block for `AI` and `CHAT_GUARD` only. It must not bind production D1 or KV into the preview Worker. The preview command uses the explicit preview name `portfolio-ai-chat-worker-preview` and `--ignore-base-config`.
 - The Pages assistant remains unconnected to the chat Worker; the smoke call is a single direct, short public-data request to the returned preview URL.
 
-- [ ] **Step 1: Add failing CORS and preview-isolation tests** for the official Pages origin, an untrusted origin, missing Origin, both API preflights, and preview bindings that include only AI/CHAT_GUARD (no D1/KV).
+- [ ] **Step 1: Add failing CORS and preview-isolation tests** for the official Pages origin, an untrusted origin, missing Origin, chat/status/lead preflights and errors, preview lead fail-closed behavior, and preview bindings that include only AI/CHAT_GUARD (no D1/KV).
 - [ ] **Step 2: Run focused tests to verify they fail**
 
 Run: `npm --prefix worker test -- tests/api.test.ts tests/ai-status.test.ts`
 Expected: FAIL because chat and status currently allow wildcard CORS and no preview binding set is defined.
 
-- [ ] **Step 3: Implement the shared CORS helper and preview-only binding set**; do not change the main Worker name, root deployment workflow, Pages behavior, provider selection, or quota policy.
+- [ ] **Step 3: Implement the shared CORS helper across chat/status/lead and the preview-only binding set; make the lead route fail closed without D1.** Do not change the main Worker name, root deployment workflow, Pages behavior, provider selection, or quota policy.
 - [ ] **Step 4: Run focused tests, the full Worker suite, TypeScript build, and the explicit JSONC dry-run**
 
 Run: `npm --prefix worker test -- tests/api.test.ts tests/ai-status.test.ts`, `npm --prefix worker test`, `npm --prefix worker run build`, and `npx wrangler deploy --dry-run --config worker/wrangler.jsonc` from the repository root.
@@ -211,8 +215,8 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 
 | Check | Finding | Ruling |
 |---|---|---|
-| Task 3 ↔ Task 6 shared interfaces | Both use `CHAT_GUARD` and `worker/wrangler.jsonc`; Task 3 supplies the class, Task 6 binds that class only in preview. Chat/status also share CORS behavior. | Task 6 follows Task 3/4; preview binding must omit production D1/KV. Cost if wrong: preview calls could mutate production records or share quota state. |
-| Task 6 self-consistency | Existing main workflow deploys Pages and the root Worker, not this chat Worker; Wrangler Preview is the separate non-production mechanism. | Use `wrangler preview` with a distinct name and explicit preview bindings; do not push/merge to `main`. Cost if wrong: production Pages/root Worker could be deployed without testing the chat API. |
+| Task 3/4 ↔ Task 6 shared interfaces | Task 6 adds preview-only bindings to the existing `CHAT_GUARD` and shares CORS across chat/status/lead. The legacy lead route had wildcard CORS and falsely returned success when its optional DB was absent. | Reuse Task 3's ChatGuard class only in preview, apply one CORS helper to all chat Worker API routes, and return 503 when lead persistence is unavailable. Cost if wrong: preview may expose a permissive route or falsely claim lead persistence. |
+| Task 6 self-consistency | Existing main workflow deploys Pages and the root Worker, not this chat Worker; preview must not bind production D1/KV and must make lead capture fail closed. | Use `wrangler preview` with a distinct name and explicit AI/ChatGuard preview bindings; do not push/merge to `main`. Cost if wrong: production Pages/root Worker could be deployed or preview could claim to save a lead without persistence. |
 | External gate | User confirmed Cloudflare Workers/AI/DO usage cannot incur charges and explicitly authorized one preview deployment plus one smoke request. | Execute only after Task 6 review and Guardian PASS; stop if preview configuration or account output does not match the $0/no-production target. Cost if wrong: unexpected spend or production exposure. |
 
 ## Execution and external gates
