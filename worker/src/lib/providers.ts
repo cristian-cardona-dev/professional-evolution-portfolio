@@ -23,6 +23,7 @@ export interface CallOptions {
 	temperature?: number;
 	maxTokens?: number;
 	stream?: boolean;
+	signal?: AbortSignal;
 }
 
 export interface ProviderResponse {
@@ -130,11 +131,41 @@ export class CloudflareAIProvider implements Provider {
 		};
 
 		try {
-			const streamResult = (await ai.run(this.model, input)) as AsyncIterable<WorkersAIStreamChunk>;
-			for await (const chunk of streamResult) {
-				const content = chunk?.response || chunk?.text || chunk?.delta;
-				if (content) {
-					yield { content, done: false, provider: this.name, model: this.model };
+			const streamResult = await ai.run(this.model, input);
+			if (streamResult && typeof (streamResult as { getReader?: unknown }).getReader === 'function') {
+				const reader = (streamResult as ReadableStream<WorkersAIStreamChunk>).getReader();
+				let streamFinished = false;
+				let streamCancelled = false;
+				const cancelReader = () => {
+					if (streamFinished || streamCancelled) return;
+					streamCancelled = true;
+					void reader.cancel('chat stream cancelled').catch(() => undefined);
+				};
+				const abortStream = () => cancelReader();
+				options.signal?.addEventListener('abort', abortStream, { once: true });
+				if (options.signal?.aborted) cancelReader();
+				try {
+					while (!streamCancelled && !options.signal?.aborted) {
+						const { done, value: chunk } = await reader.read();
+						if (done) {
+							streamFinished = true;
+							break;
+						}
+						const content = chunk?.response || chunk?.text || chunk?.delta;
+						if (content) yield { content, done: false, provider: this.name, model: this.model };
+					}
+				} finally {
+					options.signal?.removeEventListener('abort', abortStream);
+					if (!streamFinished) cancelReader();
+					try { reader.releaseLock(); } catch { /* a pending stream read owns the lock */ }
+				}
+			} else {
+				const asyncStream = streamResult as AsyncIterable<WorkersAIStreamChunk>;
+				for await (const chunk of asyncStream) {
+					const content = chunk?.response || chunk?.text || chunk?.delta;
+					if (content) {
+						yield { content, done: false, provider: this.name, model: this.model };
+					}
 				}
 			}
 		} catch {

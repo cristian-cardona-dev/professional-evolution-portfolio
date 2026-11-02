@@ -3,7 +3,7 @@
  * Handles streaming chat with grounding in canonical portfolio data
  */
 
-import { getFullKB } from '../lib/kb';
+import { getAssistantKB } from '../lib/kb';
 import { createProviderChain, Message, WorkersAIBinding } from '../lib/providers';
 
 export interface Env {
@@ -16,6 +16,13 @@ interface ChatRequest {
 	history?: Array<Pick<Message, 'role' | 'content'>>;
 	locale?: 'en' | 'es';
 }
+
+const MAX_REQUEST_BODY_BYTES = 131_072;
+
+type BodyReadResult =
+	| { kind: 'body'; text: string }
+	| { kind: 'too-large' }
+	| { kind: 'deadline' };
 
 function buildSystemPrompt(kb: string, locale: 'en' | 'es'): string {
 	const isSpanish = locale === 'es';
@@ -112,6 +119,50 @@ async function checkQuota(env: Env, request: Request): Promise<'allowed' | 'limi
 const RESPONSE_DEADLINE_MS = 30_000;
 const DEADLINE_EXPIRED = Symbol('deadline-expired');
 
+async function readBoundedBody(request: Request, deadlineAt: number): Promise<BodyReadResult> {
+	const advertisedLength = request.headers.get('Content-Length');
+	if (advertisedLength && /^\d+$/u.test(advertisedLength) && Number(advertisedLength) > MAX_REQUEST_BODY_BYTES) {
+		void request.body?.cancel('request body exceeds size limit').catch(() => undefined);
+		return { kind: 'too-large' };
+	}
+
+	if (!request.body) return { kind: 'body', text: '' };
+	const reader = request.body.getReader();
+	const readAll = async (): Promise<Exclude<BodyReadResult, { kind: 'deadline' }>> => {
+		const chunks: Uint8Array[] = [];
+		let byteLength = 0;
+		try {
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				byteLength += value.byteLength;
+				if (byteLength > MAX_REQUEST_BODY_BYTES) {
+					void reader.cancel('request body exceeds size limit').catch(() => undefined);
+					return { kind: 'too-large' };
+				}
+				chunks.push(value);
+			}
+
+			const bytes = new Uint8Array(byteLength);
+			let offset = 0;
+			for (const chunk of chunks) {
+				bytes.set(chunk, offset);
+				offset += chunk.byteLength;
+			}
+			return { kind: 'body', text: new TextDecoder().decode(bytes) };
+		} finally {
+			reader.releaseLock();
+		}
+	};
+
+	const result = await withinDeadline(readAll(), deadlineAt);
+	if (result === DEADLINE_EXPIRED) {
+		void reader.cancel('request body deadline expired').catch(() => undefined);
+		return { kind: 'deadline' };
+	}
+	return result;
+}
+
 async function withinDeadline<T>(operation: Promise<T>, deadlineAt: number): Promise<T | typeof DEADLINE_EXPIRED> {
 	const remaining = deadlineAt - Date.now();
 	if (remaining <= 0) return DEADLINE_EXPIRED;
@@ -145,9 +196,10 @@ export default {
 
 		let rawBody: unknown;
 		try {
-			const parsedBody = await withinDeadline(request.json(), deadlineAt);
-			if (parsedBody === DEADLINE_EXPIRED) return jsonError(503, 'Chat is temporarily unavailable', corsHeaders);
-			rawBody = parsedBody;
+			const body = await readBoundedBody(request, deadlineAt);
+			if (body.kind === 'too-large') return jsonError(413, 'Chat request body is too large', corsHeaders);
+			if (body.kind === 'deadline') return jsonError(503, 'Chat is temporarily unavailable', corsHeaders);
+			rawBody = JSON.parse(body.text);
 		} catch {
 			return jsonError(400, 'Invalid chat request', corsHeaders);
 		}
@@ -161,7 +213,7 @@ export default {
 
 		try {
 			const { message, history = [], locale = 'en' } = chatBody;
-			const kb = getFullKB();
+			const kb = getAssistantKB();
 			const systemPrompt = buildSystemPrompt(kb, locale);
 
 			const messages: Message[] = [
@@ -171,6 +223,7 @@ export default {
 			];
 
 			const providerChain = createProviderChain(env);
+			const providerAbortController = new AbortController();
 
 			let cancelStream = () => {};
 			const stream = new ReadableStream({
@@ -183,12 +236,18 @@ export default {
 					let stopReason: 'timeout' | 'cancel' | null = null;
 					let resolveStopped!: (reason: 'timeout' | 'cancel') => void;
 					const stopped = new Promise<'timeout' | 'cancel'>(resolve => { resolveStopped = resolve; });
-					const iterator = providerChain.stream(messages, { stream: true, temperature: 0.3, maxTokens: 1024 })[Symbol.asyncIterator]();
+					const iterator = providerChain.stream(messages, {
+						stream: true,
+						temperature: 0.3,
+						maxTokens: 1024,
+						signal: providerAbortController.signal,
+					})[Symbol.asyncIterator]();
 					let timer: ReturnType<typeof setTimeout>;
 					const stop = (reason: 'timeout' | 'cancel') => {
 						if (finished || stopReason) return;
 						stopReason = reason;
 						if (reason === 'cancel') clearTimeout(timer);
+						providerAbortController.abort();
 						resolveStopped(reason);
 						try {
 							const closing = iterator.return?.();
@@ -258,7 +317,7 @@ export default {
 			});
 
 		} catch (error) {
-			console.error('Chat API error:', error);
+			console.error('Chat API internal error');
 			return new Response(JSON.stringify({ error: 'Internal server error' }), {
 				status: 500,
 				headers: { ...corsHeaders, 'Content-Type': 'application/json' },

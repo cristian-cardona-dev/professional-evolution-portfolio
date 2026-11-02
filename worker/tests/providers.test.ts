@@ -182,6 +182,33 @@ describe('CloudflareAIProvider streaming', () => {
 		});
 	});
 
+	it('cancels a readable Workers AI stream when its consumer signal aborts', async () => {
+		const cancelUpstream = vi.fn();
+		let first = true;
+		const run = vi.fn(async () => new ReadableStream<{ response: string }>({
+			pull(controller) {
+				if (first) {
+					first = false;
+					controller.enqueue({ response: 'first' });
+					return;
+				}
+				return new Promise<void>(() => {});
+			},
+			cancel: cancelUpstream,
+		}, { highWaterMark: 0 }));
+		const controller = new AbortController();
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const iterator = chain.stream([], { signal: controller.signal } as any)[Symbol.asyncIterator]();
+
+		const firstChunk = await iterator.next();
+		controller.abort();
+
+		expect(firstChunk.value).toMatchObject({ content: 'first', provider: 'cloudflare-ai' });
+		expect(cancelUpstream).toHaveBeenCalledOnce();
+		expect(run).toHaveBeenCalledOnce();
+		await iterator.return?.();
+	});
+
 	it('attributes every successful chunk and terminal marker to the actual provider and model', async () => {
 		const run = vi.fn().mockResolvedValueOnce(asyncIterableFrom([
 			{ response: 'Hello ' },

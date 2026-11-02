@@ -501,15 +501,30 @@ When asked about any of the above topics, respond with the exact boundary statem
 let kbCache: string | null = null;
 let kbSectionsCache: string[] | null = null;
 
+function formatKB(entries: Array<[string, string]>): string {
+	return entries.map(([name, content]) => `## ${name}\n\n${content}`).join('\n\n---\n\n');
+}
+
 /**
  * Get the full KB as a single string for system prompt
  */
 export function getFullKB(): string {
-	const parts: string[] = [];
-	for (const [name, content] of Object.entries(KB_FILES)) {
-		parts.push(`## ${name}\n\n${content}`);
-	}
-	return parts.join('\n\n---\n\n');
+	return formatKB(Object.entries(KB_FILES));
+}
+
+/**
+ * Get the assistant-bound KB, excluding the contact form credential field.
+ * The canonical source and the public contact details remain unchanged.
+ */
+export function getAssistantKB(): string {
+	const entries = Object.entries(KB_FILES).map(([name, content]) => {
+		if (name !== '00_profile') return [name, content] as [string, string];
+		const publicProfile = content.split(/\r?\n/u)
+			.filter(line => !/^\s*-\s*\*\*Key\*\*:/iu.test(line))
+			.join('\n');
+		return [name, publicProfile] as [string, string];
+	});
+	return formatKB(entries);
 }
 
 /**

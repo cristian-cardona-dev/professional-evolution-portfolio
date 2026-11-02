@@ -2,7 +2,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import chat from '../src/api/chat';
-import { getFullKB } from '../src/lib/kb';
 import * as providers from '../src/lib/providers';
 
 const WORKER_SRC = resolve(import.meta.dirname, '..', 'src');
@@ -199,8 +198,104 @@ describe('chat SSE streaming boundary', () => {
 			{ content: '', done: true, provider: 'cloudflare-ai', model: CLOUDFLARE_MODEL },
 		]);
 		const systemMessage = inferenceInput?.messages.find(message => message.role === 'system');
-		expect(systemMessage?.content.endsWith(getFullKB())).toBe(true);
+		expect(systemMessage?.content).toContain('crisss198@gmail.com');
+		const hasFormKeyField = systemMessage?.content.split('\n').some(line => /^\s*-\s*\*\*Key\*\*:/u.test(line));
+		expect(hasFormKeyField).toBe(false);
 		expect(systemMessage?.content).not.toContain('unpublished-question-marker');
+	});
+
+	it('returns 413 for an advertised body larger than 128 KiB before quota or inference', async () => {
+		const run = vi.fn();
+		const env = chatEnv(run);
+		const request = new Request('https://portfolio.test/api/chat', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Content-Length': String(131_073),
+				'cf-connecting-ip': '198.51.100.5',
+			},
+			body: JSON.stringify({ message: 'hello' }),
+		});
+
+		const response = await chat.fetch(request, env);
+
+		expect(response.status).toBe(413);
+		expect(env.CHAT_GUARD.get).not.toHaveBeenCalled();
+		expect(run).not.toHaveBeenCalled();
+	});
+
+	it('accepts a valid request whose actual serialized body is exactly 128 KiB', async () => {
+		const run = vi.fn(async () => asyncIterableFrom([{ response: 'ok' }]));
+		const serialized = JSON.stringify({ message: 'hello' });
+		const body = serialized + ' '.repeat(131_072 - new TextEncoder().encode(serialized).byteLength);
+		const response = await chat.fetch(new Request('https://portfolio.test/api/chat', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'Content-Length': '131072', 'cf-connecting-ip': '198.51.100.5' },
+			body,
+		}), chatEnv(run));
+
+		expect(response.status).toBe(200);
+		await response.text();
+		expect(run).toHaveBeenCalledOnce();
+	});
+
+	it('counts actual streamed bytes without Content-Length, cancels on overflow, and rejects before quota or inference', async () => {
+		const run = vi.fn();
+		const env = chatEnv(run);
+		const cancelBody = vi.fn();
+		let sentOverflow = false;
+		const body = new ReadableStream<Uint8Array>({
+			pull(controller) {
+				if (sentOverflow) controller.close();
+				else {
+					sentOverflow = true;
+					controller.enqueue(new Uint8Array(131_073).fill(0x20));
+				}
+			},
+			cancel: cancelBody,
+		}, { highWaterMark: 0 });
+		const request = new Request('https://portfolio.test/api/chat', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': '198.51.100.5' },
+			body,
+			duplex: 'half',
+		} as RequestInit);
+
+		const response = await chat.fetch(request, env);
+
+		expect(response.status).toBe(413);
+		expect(cancelBody).toHaveBeenCalledOnce();
+		expect(env.CHAT_GUARD.get).not.toHaveBeenCalled();
+		expect(run).not.toHaveBeenCalled();
+	});
+
+	it('cancels a stalled incoming body reader at the 30-second deadline', async () => {
+		vi.useFakeTimers();
+		const run = vi.fn();
+		const env = chatEnv(run);
+		const cancelBody = vi.fn();
+		const body = new ReadableStream<Uint8Array>({
+			pull() { return new Promise<void>(() => {}); },
+			cancel: cancelBody,
+		}, { highWaterMark: 0 });
+		const request = new Request('https://portfolio.test/api/chat', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': '198.51.100.5' },
+			body,
+			duplex: 'half',
+		} as RequestInit);
+		try {
+			const pendingResponse = chat.fetch(request, env);
+			await vi.advanceTimersByTimeAsync(30_000);
+			const response = await pendingResponse;
+
+			expect(response.status).toBe(503);
+			expect(cancelBody).toHaveBeenCalledOnce();
+			expect(env.CHAT_GUARD.get).not.toHaveBeenCalled();
+			expect(run).not.toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it('emits exactly one sanitized attributed terminal error after partial output', async () => {
@@ -224,6 +319,38 @@ describe('chat SSE streaming boundary', () => {
 		expect(body).not.toContain('raw provider body');
 		expect(body).not.toContain('secret-key-123');
 		expect(run).toHaveBeenCalledTimes(1);
+	});
+
+	it('emits the sanitized API fallback event when the provider chain exhausts before content', async () => {
+		const run = vi.fn().mockRejectedValue(new Error('raw provider failure detail'));
+		const response = await chat.fetch(chatRequest(), chatEnv(run));
+		const body = await response.text();
+
+		expect(sseEvents(body)).toEqual([{
+			content: 'El chat no está disponible ahora. Usa el formulario de contacto.',
+			done: true,
+			provider: 'fallback',
+			model: null,
+		}]);
+		expect(body).not.toContain('raw provider failure detail');
+		expect(run).toHaveBeenCalledOnce();
+	});
+
+	it('does not log the raw outer chat exception', async () => {
+		const logError = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.spyOn(providers, 'createProviderChain').mockImplementation(() => {
+			throw new Error('outer raw provider detail');
+		});
+		try {
+			const response = await chat.fetch(chatRequest(), chatEnv(vi.fn()));
+
+			expect(response.status).toBe(500);
+			expect(logError).toHaveBeenCalledOnce();
+			expect(logError).toHaveBeenCalledWith('Chat API internal error');
+			expect(JSON.stringify(logError.mock.calls)).not.toContain('outer raw provider detail');
+		} finally {
+			vi.restoreAllMocks();
+		}
 	});
 
 	it.each([
@@ -462,6 +589,35 @@ describe('chat SSE streaming boundary', () => {
 			await response.body!.getReader().cancel();
 
 			expect(returnIterator).toHaveBeenCalledOnce();
+			expect(run).toHaveBeenCalledOnce();
+		} finally {
+			vi.restoreAllMocks();
+		}
+	});
+
+	it('cancels the real Cloudflare provider readable stream when the response reader is cancelled', async () => {
+		const cancelUpstream = vi.fn();
+		let enqueueFirstChunk = true;
+		const run = vi.fn(async () => new ReadableStream<{ response: string }>({
+			pull(controller) {
+				if (enqueueFirstChunk) {
+					enqueueFirstChunk = false;
+					controller.enqueue({ response: 'first' });
+					return;
+				}
+				return new Promise<void>(() => {});
+			},
+			cancel: cancelUpstream,
+		}, { highWaterMark: 0 }));
+		const response = await chat.fetch(chatRequest(), chatEnv(run));
+		const reader = response.body!.getReader();
+
+		try {
+			const first = await reader.read();
+			expect(new TextDecoder().decode(first.value)).toContain('first');
+			await reader.cancel();
+
+			expect(cancelUpstream).toHaveBeenCalledOnce();
 			expect(run).toHaveBeenCalledOnce();
 		} finally {
 			vi.restoreAllMocks();

@@ -16,7 +16,9 @@
 - The assistant may only expose data already published by the portfolio and must never read, index, retrieve, or paraphrase private Personal OS data.
 - No paid provider path or paid fallback may be active. Cloudflare Workers AI is the only provider in this implementation tranche; the account-level free/billing eligibility of Workers, Workers AI, and Durable Objects must be verified before any live smoke test or deployment.
 - Provider fallback is allowed only before the first non-empty SSE content chunk. After output begins, the stream ends with a sanitized error and must not append another provider's response or retry the same inference.
-- No API key, raw provider error, visitor IP, or prompt may be persisted or returned by status/telemetry surfaces.
+- The Worker rejects chat request bodies larger than **131,072 bytes (128 KiB)** before JSON parsing/quota/AI; it counts streamed bytes even when `Content-Length` is absent or inaccurate and cancels the request reader on overflow or the 30-second deadline.
+- No API key, raw provider error, visitor IP, or prompt may be persisted, returned by status/telemetry surfaces, or included in model context. The contact-form `Key` remains in canonical profile/form behavior but is excluded from the assistant-bound KB.
+- Client cancellation and response timeout propagate an abort signal to the Cloudflare provider adapter, which cancels an active Workers AI readable stream where its reader supports cancellation. This does **not** establish cancellation of a still-pending `AI.run`, server-side inference execution, or provider billing.
 - Use `worker/wrangler.jsonc` as the sole Worker configuration after confirming it with an explicit `--config` dry run; remove stale conflicting `worker/wrangler.toml` configuration.
 - No provider smoke call, deploy, push, merge, or publication is authorized by this plan.
 
@@ -26,7 +28,7 @@
 2. Invalid JSON, unsupported locale/roles, empty input, and input/history beyond the documented bounds must return a controlled 4xx without invoking a provider.
 3. Provider failure before first content may advance to an eligible provider; failure after first content must produce no content from a second provider and no duplicate same-provider inference.
 4. Timeout or client cancellation must stop consuming the active stream, return a sanitized terminal outcome, and never trigger a fallback after content has started.
-5. Status output must distinguish configured from runtime-verified, identify the actual provider/model on chat chunks, expose no secrets, and make no provider call; chat grounding must remain limited to `getFullKB()` over published portfolio data; Pages must continue making no Worker request.
+5. Status output must distinguish configured from runtime-verified, identify the actual provider/model on chat chunks, expose no secrets, and make no provider call; chat grounding must remain limited to `getAssistantKB()` over published portfolio data, excluding the contact-form key; Pages must continue making no Worker request.
 
 ## Provider eligibility ruling
 
@@ -86,7 +88,7 @@ Expected: all focused tests pass and TypeScript build exits 0.
 - `ProviderChain.stream()` may try the next configured provider only while no non-empty content has been yielded. After content has been yielded, it terminates with a sanitized stream error; it never retries that provider or switches providers.
 - SSE remains `data:` JSON. After partial output, the chat endpoint emits exactly `{ "content": "", "done": true, "provider": "<actual-provider>", "model": "<actual-model>", "error": "stream_interrupted" }` and closes; before any content, exhausted providers keep the existing generic fallback text with `provider: 'fallback'`, `model: null`, `done: true`.
 
-- [ ] **Step 1: Add failing stream/API tests** for: pre-content error can advance; error after a non-empty chunk never advances; a Cloudflare stream error never invokes the non-streaming endpoint a second time; all successful chunks and terminal events preserve the actual provider/model; and the system context continues to come only from `getFullKB()`.
+- [ ] **Step 1: Add failing stream/API tests** for: pre-content error can advance; error after a non-empty chunk never advances; a Cloudflare stream error never invokes the non-streaming endpoint a second time; all successful chunks and terminal events preserve the actual provider/model; and the system context continues to come only from `getAssistantKB()` without its contact-form key field.
 - [ ] **Step 2: Run focused tests to verify they fail**
 
 Run: `npm --prefix worker test -- tests/providers.test.ts tests/api.test.ts`
@@ -205,3 +207,11 @@ Expected: Worker suite and typecheck pass; Pages assertion passes; no existing P
 - Rate/request bounds, fail-closed quota behavior, and cancellation behavior are covered by deterministic tests.
 - The Pages assistant remains local; no prompt, key, IP, or private Personal OS data is sent to or stored by the Worker.
 - No external provider has been claimed as working merely because it is configured. Live smoke and deploy remain separate authorization gates.
+
+## Final-review fix wave — 2026-11-02
+
+- Raw `POST /api/chat` bodies are capped at 131,072 bytes (128 KiB): an advertised larger `Content-Length` returns 413 immediately, and actual streamed bytes are counted before JSON parsing. Overflow and the existing 30-second read deadline cancel the request reader; size rejection happens before quota lookup and provider construction.
+- The model-bound KB omits only the `Form Contact` `Key` line. The canonical profile data, public contact details, and form submission behavior are unchanged.
+- Cancellation evidence is limited to a mocked Workers AI binding whose actual returned `ReadableStream` is consumed through `ProviderChain` and `CloudflareAIProvider`; tests observe its underlying `cancel()` after response-reader cancellation and the adapter signal abort. `AI.run` is invoked once. There is no confirmed abort signal for a pending `AI.run`, so cancellation of server-side inference or billing remains unverified and must not be claimed.
+- The outer chat catch logs only a fixed sanitized event; the API-level exhausted-before-content fallback and quota-storage error body are covered by non-vacuous assertions.
+- Live use remains gated on Cloudflare free/billing eligibility; Node 22 CI remains pending. No provider smoke, deployment, push, PR, merge, or publication is part of this fix wave.

@@ -103,9 +103,10 @@ describe('ChatGuard quota Durable Object', () => {
 		const state = { storage: { transaction: vi.fn().mockRejectedValue(new Error('raw storage detail')) } } as any;
 		const guard = new ChatGuard(state, {} as any);
 		const response = await consume(guard, '203.0.113.82');
+		const responseBody = await response.text();
 
 		expect(response.status).toBe(503);
-		expect(await response.json()).toEqual({ allowed: false, reason: null });
-		expect(await response.text().catch(() => '')).not.toContain('raw storage detail');
+		expect(JSON.parse(responseBody)).toEqual({ allowed: false, reason: null });
+		expect(responseBody).not.toContain('raw storage detail');
 	});
 });
