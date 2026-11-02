@@ -4,6 +4,7 @@
  */
 
 import { Env } from '../index';
+import { corsHeaders } from '../lib/cors';
 
 interface LeadRequest {
 	name: string;
@@ -16,18 +17,21 @@ interface LeadRequest {
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		const corsHeaders = {
-			'Access-Control-Allow-Origin': '*',
-			'Access-Control-Allow-Methods': 'POST, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type',
-		};
+		const cors = corsHeaders(request.headers.get('Origin'), 'POST, OPTIONS');
 
 		if (request.method === 'OPTIONS') {
-			return new Response(null, { headers: corsHeaders });
+			return new Response(null, { headers: cors });
 		}
 
 		if (request.method !== 'POST') {
-			return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+			return new Response('Method not allowed', { status: 405, headers: cors });
+		}
+
+		if (!env.DB) {
+			return new Response(JSON.stringify({ error: 'Lead capture is temporarily unavailable' }), {
+				status: 503,
+				headers: { ...cors, 'Content-Type': 'application/json' },
+			});
 		}
 
 		try {
@@ -37,15 +41,21 @@ export default {
 			if (!email || !message) {
 				return new Response(JSON.stringify({ error: 'Email and message required' }), {
 					status: 400,
-					headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+					headers: { ...cors, 'Content-Type': 'application/json' },
 				});
 			}
 
-			if (env.DB) {
+			try {
 				await env.DB.prepare(
 					`INSERT INTO leads (name, email, intent, message, locale, timestamp, created_at)
 					VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`
 				).bind(name || null, email, intent, message, locale, timestamp).run();
+			} catch {
+				console.error('Lead persistence failed');
+				return new Response(JSON.stringify({ error: 'Internal server error' }), {
+					status: 500,
+					headers: { ...cors, 'Content-Type': 'application/json' },
+				});
 			}
 
 			if (env.RESEND_API_KEY) {
@@ -53,13 +63,13 @@ export default {
 			}
 
 			return new Response(JSON.stringify({ success: true }), {
-				headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+				headers: { ...cors, 'Content-Type': 'application/json' },
 			});
-		} catch (error) {
-			console.error('Lead capture error:', error);
+		} catch {
+			console.error('Lead capture failed');
 			return new Response(JSON.stringify({ error: 'Internal server error' }), {
 				status: 500,
-				headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+				headers: { ...cors, 'Content-Type': 'application/json' },
 			});
 		}
 	},
@@ -92,7 +102,7 @@ async function sendEmailNotification(env: any, lead: any): Promise<void> {
 				`,
 			}),
 		});
-	} catch (error) {
-		console.error('Email notification failed:', error);
+	} catch {
+		console.error('Email notification failed');
 	}
 }
