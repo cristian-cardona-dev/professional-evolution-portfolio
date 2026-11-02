@@ -74,7 +74,11 @@ function readChatBody(value: unknown): ChatRequest | null {
 	for (const item of history) {
 		if (item === null || typeof item !== 'object' || Array.isArray(item)) return null;
 		const prior = item as Record<string, unknown>;
-		if ((prior.role !== 'user' && prior.role !== 'assistant') || typeof prior.content !== 'string') return null;
+		if (
+			(prior.role !== 'user' && prior.role !== 'assistant') ||
+			typeof prior.content !== 'string' ||
+			Array.from(prior.content).length > 2000
+		) return null;
 	}
 	return {
 		message: body.message,

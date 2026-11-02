@@ -256,6 +256,43 @@ describe('chat SSE streaming boundary', () => {
 		expect(run).toHaveBeenCalledOnce();
 	});
 
+	it('accepts six history entries and current message at exactly 2,000 Unicode code points each', async () => {
+		const run = vi.fn(async () => asyncIterableFrom([{ response: 'ok' }]));
+		const body = {
+			message: '🙂'.repeat(2000),
+			history: Array.from({ length: 6 }, (_, index) => ({
+				role: index % 2 ? 'assistant' : 'user',
+				content: '🙂'.repeat(2000),
+			})),
+		};
+		const response = await chat.fetch(new Request('https://portfolio.test/api/chat', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': '198.51.100.5' },
+			body: JSON.stringify(body),
+		}), chatEnv(run));
+
+		expect(response.status).toBe(200);
+		await response.text();
+		expect(run).toHaveBeenCalledOnce();
+	});
+
+	it('rejects a history entry at 2,001 Unicode code points before quota or inference', async () => {
+		const run = vi.fn();
+		const env = chatEnv(run);
+		const response = await chat.fetch(new Request('https://portfolio.test/api/chat', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': '198.51.100.5' },
+			body: JSON.stringify({
+				message: 'current question',
+				history: [{ role: 'user', content: '🙂'.repeat(2001) }],
+			}),
+		}), env);
+
+		expect(response.status).toBe(400);
+		expect(env.CHAT_GUARD.get).not.toHaveBeenCalled();
+		expect(run).not.toHaveBeenCalled();
+	});
+
 	it('rejects malformed JSON before quota and inference', async () => {
 		const run = vi.fn();
 		const env = chatEnv(run);
