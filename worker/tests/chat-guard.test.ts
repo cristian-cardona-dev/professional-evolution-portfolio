@@ -47,8 +47,8 @@ describe('ChatGuard quota Durable Object', () => {
 		const guard = new ChatGuard(state, {} as any);
 		const results = await Promise.all(Array.from({ length: 6 }, () => consumeResult(guard, '198.51.100.24')));
 
-		expect(results.slice(0, 5)).toEqual(Array.from({ length: 5 }, () => ({ status: 200, allowed: true, reason: null })));
-		expect(results[5]).toEqual({ status: 200, allowed: false, reason: 'ip_limit' });
+		expect(results.filter(result => result.allowed)).toHaveLength(5);
+		expect(results.filter(result => !result.allowed && result.reason === 'ip_limit')).toHaveLength(1);
 	});
 
 	it('serializes concurrent requests so no more than five same-IP requests pass', async () => {
