@@ -4,7 +4,7 @@
 
 **Goal:** Harden the detached portfolio chat Worker so it can use only an explicitly approved free provider, enforce request bounds, and never switch providers after streaming output has begun, while leaving GitHub Pages assistant behavior unchanged.
 
-**Architecture:** Keep the Pages assistant as its existing local search over published site data. Harden the separate Worker API with Cloudflare Workers AI as its only active adapter, a serialized Durable Object gate for per-IP and global request limits, and truthful provider/model metadata. Gemini, NVIDIA, OpenRouter, and Groq remain disabled pending provider-specific free-tier, quota, and privacy approval; OpenCode Go and paid Anthropic are excluded.
+**Architecture:** Keep the Pages assistant as its existing local search over published site data. Harden the separate Worker API with Cloudflare Workers AI as its only active adapter, a serialized Durable Object gate for per-IP and global request limits, truthful provider/model metadata, and a distinct manual Wrangler Preview for a remote chat test. Gemini, NVIDIA, OpenRouter, and Groq remain disabled pending provider-specific free-tier, quota, and privacy approval; OpenCode Go and paid Anthropic are excluded.
 
 **Tech Stack:** TypeScript, Cloudflare Workers AI binding, Cloudflare Durable Objects, Wrangler JSONC, Vitest, GitHub Actions.
 
@@ -20,7 +20,7 @@
 - No API key, raw provider error, visitor IP, or prompt may be persisted, returned by status/telemetry surfaces, or included in model context. The contact-form `Key` remains in canonical profile/form behavior but is excluded from the assistant-bound KB.
 - Client cancellation and response timeout propagate an abort signal to the Cloudflare provider adapter, which cancels an active Workers AI readable stream where its reader supports cancellation. This does **not** establish cancellation of a still-pending `AI.run`, server-side inference execution, or provider billing.
 - Use `worker/wrangler.jsonc` as the sole Worker configuration after confirming it with an explicit `--config` dry run; remove stale conflicting `worker/wrangler.toml` configuration.
-- No provider smoke call, deploy, push, merge, or publication is authorized by this plan.
+- No Git push, PR, merge, GitHub Pages publication, or production Worker deployment is authorized by this plan. The user explicitly authorized exactly one non-production `wrangler preview` deployment named `portfolio-ai-chat-worker-preview` and one short smoke request after Task 6 code review and Guardian PASS; no other remote action is authorized.
 
 ## Review Focus
 
@@ -176,12 +176,51 @@ Expected: Worker suite and typecheck pass; Pages assertion passes; no existing P
 
 - [ ] **Step 4: Commit** after implementation approval and repository preflight, with a signed `ai(scope): ...` message.
 
+### Task 6: Prepare and test an isolated chat Worker preview
+
+**Files:**
+- Modify: `worker/wrangler.jsonc` (`previews` bindings only)
+- Create: `worker/src/lib/cors.ts`
+- Modify: `worker/src/api/chat.ts`
+- Modify: `worker/src/api/ai-status.ts`
+- Modify: `worker/tests/api.test.ts`
+- Modify: `worker/tests/ai-status.test.ts`
+
+**Interfaces:**
+- `corsHeaders(origin: string | null, methods: string) -> Record<string, string>` allows only the official Pages origin `https://cristian-cardona-dev.github.io`; disallowed/absent origins receive `Vary: Origin` without `Access-Control-Allow-Origin`. Chat methods are `POST, OPTIONS`; status methods are `GET, OPTIONS`.
+- `worker/wrangler.jsonc` adds a `previews` block for `AI` and `CHAT_GUARD` only. It must not bind production D1 or KV into the preview Worker. The preview command uses the explicit preview name `portfolio-ai-chat-worker-preview` and `--ignore-base-config`.
+- The Pages assistant remains unconnected to the chat Worker; the smoke call is a single direct, short public-data request to the returned preview URL.
+
+- [ ] **Step 1: Add failing CORS and preview-isolation tests** for the official Pages origin, an untrusted origin, missing Origin, both API preflights, and preview bindings that include only AI/CHAT_GUARD (no D1/KV).
+- [ ] **Step 2: Run focused tests to verify they fail**
+
+Run: `npm --prefix worker test -- tests/api.test.ts tests/ai-status.test.ts`
+Expected: FAIL because chat and status currently allow wildcard CORS and no preview binding set is defined.
+
+- [ ] **Step 3: Implement the shared CORS helper and preview-only binding set**; do not change the main Worker name, root deployment workflow, Pages behavior, provider selection, or quota policy.
+- [ ] **Step 4: Run focused tests, the full Worker suite, TypeScript build, and the explicit JSONC dry-run**
+
+Run: `npm --prefix worker test -- tests/api.test.ts tests/ai-status.test.ts`, `npm --prefix worker test`, `npm --prefix worker run build`, and `npx wrangler deploy --dry-run --config worker/wrangler.jsonc` from the repository root.
+Expected: focused/full tests and typecheck pass; dry-run validates config and performs no upload.
+
+- [ ] **Step 5: Independent review and T2 Guardian** must both PASS before any remote preview action.
+- [ ] **Step 6: After those gates, the controller executes exactly one authorized preview deployment** from `worker/` using `npx wrangler preview --config wrangler.jsonc --name portfolio-ai-chat-worker-preview --ignore-base-config`, then one short smoke request to the returned `workers.dev` preview URL. Record the returned preview URL and response evidence; do not log secrets or repeat the smoke request. This is a non-production preview, not a push/merge/main release.
+- [ ] **Step 7: Commit** after implementation approval and repository preflight, with a signed `ai(scope): ...` message.
+
+### Task 6 preflight scan
+
+| Check | Finding | Ruling |
+|---|---|---|
+| Task 3 ↔ Task 6 shared interfaces | Both use `CHAT_GUARD` and `worker/wrangler.jsonc`; Task 3 supplies the class, Task 6 binds that class only in preview. Chat/status also share CORS behavior. | Task 6 follows Task 3/4; preview binding must omit production D1/KV. Cost if wrong: preview calls could mutate production records or share quota state. |
+| Task 6 self-consistency | Existing main workflow deploys Pages and the root Worker, not this chat Worker; Wrangler Preview is the separate non-production mechanism. | Use `wrangler preview` with a distinct name and explicit preview bindings; do not push/merge to `main`. Cost if wrong: production Pages/root Worker could be deployed without testing the chat API. |
+| External gate | User confirmed Cloudflare Workers/AI/DO usage cannot incur charges and explicitly authorized one preview deployment plus one smoke request. | Execute only after Task 6 review and Guardian PASS; stop if preview configuration or account output does not match the $0/no-production target. Cost if wrong: unexpected spend or production exposure. |
+
 ## Execution and external gates
 
 - SDD orchestration: Luna coordinates; dispatch only free models. Use `opencode-go/qwen3.7-plus` for multi-file implementation/review, `opencode-go/mimo-v2.6-flash` only for isolated mechanical work, `opencode-go/glm-5.3` for design judgment, and `opencode-go/gpt-6-luna` for final review. Never omit the model ID.
 - Before implementation, create/verify the required `ai/<slug>` linked worktree and run the repository preflight; this plan does not authorize implementation edits or commits by itself.
-- Before any provider smoke test, verify in the Cloudflare account that Workers, Workers AI, and Durable Object usage are within genuinely free allocations and that the configured account cannot incur a charge. If that cannot be established, skip the live call and record it as blocked; deterministic mocked tests remain the acceptance evidence.
-- Before any deployment, obtain a separate explicit authorization. Do not deploy, push, merge, create a PR, or connect the Pages widget to this Worker as part of this plan.
+- Before any provider smoke test, verify in the Cloudflare account that Workers, Workers AI, and Durable Object usage are within genuinely free allocations and that the configured account cannot incur a charge. User confirmed this for the preview on 2026-11-02; if deploy output indicates production or billable configuration, stop.
+- Only Task 6's separately named non-production Wrangler Preview and one short smoke call are authorized after review and Guardian PASS. Do not push, merge, create a PR, run the production deployment workflow, or connect the Pages widget to this Worker.
 - Final review must check all deferred provider-eligibility gates, the free-only invariant, and the unchanged local Pages assistant. Report the existing visual mobile timeout separately; this plan does not expand or alter that baseline.
 
 ## Preflight scan / rulings
@@ -201,11 +240,12 @@ Expected: Worker suite and typecheck pass; Pages assertion passes; no existing P
 
 ## Acceptance criteria
 
-- All five tasks pass their specified tests and reviews; Worker tests and typecheck run in CI.
+- All six tasks pass their specified tests and reviews; Worker tests and typecheck are wired in CI.
 - No paid Anthropic/Groq path or unapproved third-party provider can enter the active chain via an environment variable.
 - Provider/model attribution is present on every non-empty SSE chunk, and output never contains mixed-provider continuation.
 - Rate/request bounds, fail-closed quota behavior, and cancellation behavior are covered by deterministic tests.
 - The Pages assistant remains local; no prompt, key, IP, or private Personal OS data is sent to or stored by the Worker.
+- The named Preview binds only Workers AI and its own ChatGuard Durable Object; it does not bind production D1/KV. Browser CORS is restricted to the official Pages origin. The one authorized preview deployment and one smoke request are recorded separately from all production release actions.
 - No external provider has been claimed as working merely because it is configured. Live smoke and deploy remain separate authorization gates.
 
 ## Final-review fix wave — 2026-11-02
