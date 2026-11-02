@@ -97,12 +97,6 @@ export default {
 
 			const providerChain = createProviderChain(env);
 
-			// Debug: log which providers are configured
-			console.log('Provider chain created, testing providers...');
-			for (const provider of (providerChain as any).providers) {
-				console.log(`Configured provider: ${provider.name}`);
-			}
-
 			const stream = new ReadableStream({
 				async start(controller) {
 					const encoder = new TextEncoder();
@@ -117,10 +111,9 @@ export default {
 					} catch (error) {
 						const errorMessage = error instanceof Error ? error.message : String(error);
 						console.error('Streaming error:', errorMessage);
-						// Log which providers were attempted
 						console.error('Provider chain exhausted, all providers failed');
 						const errorMsg = 'El chat no está disponible ahora. Usa el formulario de contacto.';
-						controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: errorMsg, done: true, provider: 'fallback', error: errorMessage })}\n\n`));
+						controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: errorMsg, done: true, provider: 'fallback' })}\n\n`));
 					} finally {
 						controller.close();
 					}

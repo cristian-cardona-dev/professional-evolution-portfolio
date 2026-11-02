@@ -53,9 +53,9 @@ describe('ai-status.ts has health check endpoint', () => {
 	it('has health check and provider status', () => {
 		const content = readFileSync(join(WORKER_SRC, 'api/ai-status.ts'), 'utf-8');
 		expect(content).toContain('GET');
-		expect(content).toContain('providerStatus');
+		expect(content).toContain('providers');
 		expect(content).toContain('kbSections');
-		expect(content).toContain('configuredProviders');
+		expect(content).toContain('status_note');
 	});
 });
 

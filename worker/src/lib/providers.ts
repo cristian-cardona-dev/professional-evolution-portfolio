@@ -29,7 +29,10 @@ export interface StreamChunk {
 }
 
 /**
- * Groq Provider (Primary) — Llama 3.3 70B
+ * Groq Provider — optional, only activated when both GROQ_API_KEY and
+ * GROQ_MODEL are explicitly configured. No default model is provided
+ * because prior defaults (llama3-70b-8192, llama-3.3-70b-versatile) have
+ * been decommissioned and available free models require explicit opt-in.
  * Free tier: https://console.groq.com
  */
 export class GroqProvider implements Provider {
@@ -38,7 +41,7 @@ export class GroqProvider implements Provider {
 	private model: string;
 	private baseUrl = 'https://api.groq.com/openai/v1';
 
-	constructor(apiKey: string, model = 'llama-3.3-70b-versatile') {
+	constructor(apiKey: string, model: string) {
 		this.apiKey = apiKey;
 		this.model = model;
 	}
@@ -60,8 +63,8 @@ export class GroqProvider implements Provider {
 		});
 
 		if (!response.ok) {
-			const error = await response.text();
-			throw new Error(`Groq API error: ${response.status} - ${error}`);
+			console.warn(`Groq API error: ${response.status}`);
+			throw new Error(`Groq API error: ${response.status}`);
 		}
 
 		const data = await response.json() as any;
@@ -90,8 +93,8 @@ export class GroqProvider implements Provider {
 		});
 
 		if (!response.ok) {
-			const error = await response.text();
-			throw new Error(`Groq API error: ${response.status} - ${error}`);
+			console.warn(`Groq API error: ${response.status}`);
+			throw new Error(`Groq API error: ${response.status}`);
 		}
 
 		const reader = response.body?.getReader();
@@ -170,8 +173,7 @@ export class AnthropicProvider implements Provider {
 		});
 
 		if (!response.ok) {
-			const error = await response.text();
-			throw new Error(`Anthropic API error: ${response.status} - ${error}`);
+			throw new Error(`Anthropic API error: ${response.status}`);
 		}
 
 		const data = await response.json() as any;
@@ -205,8 +207,7 @@ export class AnthropicProvider implements Provider {
 		});
 
 		if (!response.ok) {
-			const error = await response.text();
-			throw new Error(`Anthropic API error: ${response.status} - ${error}`);
+			throw new Error(`Anthropic API error: ${response.status}`);
 		}
 
 		const reader = response.body?.getReader();
@@ -247,15 +248,15 @@ export class AnthropicProvider implements Provider {
 }
 
 /**
- * Cloudflare AI Provider (Backup) — Always available on Workers
- * Models: @cf/meta/llama-3.1-8b-instruct, @cf/meta/llama-3.3-70b-instruct
+ * Cloudflare AI Provider (Fallback) — Always available on Workers
+ * Uses Mistral 7B as the fallback model when Groq is not configured
  */
 export class CloudflareAIProvider implements Provider {
 	name = 'cloudflare-ai';
 	private env: any;
 	private model: string;
 
-	constructor(env: any, model = '@cf/meta/llama-3.3-70b-instruct') {
+	constructor(env: any, model = '@cf/mistral/mistral-7b-instruct-v0.1') {
 		this.env = env;
 		this.model = model;
 	}
@@ -298,7 +299,6 @@ export class CloudflareAIProvider implements Provider {
 
 			let hasContent = false;
 			for await (const chunk of stream as any) {
-				console.log('Cloudflare AI stream chunk:', JSON.stringify(chunk));
 				if (chunk.response) {
 					hasContent = true;
 					yield { content: chunk.response, done: false, provider: 'cloudflare-ai' };
@@ -310,10 +310,9 @@ export class CloudflareAIProvider implements Provider {
 					yield { content: chunk.delta, done: false, provider: 'cloudflare-ai' };
 				}
 			}
-			
+
 			// If streaming didn't yield any content, fall back to non-streaming
 			if (!hasContent) {
-				console.log('Streaming yielded no content, falling back to non-streaming');
 				const nonStreamInput = { ...input, stream: false };
 				const response = await this.env.AI.run(this.model, nonStreamInput);
 				if (response.response) {
@@ -321,7 +320,7 @@ export class CloudflareAIProvider implements Provider {
 				}
 			}
 		} catch (error) {
-			console.error('Cloudflare AI streaming error, falling back to non-streaming:', error);
+			console.warn('Cloudflare AI streaming failed, falling back to non-streaming');
 			// Fallback to non-streaming on any error
 			const nonStreamInput = { ...input, stream: false };
 			const response = await this.env.AI.run(this.model, nonStreamInput);
@@ -329,7 +328,7 @@ export class CloudflareAIProvider implements Provider {
 				yield { content: response.response, done: false, provider: 'cloudflare-ai' };
 			}
 		}
-		
+
 		yield { content: '', done: true, provider: 'cloudflare-ai' };
 	}
 }
@@ -338,7 +337,7 @@ export class CloudflareAIProvider implements Provider {
  * Provider chain with fallback
  */
 export class ProviderChain {
-	private providers: Provider[];
+	readonly providers: Provider[];
 
 	constructor(providers: Provider[]) {
 		this.providers = providers;
@@ -349,12 +348,10 @@ export class ProviderChain {
 
 		for (const provider of this.providers) {
 			try {
-				console.log(`Trying provider: ${provider.name}`);
 				const response = await provider.call(messages, options);
-				console.log(`Provider ${provider.name} succeeded`);
 				return response;
 			} catch (error) {
-				console.warn(`Provider ${provider.name} failed:`, error instanceof Error ? error.message : error);
+				console.warn(`Provider ${provider.name} failed`);
 				lastError = error instanceof Error ? error : new Error(String(error));
 				continue;
 			}
@@ -364,28 +361,39 @@ export class ProviderChain {
 	}
 
 	async *stream(messages: Message[], options: CallOptions = {}): AsyncIterable<StreamChunk> {
+		let lastError: Error | null = null;
 		for (const provider of this.providers) {
 			try {
-				console.log(`Trying streaming provider: ${provider.name}`);
 				if (!provider.stream) {
 					console.warn(`Provider ${provider.name} does not support streaming`);
 					continue;
 				}
 				let hasContent = false;
 				for await (const chunk of provider.stream(messages, options)) {
-					hasContent = true;
-					yield chunk;
+					if (chunk.done) {
+						// Don't yield bare done markers; they don't constitute content
+						continue;
+					}
+					if (chunk.content && chunk.content.length > 0) {
+						hasContent = true;
+						yield chunk;
+					}
 				}
-				if (hasContent) return;
+				if (hasContent) {
+					yield { content: '', done: true, provider: provider.name };
+					return;
+				}
+				console.warn(`Provider ${provider.name} yielded no content, advancing to fallback`);
 			} catch (error) {
-				console.warn(`Streaming provider ${provider.name} failed:`, error instanceof Error ? error.message : error);
+				console.warn(`Streaming provider ${provider.name} failed`);
+				lastError = error instanceof Error ? error : new Error(String(error));
 				continue;
 			}
 		}
 
-		// All providers failed
+		// All providers failed or yielded nothing
 		yield {
-			content: 'El chat no est� disponible ahora. Usa el formulario de contacto.',
+			content: 'El chat no está disponible ahora. Usa el formulario de contacto.',
 			done: true,
 			provider: 'fallback',
 		};
@@ -398,15 +406,22 @@ export class ProviderChain {
 export function createProviderChain(env: any): ProviderChain {
 	const providers: Provider[] = [];
 
-	// Primary: Cloudflare AI (always available on Workers, no external key needed)
+	// Provider order (highest to lowest priority):
+	// 1. Groq - only when BOTH GROQ_API_KEY and explicit GROQ_MODEL are configured
+	// 2. Cloudflare Mistral - fallback, always available on Workers
+	// 3. Anthropic - optional, only when ANTHROPIC_API_KEY is configured
+
+	// Base fallback: Cloudflare Mistral (always available on Workers)
 	providers.push(new CloudflareAIProvider(env, '@cf/mistral/mistral-7b-instruct-v0.1'));
 
-	// Fallback: Groq (only if key exists and has access to current models)
-	if (env.GROQ_API_KEY) {
-		providers.push(new GroqProvider(env.GROQ_API_KEY, env.GROQ_MODEL ?? 'llama3-70b-8192'));
+	// Highest priority: Groq only when BOTH key and explicit model are configured.
+	// No default model - prior defaults (llama3-70b-8192, llama-3.3-70b-versatile)
+	// are decommissioned. Must be explicitly configured.
+	if (env.GROQ_API_KEY && env.GROQ_MODEL) {
+		providers.unshift(new GroqProvider(env.GROQ_API_KEY, env.GROQ_MODEL));
 	}
 
-	// Fallback: Anthropic
+	// Lowest priority: Anthropic (optional, only when key is configured)
 	if (env.ANTHROPIC_API_KEY) {
 		providers.push(new AnthropicProvider(env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL ?? 'claude-3-haiku-20240307'));
 	}
