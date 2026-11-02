@@ -208,7 +208,7 @@ Run: `npm --prefix worker test -- tests/api.test.ts tests/ai-status.test.ts`, `n
 Expected: focused/full tests and typecheck pass; dry-run validates config and performs no upload.
 
 - [ ] **Step 5: Independent review and T2 Guardian** must both PASS before any remote preview action.
-- [ ] **Step 6: After those gates, the controller executes exactly one authorized preview deployment** from `worker/` using `npx wrangler preview --config wrangler.jsonc --name portfolio-ai-chat-worker-preview --ignore-base-config`, then one short smoke request to the returned `workers.dev` preview URL. Record the returned preview URL and response evidence; do not log secrets or repeat the smoke request. This is a non-production preview, not a push/merge/main release.
+- [ ] **Step 6: After those gates, the controller executes exactly one authorized preview deployment** from the repository root using the local CLI `worker/node_modules/.bin/wrangler.cmd preview --config worker/wrangler.jsonc --name portfolio-ai-chat-worker-preview --ignore-base-config`, then one short smoke request to the returned `workers.dev` preview URL. The root working directory is required by the config's custom build command (`npm --prefix worker run build`). Record the returned preview URL and response evidence; do not log secrets or repeat the smoke request. This is a non-production preview, not a push/merge/main release.
 - [ ] **Step 7: Commit** after implementation approval and repository preflight, with a signed `ai(scope): ...` message.
 
 ### Task 6 preflight scan
