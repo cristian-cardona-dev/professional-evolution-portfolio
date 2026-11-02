@@ -5,6 +5,7 @@
 
 import { getAssistantKB } from '../lib/kb';
 import { createProviderChain, Message, WorkersAIBinding } from '../lib/providers';
+import { corsHeaders } from '../lib/cors';
 
 export interface Env {
 	AI?: WorkersAIBinding;
@@ -179,37 +180,33 @@ async function withinDeadline<T>(operation: Promise<T>, deadlineAt: number): Pro
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		const corsHeaders = {
-			'Access-Control-Allow-Origin': '*',
-			'Access-Control-Allow-Methods': 'POST, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type',
-		};
+		const cors = corsHeaders(request.headers.get('Origin'), 'POST, OPTIONS');
 
 		if (request.method === 'OPTIONS') {
-			return new Response(null, { headers: corsHeaders });
+			return new Response(null, { headers: cors });
 		}
 
 		if (request.method !== 'POST') {
-			return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+			return new Response('Method not allowed', { status: 405, headers: cors });
 		}
 		const deadlineAt = Date.now() + RESPONSE_DEADLINE_MS;
 
 		let rawBody: unknown;
 		try {
 			const body = await readBoundedBody(request, deadlineAt);
-			if (body.kind === 'too-large') return jsonError(413, 'Chat request body is too large', corsHeaders);
-			if (body.kind === 'deadline') return jsonError(503, 'Chat is temporarily unavailable', corsHeaders);
+			if (body.kind === 'too-large') return jsonError(413, 'Chat request body is too large', cors);
+			if (body.kind === 'deadline') return jsonError(503, 'Chat is temporarily unavailable', cors);
 			rawBody = JSON.parse(body.text);
 		} catch {
-			return jsonError(400, 'Invalid chat request', corsHeaders);
+			return jsonError(400, 'Invalid chat request', cors);
 		}
 		const chatBody = readChatBody(rawBody);
-		if (!chatBody) return jsonError(400, 'Invalid chat request', corsHeaders);
+		if (!chatBody) return jsonError(400, 'Invalid chat request', cors);
 
 		const quota = await withinDeadline(checkQuota(env, request), deadlineAt);
-		if (quota === DEADLINE_EXPIRED) return jsonError(503, 'Chat is temporarily unavailable', corsHeaders);
-		if (quota === 'limited') return jsonError(429, 'Chat limit reached', corsHeaders);
-		if (quota === 'unavailable') return jsonError(503, 'Chat is temporarily unavailable', corsHeaders);
+		if (quota === DEADLINE_EXPIRED) return jsonError(503, 'Chat is temporarily unavailable', cors);
+		if (quota === 'limited') return jsonError(429, 'Chat limit reached', cors);
+		if (quota === 'unavailable') return jsonError(503, 'Chat is temporarily unavailable', cors);
 
 		try {
 			const { message, history = [], locale = 'en' } = chatBody;
@@ -309,7 +306,7 @@ export default {
 
 			return new Response(stream, {
 				headers: {
-					...corsHeaders,
+					...cors,
 					'Content-Type': 'text/event-stream',
 					'Cache-Control': 'no-cache',
 					'Connection': 'keep-alive',
@@ -320,7 +317,7 @@ export default {
 			console.error('Chat API internal error');
 			return new Response(JSON.stringify({ error: 'Internal server error' }), {
 				status: 500,
-				headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+				headers: { ...cors, 'Content-Type': 'application/json' },
 			});
 		}
 	},

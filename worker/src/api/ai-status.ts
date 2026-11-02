@@ -11,6 +11,7 @@
 
 import { getKBSections } from '../lib/kb';
 import type { WorkersAIBinding } from '../lib/providers';
+import { corsHeaders } from '../lib/cors';
 
 /** The only allowlisted provider in this tranche. */
 const PROVIDER_NAME = 'cloudflare-ai';
@@ -30,18 +31,14 @@ export type AiStatusState = 'configured_not_probed' | 'unavailable';
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		const corsHeaders = {
-			'Access-Control-Allow-Origin': '*',
-			'Access-Control-Allow-Methods': 'GET, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type',
-		};
+		const cors = corsHeaders(request.headers.get('Origin'), 'GET, OPTIONS');
 
 		if (request.method === 'OPTIONS') {
-			return new Response(null, { headers: corsHeaders });
+			return new Response(null, { headers: cors });
 		}
 
 		if (request.method !== 'GET') {
-			return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+			return new Response('Method not allowed', { status: 405, headers: cors });
 		}
 
 		try {
@@ -64,7 +61,7 @@ export default {
 					'this endpoint makes no provider request and exposes no key, prompt, or raw error',
 			}, null, 2), {
 				headers: {
-					...corsHeaders,
+					...cors,
 					'Content-Type': 'application/json',
 					'Cache-Control': 'no-cache',
 				},
@@ -74,7 +71,7 @@ export default {
 			console.error('AI Status error: internal failure');
 			return new Response(JSON.stringify({ available: false, state: 'unavailable', error: 'Internal server error' }), {
 				status: 500,
-				headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+				headers: { ...cors, 'Content-Type': 'application/json' },
 			});
 		}
 	},

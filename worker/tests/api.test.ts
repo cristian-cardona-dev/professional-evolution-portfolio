@@ -20,10 +20,12 @@ function asyncIterableFrom<T>(chunks: T[], errorAfter?: Error): AsyncIterable<T>
 	};
 }
 
-function chatRequest(message = 'published data question'): Request {
+function chatRequest(message = 'published data question', origin?: string): Request {
+	const headers = new Headers({ 'Content-Type': 'application/json', 'cf-connecting-ip': '198.51.100.5' });
+	if (origin !== undefined) headers.set('Origin', origin);
 	return new Request('https://portfolio.test/api/chat', {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': '198.51.100.5' },
+		headers,
 		body: JSON.stringify({ message }),
 	});
 }
@@ -143,6 +145,61 @@ describe('wrangler.jsonc has correct configuration', () => {
 		// Free-only policy: no provider API keys or model vars in config.
 		expect(content).not.toContain('GROQ_');
 		expect(content).not.toContain('ANTHROPIC_');
+	});
+
+	it('isolates preview bindings to Workers AI and its own ChatGuard Durable Object', () => {
+		const content = readFileSync(resolve(WORKER_SRC, '..', 'wrangler.jsonc'), 'utf-8');
+		const config = JSON.parse(content.replace(/^\s*\/\/.*$/gmu, ''));
+
+		expect(config.name).toBe('portfolio-ai-chat-worker');
+		expect(Object.keys(config.previews).sort()).toEqual(['ai', 'durable_objects']);
+		expect(config.previews.ai).toEqual({ binding: 'AI' });
+		expect(config.previews.durable_objects).toEqual({
+			bindings: [{ name: 'CHAT_GUARD', class_name: 'ChatGuard' }],
+		});
+		expect(config.previews).not.toHaveProperty('d1_databases');
+		expect(config.previews).not.toHaveProperty('kv_namespaces');
+	});
+});
+
+describe('chat CORS policy', () => {
+	const pagesOrigin = 'https://cristian-cardona-dev.github.io';
+
+	it('allows only the official Pages origin on chat responses', async () => {
+		const run = vi.fn(async () => asyncIterableFrom([{ response: 'ok' }]));
+		const response = await chat.fetch(chatRequest('question', pagesOrigin), chatEnv(run));
+		await response.text();
+
+		expect(response.headers.get('Access-Control-Allow-Origin')).toBe(pagesOrigin);
+		expect(response.headers.get('Vary')).toBe('Origin');
+	});
+
+	it.each([
+		['untrusted origin', 'https://evil.example'],
+		['missing origin', undefined],
+	])('omits allow-origin for chat preflight with %s', async (_label, origin) => {
+		const headers = origin === undefined ? undefined : { Origin: origin };
+		const response = await chat.fetch(new Request('https://portfolio.test/api/chat', {
+			method: 'OPTIONS',
+			headers,
+		}), chatEnv(vi.fn()));
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
+		expect(response.headers.get('Vary')).toBe('Origin');
+		expect(response.headers.get('Access-Control-Allow-Methods')).toBe('POST, OPTIONS');
+		expect(response.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type');
+	});
+
+	it('returns the restricted headers for the official chat preflight origin', async () => {
+		const response = await chat.fetch(new Request('https://portfolio.test/api/chat', {
+			method: 'OPTIONS',
+			headers: { Origin: pagesOrigin },
+		}), chatEnv(vi.fn()));
+
+		expect(response.headers.get('Access-Control-Allow-Origin')).toBe(pagesOrigin);
+		expect(response.headers.get('Vary')).toBe('Origin');
+		expect(response.headers.get('Access-Control-Allow-Methods')).toBe('POST, OPTIONS');
 	});
 });
 

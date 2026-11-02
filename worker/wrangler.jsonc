@@ -37,5 +37,18 @@
       "binding": "RATE_LIMIT",
       "id": "f31d3ce50d6f4e60bf21426fccb56e24"
     }
-  ]
+  ],
+  "previews": {
+    "ai": {
+      "binding": "AI"
+    },
+    "durable_objects": {
+      "bindings": [
+        {
+          "name": "CHAT_GUARD",
+          "class_name": "ChatGuard"
+        }
+      ]
+    }
+  }
 }

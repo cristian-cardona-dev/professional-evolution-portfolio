@@ -5,8 +5,10 @@ const ALLOWLISTED_PROVIDER = 'cloudflare-ai';
 const ALLOWLISTED_MODEL = '@cf/mistral/mistral-7b-instruct-v0.1';
 
 describe('ai-status.ts - passive allowlisted status', () => {
-	const createRequest = (method = 'GET') => {
-		return new Request('http://localhost/api/ai-status', { method });
+	const createRequest = (method = 'GET', origin?: string) => {
+		const headers = new Headers();
+		if (origin !== undefined) headers.set('Origin', origin);
+		return new Request('http://localhost/api/ai-status', { method, headers });
 	};
 
 	const getStatus = async (env: unknown) => {
@@ -131,10 +133,46 @@ describe('ai-status.ts - passive allowlisted status', () => {
 		expect(response.status).toBe(405);
 	});
 
-	it('handles CORS preflight', async () => {
-		const env = {};
-		const response = await aiStatusHandler.fetch(createRequest('OPTIONS'), env as any);
+	it('allows only the official Pages origin on status responses', async () => {
+		const pagesOrigin = 'https://cristian-cardona-dev.github.io';
+		const response = await aiStatusHandler.fetch(createRequest('GET', pagesOrigin), { AI: { run: vi.fn() } } as any);
+		const data = await response.json();
+
+		expect(response.headers.get('Access-Control-Allow-Origin')).toBe(pagesOrigin);
+		expect(response.headers.get('Vary')).toBe('Origin');
+		expect(data).toMatchObject({ available: true, state: 'configured_not_probed' });
+	});
+
+	it.each([
+		['untrusted origin', 'https://evil.example'],
+		['missing origin', undefined],
+	])('omits allow-origin for status responses with %s', async (_label, origin) => {
+		const response = await aiStatusHandler.fetch(createRequest('GET', origin), {} as any);
+
+		expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
+		expect(response.headers.get('Vary')).toBe('Origin');
+	});
+
+	it('allows the official Pages origin on status preflight', async () => {
+		const pagesOrigin = 'https://cristian-cardona-dev.github.io';
+		const response = await aiStatusHandler.fetch(createRequest('OPTIONS', pagesOrigin), {} as any);
+
 		expect(response.status).toBe(200);
-		expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+		expect(response.headers.get('Access-Control-Allow-Origin')).toBe(pagesOrigin);
+		expect(response.headers.get('Vary')).toBe('Origin');
+		expect(response.headers.get('Access-Control-Allow-Methods')).toBe('GET, OPTIONS');
+		expect(response.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type');
+	});
+
+	it.each([
+		['untrusted origin', 'https://evil.example'],
+		['missing origin', undefined],
+	])('omits allow-origin for status preflight with %s', async (_label, origin) => {
+		const response = await aiStatusHandler.fetch(createRequest('OPTIONS', origin), {} as any);
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
+		expect(response.headers.get('Vary')).toBe('Origin');
+		expect(response.headers.get('Access-Control-Allow-Methods')).toBe('GET, OPTIONS');
 	});
 });
