@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-10-26T13:04:49Z",
+  "captured_at": "2026-11-02T15:55:04Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -26,22 +26,22 @@
       "pull_requests": [],
       "commits": [
         {
-          "id": "ae8252c42f1a8677b49e948e0f08caf87fdf2b23",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/ae8252c42f1a8677b49e948e0f08caf87fdf2b23",
-          "captured_at": "2026-10-19T13:17:48Z",
-          "title": "ai(portfolio): refresh public github activity"
+          "id": "4515e39f77e124d603149a9616bf721f8d45262f",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/4515e39f77e124d603149a9616bf721f8d45262f",
+          "captured_at": "2026-11-02T09:49:18Z",
+          "title": "ai(portfolio): update chat implementation and provider chain"
         },
         {
-          "id": "17d3819dbb3fb85090d405425d57b2dfc0916b3f",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/17d3819dbb3fb85090d405425d57b2dfc0916b3f",
-          "captured_at": "2026-10-16T13:42:22Z",
-          "title": "Merge pull request #24 from cristian-cardona-dev/ai/portfolio-design-ux"
+          "id": "0bdb34809acd3b196827d5917d1216804fb339e9",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/0bdb34809acd3b196827d5917d1216804fb339e9",
+          "captured_at": "2026-11-02T09:49:01Z",
+          "title": "ai(portfolio): fix AI chat with Cloudflare AI (Mistral) as primary provider"
         },
         {
-          "id": "8586d2a1977579e318aa2d76b81a00e41028215c",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/8586d2a1977579e318aa2d76b81a00e41028215c",
-          "captured_at": "2026-10-16T12:32:09Z",
-          "title": "ai(portfolio): redesign evolution as evidence journal"
+          "id": "a92630bbd2748feb5cb7e5820d1b032f915d849c",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/a92630bbd2748feb5cb7e5820d1b032f915d849c",
+          "captured_at": "2026-11-01T23:17:55Z",
+          "title": "ai(portfolio): add SEO structured data, a11y improvements, and fix visual baselines"
         }
       ],
       "releases": [],
