@@ -3,7 +3,7 @@
  * Handles streaming chat with grounding in canonical portfolio data
  */
 
-import { getFullKB, getKBSections } from '../lib/kb';
+import { getFullKB } from '../lib/kb';
 import { createProviderChain, Message, WorkersAIBinding } from '../lib/providers';
 
 export interface Env {
@@ -96,20 +96,42 @@ export default {
 			const stream = new ReadableStream({
 				async start(controller) {
 					const encoder = new TextEncoder();
-					let fullResponse = '';
+					let hasContent = false;
+					let actualProvider = 'fallback';
+					let actualModel: string | null = null;
 
 					try {
 						for await (const chunk of providerChain.stream(messages, { stream: true, temperature: 0.3, maxTokens: 1024 })) {
-							fullResponse += chunk.content;
-							controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: chunk.content, done: chunk.done, provider: chunk.provider })}\n\n`));
+							if (chunk.content.length > 0) {
+								hasContent = true;
+								actualProvider = chunk.provider;
+								actualModel = chunk.model;
+							}
+							controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+								content: chunk.content,
+								done: chunk.done,
+								provider: chunk.provider,
+								model: chunk.model,
+							})}\n\n`));
 							if (chunk.done) break;
 						}
-					} catch (error) {
-						const errorMessage = error instanceof Error ? error.message : String(error);
-						console.error('Streaming error:', errorMessage);
-						console.error('Provider chain exhausted, all providers failed');
-						const errorMsg = 'El chat no está disponible ahora. Usa el formulario de contacto.';
-						controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: errorMsg, done: true, provider: 'fallback' })}\n\n`));
+					} catch {
+						if (hasContent) {
+							controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+								content: '',
+								done: true,
+								provider: actualProvider,
+								model: actualModel,
+								error: 'stream_interrupted',
+							})}\n\n`));
+						} else {
+							controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+								content: 'El chat no está disponible ahora. Usa el formulario de contacto.',
+								done: true,
+								provider: 'fallback',
+								model: null,
+							})}\n\n`));
+						}
 					} finally {
 						controller.close();
 					}

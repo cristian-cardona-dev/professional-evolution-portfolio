@@ -1,8 +1,32 @@
-﻿import { describe, it, expect } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import chat from '../src/api/chat';
+import { getFullKB } from '../src/lib/kb';
 
 const WORKER_SRC = resolve(import.meta.dirname, '..', 'src');
+const CLOUDFLARE_MODEL = '@cf/mistral/mistral-7b-instruct-v0.1';
+
+function sseEvents(text: string): unknown[] {
+	return text.trim().split('\n\n').map(frame => JSON.parse(frame.slice('data: '.length)));
+}
+
+function asyncIterableFrom<T>(chunks: T[], errorAfter?: Error): AsyncIterable<T> {
+	return {
+		async *[Symbol.asyncIterator]() {
+			for (const chunk of chunks) yield chunk;
+			if (errorAfter) throw errorAfter;
+		},
+	};
+}
+
+function chatRequest(message = 'published data question'): Request {
+	return new Request('https://portfolio.test/api/chat', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ message }),
+	});
+}
 
 describe('Worker source files', () => {
 	const requiredFiles = [
@@ -141,5 +165,49 @@ describe('package.json has required dependencies', () => {
 		expect(pkg.scripts.dev).toBeDefined();
 		expect(pkg.scripts.deploy).toBeDefined();
 		expect(pkg.scripts.test).toBeDefined();
+	});
+});
+
+describe('chat SSE streaming boundary', () => {
+	it('preserves actual provider/model on every content and terminal event and grounds only in published KB data', async () => {
+		let inferenceInput: { messages: Array<{ role: string; content: string }> } | undefined;
+		const run = vi.fn(async (_model: string, input: unknown) => {
+			inferenceInput = input as typeof inferenceInput;
+			return asyncIterableFrom([{ response: 'First ' }, { response: 'answer' }]);
+		});
+		const response = await chat.fetch(chatRequest('unpublished-question-marker'), { AI: { run } } as any);
+
+		expect(response.headers.get('Content-Type')).toBe('text/event-stream');
+		expect(sseEvents(await response.text())).toEqual([
+			{ content: 'First ', done: false, provider: 'cloudflare-ai', model: CLOUDFLARE_MODEL },
+			{ content: 'answer', done: false, provider: 'cloudflare-ai', model: CLOUDFLARE_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: CLOUDFLARE_MODEL },
+		]);
+		const systemMessage = inferenceInput?.messages.find(message => message.role === 'system');
+		expect(systemMessage?.content.endsWith(getFullKB())).toBe(true);
+		expect(systemMessage?.content).not.toContain('unpublished-question-marker');
+	});
+
+	it('emits exactly one sanitized attributed terminal error after partial output', async () => {
+		const run = vi.fn().mockResolvedValue(asyncIterableFrom(
+			[{ response: 'partial answer' }],
+			new Error('raw provider body with secret-key-123'),
+		));
+		const response = await chat.fetch(chatRequest(), { AI: { run } } as any);
+		const body = await response.text();
+
+		expect(sseEvents(body)).toEqual([
+			{ content: 'partial answer', done: false, provider: 'cloudflare-ai', model: CLOUDFLARE_MODEL },
+			{
+				content: '',
+				done: true,
+				provider: 'cloudflare-ai',
+				model: CLOUDFLARE_MODEL,
+				error: 'stream_interrupted',
+			},
+		]);
+		expect(body).not.toContain('raw provider body');
+		expect(body).not.toContain('secret-key-123');
+		expect(run).toHaveBeenCalledTimes(1);
 	});
 });

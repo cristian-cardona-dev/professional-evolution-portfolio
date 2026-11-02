@@ -36,6 +36,7 @@ export interface StreamChunk {
 	content: string;
 	done: boolean;
 	provider: string;
+	model: string | null;
 }
 
 /**
@@ -63,8 +64,7 @@ const AI_CONFIG_ERROR =
 	'AI provider not configured: the Cloudflare Workers AI binding (env.AI) is required';
 
 /** Sanitized internal error used when inference fails after output began. */
-const AI_STREAM_ENDED_ERROR =
-	'Cloudflare AI stream ended with an error after output began';
+const STREAM_INTERRUPTED_ERROR = 'Stream interrupted after output began';
 
 /** Sanitized message shown to visitors when no provider content is available. */
 const CHAT_UNAVAILABLE_MESSAGE =
@@ -129,37 +129,21 @@ export class CloudflareAIProvider implements Provider {
 			stream: true,
 		};
 
-		let hasContent = false;
 		try {
 			const streamResult = (await ai.run(this.model, input)) as AsyncIterable<WorkersAIStreamChunk>;
 			for await (const chunk of streamResult) {
 				const content = chunk?.response || chunk?.text || chunk?.delta;
 				if (content) {
-					hasContent = true;
-					yield { content, done: false, provider: this.name };
+					yield { content, done: false, provider: this.name, model: this.model };
 				}
 			}
-		} catch (error) {
-			if (hasContent) {
-				// Output already began: no retry of the same inference and no
-				// second response appended. End with a sanitized error so the
-				// chain closes the stream without exposing provider details.
-				throw new Error(AI_STREAM_ENDED_ERROR);
-			}
-			console.warn('Cloudflare AI streaming failed before any content; one non-streaming attempt follows');
+		} catch {
+			// The chain decides whether another provider may be tried. Never
+			// make a second inference with this provider after a stream error.
+			throw new Error('Cloudflare AI stream failed');
 		}
 
-		if (!hasContent) {
-			// Pre-output fallback only: a single non-streaming attempt is
-			// allowed before the first non-empty content chunk.
-			const nonStreamInput = { ...input, stream: false };
-			const response = (await ai.run(this.model, nonStreamInput)) as WorkersAIResponse;
-			if (response?.response) {
-				yield { content: response.response, done: false, provider: this.name };
-			}
-		}
-
-		yield { content: '', done: true, provider: this.name };
+		yield { content: '', done: true, provider: this.name, model: this.model };
 	}
 }
 
@@ -193,14 +177,14 @@ export class ProviderChain {
 	}
 
 	async *stream(messages: Message[], options: CallOptions = {}): AsyncIterable<StreamChunk> {
-		let lastError: Error | null = null;
 		for (const provider of this.providers) {
+			let hasContent = false;
+			let model: string | null = null;
 			try {
 				if (!provider.stream) {
 					console.warn(`Provider ${provider.name} does not support streaming`);
 					continue;
 				}
-				let hasContent = false;
 				for await (const chunk of provider.stream(messages, options)) {
 					if (chunk.done) {
 						// Don't yield bare done markers; they don't constitute content
@@ -208,17 +192,20 @@ export class ProviderChain {
 					}
 					if (chunk.content && chunk.content.length > 0) {
 						hasContent = true;
+						model = chunk.model;
 						yield chunk;
 					}
 				}
 				if (hasContent) {
-					yield { content: '', done: true, provider: provider.name };
+					yield { content: '', done: true, provider: provider.name, model };
 					return;
 				}
 				console.warn(`Provider ${provider.name} yielded no content, advancing to fallback`);
-			} catch (error) {
+			} catch {
 				console.warn(`Streaming provider ${provider.name} failed`);
-				lastError = error instanceof Error ? error : new Error(String(error));
+				if (hasContent) {
+					throw new Error(STREAM_INTERRUPTED_ERROR);
+				}
 				continue;
 			}
 		}
@@ -228,6 +215,7 @@ export class ProviderChain {
 			content: CHAT_UNAVAILABLE_MESSAGE,
 			done: true,
 			provider: 'fallback',
+			model: null,
 		};
 	}
 }

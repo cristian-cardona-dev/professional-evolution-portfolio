@@ -130,46 +130,72 @@ describe('CloudflareAIProvider streaming', () => {
 		const provider = new CloudflareAIProvider({ AI: { run } } as any);
 		const chain = new ProviderChain([provider]);
 
-		const chunks = await collectStream(chain, [{ role: 'user', content: 'hi' }]);
+		const chunks: StreamChunk[] = [];
+		let streamError: Error | undefined;
+		try {
+			for await (const chunk of chain.stream([{ role: 'user', content: 'hi' }])) {
+				chunks.push(chunk);
+			}
+		} catch (error) {
+			streamError = error as Error;
+		}
 
 		expect(run).toHaveBeenCalledTimes(1);
-		const text = chunks.map(c => c.content).join('');
-		expect(text).toContain('partial answer');
-		expect(text).toContain('El chat no está disponible');
-		expect(chunks[chunks.length - 1].done).toBe(true);
-		expect(text).not.toContain('raw provider failure');
+		expect(chunks.map(c => c.content)).toEqual(['partial answer']);
+		expect(chunks[0]).toMatchObject({ provider: 'cloudflare-ai', model: ALLOWED_MODEL });
+		expect(streamError?.message).toBe('Stream interrupted after output began');
+		expect(streamError?.message).not.toContain('raw provider failure');
 	});
 
-	it('may retry once non-streaming when the stream fails before any content', async () => {
+	it('does not make a second inference when the stream fails before any content', async () => {
 		const run = vi.fn()
-			.mockRejectedValueOnce(new Error('stream failed before content'))
-			.mockResolvedValueOnce({ response: 'complete answer' });
+			.mockRejectedValueOnce(new Error('stream failed before content'));
 		const provider = new CloudflareAIProvider({ AI: { run } } as any);
 		const chain = new ProviderChain([provider]);
 
 		const chunks = await collectStream(chain);
 
-		expect(run).toHaveBeenCalledTimes(2);
-		expect(run).toHaveBeenNthCalledWith(2, ALLOWED_MODEL, expect.objectContaining({ stream: false }));
-		const text = chunks.map(c => c.content).join('');
-		expect(text).toContain('complete answer');
-		expect(chunks[chunks.length - 1].done).toBe(true);
+		expect(run).toHaveBeenCalledTimes(1);
+		expect(run).toHaveBeenCalledWith(ALLOWED_MODEL, expect.objectContaining({ stream: true }));
+		expect(chunks).toEqual([{
+			content: 'El chat no está disponible ahora. Usa el formulario de contacto.',
+			done: true,
+			provider: 'fallback',
+			model: null,
+		}]);
 	});
 
-	it('falls back to one non-streaming call when the stream yields no content', async () => {
+	it('uses generic fallback attribution when the stream yields no content', async () => {
 		const run = vi.fn()
-			.mockResolvedValueOnce(asyncIterableFrom([]))
-			.mockResolvedValueOnce({ response: 'complete answer' });
+			.mockResolvedValueOnce(asyncIterableFrom([]));
 		const provider = new CloudflareAIProvider({ AI: { run } } as any);
 		const chain = new ProviderChain([provider]);
 
 		const chunks = await collectStream(chain);
 
-		expect(run).toHaveBeenCalledTimes(2);
-		expect(run).toHaveBeenNthCalledWith(2, ALLOWED_MODEL, expect.objectContaining({ stream: false }));
-		const text = chunks.map(c => c.content).join('');
-		expect(text).toContain('complete answer');
-		expect(chunks[chunks.length - 1].done).toBe(true);
+		expect(run).toHaveBeenCalledTimes(1);
+		expect(chunks[chunks.length - 1]).toEqual({
+			content: 'El chat no está disponible ahora. Usa el formulario de contacto.',
+			done: true,
+			provider: 'fallback',
+			model: null,
+		});
+	});
+
+	it('attributes every successful chunk and terminal marker to the actual provider and model', async () => {
+		const run = vi.fn().mockResolvedValueOnce(asyncIterableFrom([
+			{ response: 'Hello ' },
+			{ response: 'there' },
+		]));
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([
+			{ content: 'Hello ', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: 'there', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+		]);
 	});
 
 	it('call() fails closed when the AI binding is absent', async () => {
@@ -179,32 +205,65 @@ describe('CloudflareAIProvider streaming', () => {
 });
 
 describe('ProviderChain streaming semantics', () => {
-	it('advances to a fallback provider only when no content was emitted', async () => {
+	it('advances after a pre-content error and attributes output to the succeeding provider', async () => {
 		const provider1 = mockProvider('mock-1', async function* () {
-			yield { content: '', done: true, provider: 'mock-1' };
+			throw new Error('secret provider failure');
 		});
 		const provider2 = mockProvider('mock-2', async function* () {
-			yield { content: 'Hello', done: false, provider: 'mock-2' };
-			yield { content: '', done: true, provider: 'mock-2' };
+			yield { content: 'Hello', done: false, provider: 'mock-2', model: 'mock-model-2' };
 		});
 
 		const chain = new ProviderChain([provider1, provider2]);
 		const chunks = await collectStream(chain);
 
-		expect(chunks.some(c => c.content === 'Hello')).toBe(true);
-		expect(chunks[chunks.length - 1].done).toBe(true);
+		expect(chunks).toEqual([
+			{ content: 'Hello', done: false, provider: 'mock-2', model: 'mock-model-2' },
+			{ content: '', done: true, provider: 'mock-2', model: 'mock-model-2' },
+		]);
+	});
+
+	it('never advances after a non-empty chunk and terminates with a sanitized error', async () => {
+		let secondProviderStarted = false;
+		const provider1 = mockProvider('mock-1', async function* () {
+			yield { content: 'partial', done: false, provider: 'mock-1', model: 'mock-model-1' };
+			throw new Error('raw secret provider body');
+		});
+		const provider2 = mockProvider('mock-2', async function* () {
+			secondProviderStarted = true;
+			yield { content: 'must not append', done: false, provider: 'mock-2', model: 'mock-model-2' };
+		});
+		const chain = new ProviderChain([provider1, provider2]);
+		const chunks: StreamChunk[] = [];
+		let streamError: Error | undefined;
+		try {
+			for await (const chunk of chain.stream([])) chunks.push(chunk);
+		} catch (error) {
+			streamError = error as Error;
+		}
+
+		expect(chunks).toEqual([
+			{ content: 'partial', done: false, provider: 'mock-1', model: 'mock-model-1' },
+		]);
+		expect(secondProviderStarted).toBe(false);
+		expect(streamError?.message).toBe('Stream interrupted after output began');
+		expect(streamError?.message).not.toContain('raw secret provider body');
 	});
 
 	it('does not yield empty done markers as successful content', async () => {
 		const provider = mockProvider('mock', async function* () {
-			yield { content: '', done: true, provider: 'mock' };
+			yield { content: '', done: true, provider: 'mock', model: 'mock-model' };
 		});
 
 		const chain = new ProviderChain([provider]);
 		const chunks = await collectStream(chain);
 
 		// No content means the sanitized fallback message ends the stream.
-		expect(chunks.some(c => c.provider === 'fallback')).toBe(true);
+		expect(chunks).toEqual([{
+			content: 'El chat no está disponible ahora. Usa el formulario de contacto.',
+			done: true,
+			provider: 'fallback',
+			model: null,
+		}]);
 	});
 
 	it('sanitizes errors and does not expose raw provider error bodies', async () => {
@@ -220,5 +279,6 @@ describe('ProviderChain streaming semantics', () => {
 		expect(fallbackChunk!.content).not.toContain('secret-key-12345');
 		expect(fallbackChunk!.content).not.toContain('detailed error info');
 		expect(fallbackChunk!.content).toContain('El chat no está disponible');
+		expect(fallbackChunk!.model).toBeNull();
 	});
 });
