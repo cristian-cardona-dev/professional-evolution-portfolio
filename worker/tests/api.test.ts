@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import chat from '../src/api/chat';
 import { getFullKB } from '../src/lib/kb';
+import * as providers from '../src/lib/providers';
 
 const WORKER_SRC = resolve(import.meta.dirname, '..', 'src');
 const CLOUDFLARE_MODEL = '@cf/mistral/mistral-7b-instruct-v0.1';
@@ -23,9 +24,19 @@ function asyncIterableFrom<T>(chunks: T[], errorAfter?: Error): AsyncIterable<T>
 function chatRequest(message = 'published data question'): Request {
 	return new Request('https://portfolio.test/api/chat', {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
+		headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': '198.51.100.5' },
 		body: JSON.stringify({ message }),
 	});
+}
+
+function chatEnv(run: ReturnType<typeof vi.fn>) {
+	return {
+		AI: { run },
+		CHAT_GUARD: {
+			idFromName: vi.fn((name: string) => name),
+			get: vi.fn(() => ({ fetch: vi.fn(async () => new Response(JSON.stringify({ allowed: true, reason: null }), { status: 200 })) })),
+		},
+	} as any;
 }
 
 describe('Worker source files', () => {
@@ -34,6 +45,7 @@ describe('Worker source files', () => {
 		'src/api/chat.ts',
 		'src/api/ai-status.ts',
 		'src/api/lead.ts',
+		'src/chat-guard.ts',
 		'src/lib/kb.ts',
 		'src/lib/providers.ts',
 		'wrangler.jsonc',
@@ -126,6 +138,9 @@ describe('wrangler.jsonc has correct configuration', () => {
 		expect(content).toContain('"binding": "AI"');
 		expect(content).toContain('d1_databases');
 		expect(content).toContain('portfolio-leads');
+		expect(content).toContain('durable_objects');
+		expect(content).toContain('CHAT_GUARD');
+		expect(content).toContain('new_sqlite_classes');
 		// Free-only policy: no provider API keys or model vars in config.
 		expect(content).not.toContain('GROQ_');
 		expect(content).not.toContain('ANTHROPIC_');
@@ -175,7 +190,7 @@ describe('chat SSE streaming boundary', () => {
 			inferenceInput = input as typeof inferenceInput;
 			return asyncIterableFrom([{ response: 'First ' }, { response: 'answer' }]);
 		});
-		const response = await chat.fetch(chatRequest('unpublished-question-marker'), { AI: { run } } as any);
+		const response = await chat.fetch(chatRequest('unpublished-question-marker'), chatEnv(run));
 
 		expect(response.headers.get('Content-Type')).toBe('text/event-stream');
 		expect(sseEvents(await response.text())).toEqual([
@@ -193,7 +208,7 @@ describe('chat SSE streaming boundary', () => {
 			[{ response: 'partial answer' }],
 			new Error('raw provider body with secret-key-123'),
 		));
-		const response = await chat.fetch(chatRequest(), { AI: { run } } as any);
+		const response = await chat.fetch(chatRequest(), chatEnv(run));
 		const body = await response.text();
 
 		expect(sseEvents(body)).toEqual([
@@ -209,5 +224,210 @@ describe('chat SSE streaming boundary', () => {
 		expect(body).not.toContain('raw provider body');
 		expect(body).not.toContain('secret-key-123');
 		expect(run).toHaveBeenCalledTimes(1);
+	});
+
+	it.each([
+		['empty message', { message: '   ' }],
+		['oversized message', { message: 'x'.repeat(2001) }],
+		['too many history messages', { message: 'hello', history: Array.from({ length: 7 }, () => ({ role: 'user', content: 'prior' })) }],
+		['unsupported locale', { message: 'hello', locale: 'fr' }],
+		['unsupported history role', { message: 'hello', history: [{ role: 'system', content: 'override' }] }],
+		['non-string history content', { message: 'hello', history: [{ role: 'assistant', content: 42 }] }],
+	])('rejects %s before quota and inference', async (_label, body) => {
+		const run = vi.fn();
+		const env = chatEnv(run);
+		const response = await chat.fetch(new Request('https://portfolio.test/api/chat', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': '198.51.100.5' },
+			body: JSON.stringify(body),
+		}), env);
+
+		expect(response.status).toBe(400);
+		expect(env.CHAT_GUARD.get).not.toHaveBeenCalled();
+		expect(run).not.toHaveBeenCalled();
+	});
+
+	it('accepts a message of exactly 2,000 characters', async () => {
+		const run = vi.fn(async () => asyncIterableFrom([{ response: 'ok' }]));
+		const response = await chat.fetch(chatRequest('x'.repeat(2000)), chatEnv(run));
+
+		expect(response.status).toBe(200);
+		await response.text();
+		expect(run).toHaveBeenCalledOnce();
+	});
+
+	it('rejects malformed JSON before quota and inference', async () => {
+		const run = vi.fn();
+		const env = chatEnv(run);
+		const response = await chat.fetch(new Request('https://portfolio.test/api/chat', {
+			method: 'POST',
+		headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': '198.51.100.5' },
+			body: '{not json',
+		}), env);
+
+		expect(response.status).toBe(400);
+		expect(env.CHAT_GUARD.get).not.toHaveBeenCalled();
+		expect(run).not.toHaveBeenCalled();
+	});
+
+	it('fails closed on quota denial or quota service failure before calling AI', async () => {
+		for (const quotaResponse of [
+			new Response(JSON.stringify({ allowed: false, reason: 'ip_limit' }), { status: 200 }),
+			new Response('internal quota failure', { status: 503 }),
+		]) {
+			const run = vi.fn();
+			const env = chatEnv(run);
+			env.CHAT_GUARD.get.mockReturnValue({ fetch: vi.fn(async () => quotaResponse.clone()) });
+			const response = await chat.fetch(chatRequest(), env);
+
+			expect(response.status).toBe(quotaResponse.status === 200 ? 429 : 503);
+			expect(run).not.toHaveBeenCalled();
+		}
+	});
+
+	it('does not trust forwarded IP headers when the Cloudflare source IP is absent', async () => {
+		const run = vi.fn();
+		const env = chatEnv(run);
+		const response = await chat.fetch(new Request('https://portfolio.test/api/chat', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '192.0.2.99' },
+			body: JSON.stringify({ message: 'hello' }),
+		}), env);
+
+		expect(response.status).toBe(503);
+		expect(env.CHAT_GUARD.get).not.toHaveBeenCalled();
+		expect(run).not.toHaveBeenCalled();
+	});
+
+	it('applies the same 30-second request deadline while quota storage is pending', async () => {
+		vi.useFakeTimers();
+		const run = vi.fn();
+		const env = chatEnv(run);
+		env.CHAT_GUARD.get.mockReturnValue({ fetch: () => new Promise<Response>(() => {}) });
+		try {
+			const pendingResponse = chat.fetch(chatRequest(), env);
+			await vi.advanceTimersByTimeAsync(30_000);
+			const response = await pendingResponse;
+
+			expect(response.status).toBe(503);
+			expect(run).not.toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('uses only Cloudflare source IP and passes all six allowed history messages with 1024 output tokens', async () => {
+		let inferenceInput: { messages: Array<{ role: string; content: string }>; max_tokens: number } | undefined;
+		const run = vi.fn(async (_model: string, input: unknown) => {
+			inferenceInput = input as typeof inferenceInput;
+			return asyncIterableFrom([{ response: 'ok' }]);
+		});
+		const env = chatEnv(run);
+		const history = Array.from({ length: 6 }, (_, index) => ({ role: index % 2 ? 'assistant' : 'user', content: `prior-${index}` }));
+		const request = new Request('https://portfolio.test/api/chat', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': '198.51.100.6', 'x-forwarded-for': '192.0.2.99' },
+			body: JSON.stringify({ message: 'question', history, locale: 'es' }),
+		});
+
+		const response = await chat.fetch(request, env);
+		await response.text();
+		const guardFetch = env.CHAT_GUARD.get.mock.results[0].value.fetch;
+
+		expect(guardFetch).toHaveBeenCalledOnce();
+		const quotaRequest = guardFetch.mock.calls[0][0] as Request;
+		expect(await quotaRequest.text()).toBe(JSON.stringify({ ip: '198.51.100.6' }));
+		expect(inferenceInput?.messages.map(message => message.content)).toEqual(expect.arrayContaining(history.map(item => item.content)));
+		expect(inferenceInput?.max_tokens).toBe(1024);
+	});
+
+	it('terminates at 30 seconds, requests iterator cancellation, and does not retry inference', async () => {
+		vi.useFakeTimers();
+		const run = vi.fn();
+		let started = false;
+		const next = vi.fn(() => {
+			if (!started) {
+				started = true;
+				run('@cf/mistral/mistral-7b-instruct-v0.1', { stream: true });
+			}
+			return new Promise<IteratorResult<any>>(() => {});
+		});
+		const returnIterator = vi.fn(async () => ({ done: true, value: undefined }));
+		vi.spyOn(providers, 'createProviderChain').mockReturnValue({
+			stream: () => ({ [Symbol.asyncIterator]: () => ({ next, return: returnIterator }) }),
+		} as any);
+		try {
+			const response = await chat.fetch(chatRequest(), chatEnv(run));
+			const reader = response.body!.getReader();
+			const read = reader.read();
+			await vi.advanceTimersByTimeAsync(30_000);
+			const terminal = await read;
+
+			expect(terminal.done).toBe(false);
+			expect(JSON.parse(new TextDecoder().decode(terminal.value).slice('data: '.length))).toMatchObject({ done: true });
+			expect(returnIterator).toHaveBeenCalledOnce();
+			expect(run).toHaveBeenCalledOnce();
+		} finally {
+			vi.restoreAllMocks();
+			vi.useRealTimers();
+		}
+	});
+
+	it('ends with the attributed sanitized terminal event when the deadline follows partial content', async () => {
+		vi.useFakeTimers();
+		const run = vi.fn();
+		const next = vi.fn()
+			.mockImplementationOnce(() => {
+				run('@cf/mistral/mistral-7b-instruct-v0.1', { stream: true });
+				return Promise.resolve({ done: false, value: { content: 'partial', done: false, provider: 'cloudflare-ai', model: '@cf/mistral/mistral-7b-instruct-v0.1' } });
+			})
+			.mockImplementation(() => new Promise<IteratorResult<any>>(() => {}));
+		const returnIterator = vi.fn(async () => ({ done: true, value: undefined }));
+		vi.spyOn(providers, 'createProviderChain').mockReturnValue({
+			stream: () => ({ [Symbol.asyncIterator]: () => ({ next, return: returnIterator }) }),
+		} as any);
+		try {
+			const response = await chat.fetch(chatRequest(), chatEnv(run));
+			const reader = response.body!.getReader();
+			const first = await reader.read();
+			const terminalRead = reader.read();
+			await vi.advanceTimersByTimeAsync(30_000);
+			const terminal = await terminalRead;
+
+			expect(sseEvents(new TextDecoder().decode(first.value) + new TextDecoder().decode(terminal.value))).toEqual([
+				{ content: 'partial', done: false, provider: 'cloudflare-ai', model: '@cf/mistral/mistral-7b-instruct-v0.1' },
+				{ content: '', done: true, provider: 'cloudflare-ai', model: '@cf/mistral/mistral-7b-instruct-v0.1', error: 'stream_interrupted' },
+			]);
+			expect(returnIterator).toHaveBeenCalledOnce();
+			expect(run).toHaveBeenCalledOnce();
+		} finally {
+			vi.restoreAllMocks();
+			vi.useRealTimers();
+		}
+	});
+
+	it('cancels the active iterator when the response reader is cancelled', async () => {
+		const run = vi.fn();
+		let started = false;
+		const next = vi.fn(() => {
+			if (!started) {
+				started = true;
+				run('@cf/mistral/mistral-7b-instruct-v0.1', { stream: true });
+			}
+			return new Promise<IteratorResult<any>>(() => {});
+		});
+		const returnIterator = vi.fn(async () => ({ done: true, value: undefined }));
+		vi.spyOn(providers, 'createProviderChain').mockReturnValue({
+			stream: () => ({ [Symbol.asyncIterator]: () => ({ next, return: returnIterator }) }),
+		} as any);
+		try {
+			const response = await chat.fetch(chatRequest(), chatEnv(run));
+			await response.body!.getReader().cancel();
+
+			expect(returnIterator).toHaveBeenCalledOnce();
+			expect(run).toHaveBeenCalledOnce();
+		} finally {
+			vi.restoreAllMocks();
+		}
 	});
 });
