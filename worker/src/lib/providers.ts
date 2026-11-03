@@ -177,7 +177,7 @@ class SSEByteParser {
 		}
 		try {
 			const parsed = JSON.parse(data);
-			
+
 			// Reject non-objects (primitives, arrays) immediately
 			if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
 				throw new Error('non-object JSON frame');
@@ -202,7 +202,7 @@ class SSEByteParser {
 				'finish_reason' in parsed ||
 				'stop_reason' in parsed ||
 				'done' in parsed;
-			
+
 			if (hasMetadata) {
 				// Validate each present metadata value shape
 				if ('usage' in parsed) {
