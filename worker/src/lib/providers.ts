@@ -96,6 +96,97 @@ interface WorkersAIResponse {
 }
 
 /**
+ * Incremental parser for Cloudflare Workers AI streaming SSE over a
+ * `ReadableStream<Uint8Array>`. The Workers AI docs describe the wire format
+ * as binary SSE frames such as `data: {"response":"..."}\n\n`, terminated by
+ * `data: [DONE]\n\n`.
+ *
+ * Decodes UTF-8 across arbitrary byte-chunk boundaries (so a multibyte
+ * character split across reads is reassembled correctly) and extracts only
+ * the JSON `response` string from each event. Malformed frames throw
+ * `ProviderFailure('stream_read_failed')` — no raw bytes or inner errors
+ * ever escape.
+ */
+class SSEByteParser {
+	private decoder = new TextDecoder('utf-8');
+	private buffer = '';
+	private sawDone = false;
+
+	/** True once a `[DONE]` data event has been observed. */
+	isDone(): boolean {
+		return this.sawDone;
+	}
+
+	/** Push a byte chunk and return any complete response strings extracted. */
+	push(chunk: Uint8Array): string[] {
+		if (this.sawDone) return [];
+		this.buffer += this.decoder.decode(chunk, { stream: true });
+		return this.drain({ final: false });
+	}
+
+	/** Flush any trailing incomplete bytes and return remaining responses. */
+	finalize(): string[] {
+		if (this.sawDone) return [];
+		try {
+			this.buffer += this.decoder.decode();
+		} catch {
+			throw new ProviderFailure('stream_read_failed');
+		}
+		return this.drain({ final: true });
+	}
+
+	private drain(opts: { final: boolean }): string[] {
+		const responses: string[] = [];
+		// SSE events are separated by a blank line. Normalize CRLF to LF so a
+		// single `\n\n` search catches both `\n\n` and `\r\n\r\n` endings.
+		this.buffer = this.buffer.replace(/\r\n/g, '\n');
+
+		while (!this.sawDone) {
+			const idx = this.buffer.indexOf('\n\n');
+			if (idx === -1) break;
+			const eventText = this.buffer.slice(0, idx);
+			this.buffer = this.buffer.slice(idx + 2);
+			const parsed = this.parseEvent(eventText);
+			if (parsed !== null) responses.push(parsed);
+		}
+
+		if (opts.final && !this.sawDone && this.buffer.trim().length > 0) {
+			const parsed = this.parseEvent(this.buffer);
+			this.buffer = '';
+			if (parsed !== null) responses.push(parsed);
+		}
+
+		return responses;
+	}
+
+	private parseEvent(eventText: string): string | null {
+		const lines = eventText.split('\n');
+		const dataLines: string[] = [];
+		for (const line of lines) {
+			if (line.startsWith('data:')) {
+				// The SSE spec allows optional whitespace after `data:`.
+				dataLines.push(line.slice(5).replace(/^[ \t]/, ''));
+			}
+			// Other field lines (`event:`, `id:`, `retry:`, comments) are ignored.
+		}
+		if (dataLines.length === 0) return null; // comment-only or unknown-field event
+		const data = dataLines.join('\n');
+		if (data === '[DONE]') {
+			this.sawDone = true;
+			return null;
+		}
+		try {
+			const parsed = JSON.parse(data);
+			if (parsed && typeof parsed.response === 'string') return parsed.response;
+			// Valid JSON but no string `response` field — not a recognized frame.
+			throw new Error('missing response field');
+		} catch {
+			throw new ProviderFailure('stream_read_failed');
+		}
+	}
+}
+
+/**
  * Cloudflare AI Provider — the sole provider in this tranche, activated
  * exclusively by the `AI` binding (no API key, no env-selected model).
  */
@@ -154,7 +245,7 @@ export class CloudflareAIProvider implements Provider {
 
 		try {
 			if (streamResult && typeof (streamResult as { getReader?: unknown }).getReader === 'function') {
-				const reader = (streamResult as ReadableStream<WorkersAIStreamChunk>).getReader();
+				const reader = (streamResult as ReadableStream<unknown>).getReader();
 				let streamFinished = false;
 				let streamCancelled = false;
 				const cancelReader = () => {
@@ -165,15 +256,43 @@ export class CloudflareAIProvider implements Provider {
 				const abortStream = () => cancelReader();
 				options.signal?.addEventListener('abort', abortStream, { once: true });
 				if (options.signal?.aborted) cancelReader();
+
+				// Lazy-initialized SSE byte parser (only when chunks are Uint8Array).
+				// The Cloudflare Workers AI docs describe streaming as binary SSE over
+				// a ReadableStream<Uint8Array>, but we preserve the object-chunk path
+				// for backward compatibility with test fixtures.
+				let byteParser: SSEByteParser | null = null;
+
 				try {
 					while (!streamCancelled && !options.signal?.aborted) {
 						const { done, value: chunk } = await reader.read();
 						if (done) {
 							streamFinished = true;
+							// Flush any remaining buffered content from the byte parser.
+							if (byteParser) {
+								for (const content of byteParser.finalize()) {
+									yield { content, done: false, provider: this.name, model: this.model };
+								}
+							}
 							break;
 						}
-						const content = chunk?.response || chunk?.text || chunk?.delta;
-						if (content) yield { content, done: false, provider: this.name, model: this.model };
+
+						if (chunk instanceof Uint8Array) {
+							// Binary SSE path — decode UTF-8 incrementally and parse events.
+							if (!byteParser) byteParser = new SSEByteParser();
+							for (const content of byteParser.push(chunk)) {
+								yield { content, done: false, provider: this.name, model: this.model };
+							}
+							if (byteParser.isDone()) {
+								streamFinished = true;
+								break;
+							}
+						} else {
+							// Legacy object-chunk path for compatibility with test fixtures.
+							const objChunk = chunk as WorkersAIStreamChunk | null;
+							const content = objChunk?.response || objChunk?.text || objChunk?.delta;
+							if (content) yield { content, done: false, provider: this.name, model: this.model };
+						}
 					}
 				} finally {
 					options.signal?.removeEventListener('abort', abortStream);

@@ -409,3 +409,236 @@ describe('Sanitized failure categories on fallback SSE', () => {
 		expect(JSON.stringify(chunks)).not.toContain(STREAM_SENTINEL);
 	});
 });
+
+describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
+	/**
+	 * Cloudflare Workers AI docs describe streaming as a binary SSE
+	 * `ReadableStream<Uint8Array>` emitting frames like
+	 * `data: {"response":"..."}\n\n`. These tests verify the provider decodes
+	 * UTF-8 incrementally across arbitrary chunk boundaries and extracts only
+	 * the JSON `response` string.
+	 */
+	const enc = new TextEncoder();
+	const toBytes = (s: string): Uint8Array => enc.encode(s);
+
+	function readableStreamFromBytes(
+		chunks: Uint8Array[],
+		options: { cancel?: () => void } = {}
+	): ReadableStream<Uint8Array> {
+		let index = 0;
+		return new ReadableStream<Uint8Array>({
+			pull(controller) {
+				if (index < chunks.length) {
+					controller.enqueue(chunks[index++]);
+				} else {
+					controller.close();
+				}
+			},
+			cancel: options.cancel,
+		}, { highWaterMark: 0 });
+	}
+
+	it('parses a single SSE event delivered in one chunk', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([toBytes('data: {"response":"Hello"}\n\n')])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([
+			{ content: 'Hello', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+		]);
+	});
+
+	it('parses a single SSE event split across two chunks mid-JSON', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"res'),
+				toBytes('ponse":"Hello"}\n\n'),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([
+			{ content: 'Hello', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+		]);
+	});
+
+	it('parses multiple SSE events delivered in one chunk', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"response":"Hello"}\n\ndata: {"response":" world"}\n\n'),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([
+			{ content: 'Hello', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: ' world', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+		]);
+	});
+
+	it('parses multiple SSE events delivered one per chunk', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"response":"Hello"}\n\n'),
+				toBytes('data: {"response":" world"}\n\n'),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([
+			{ content: 'Hello', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: ' world', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+		]);
+	});
+
+	it('reconstructs a UTF-8 multibyte character split across byte chunks', async () => {
+		// "ñ" is U+00F1, encoded as 0xC3 0xB1 in UTF-8. Split the two bytes
+		// across two chunks, with the JSON framing split around them.
+		const prefix = toBytes('data: {"response":"');
+		const nBytes = toBytes('ñ');
+		const suffix = toBytes('"}\n\n');
+		const chunk1 = new Uint8Array(prefix.length + 1);
+		chunk1.set(prefix, 0);
+		chunk1[prefix.length] = nBytes[0]; // 0xC3
+		const chunk2 = new Uint8Array(1 + suffix.length);
+		chunk2[0] = nBytes[1]; // 0xB1
+		chunk2.set(suffix, 1);
+
+		const run = vi.fn().mockResolvedValueOnce(readableStreamFromBytes([chunk1, chunk2]));
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks[0]).toMatchObject({
+			content: 'ñ',
+			done: false,
+			provider: 'cloudflare-ai',
+			model: ALLOWED_MODEL,
+		});
+	});
+
+	it('handles CRLF event boundaries per the SSE spec', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([toBytes('data: {"response":"Hello"}\r\n\r\n')])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks[0]).toMatchObject({ content: 'Hello', done: false });
+	});
+
+	it('treats a [DONE] data event as a clean terminator', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"response":"Hello"}\n\ndata: [DONE]\n\n'),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([
+			{ content: 'Hello', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+		]);
+		expect(run).toHaveBeenCalledTimes(1);
+	});
+
+	it('yields empty_output fallback when the byte stream contains no events', async () => {
+		const run = vi.fn().mockResolvedValueOnce(readableStreamFromBytes([]));
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([{
+			content: 'El chat no está disponible ahora. Usa el formulario de contacto.',
+			done: true,
+			provider: 'fallback',
+			model: null,
+			diagnosticCode: 'empty_output',
+		}]);
+	});
+
+	it('cancels a byte-level ReadableStream when the consumer signal aborts', async () => {
+		const cancelUpstream = vi.fn();
+		let pullCount = 0;
+		const run = vi.fn(async () => new ReadableStream<Uint8Array>({
+			pull(controller) {
+				pullCount++;
+				if (pullCount === 1) {
+					controller.enqueue(new TextEncoder().encode('data: {"response":"first"}\n\n'));
+					return;
+				}
+				// Never resolves again — simulates a pending read.
+				return new Promise<void>(() => {});
+			},
+			cancel: cancelUpstream,
+		}, { highWaterMark: 0 }));
+		const controller = new AbortController();
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const iterator = chain.stream([], { signal: controller.signal } as any)[Symbol.asyncIterator]();
+
+		const firstChunk = await iterator.next();
+		controller.abort();
+
+		expect(firstChunk.value).toMatchObject({ content: 'first', provider: 'cloudflare-ai' });
+		expect(cancelUpstream).toHaveBeenCalledOnce();
+		expect(run).toHaveBeenCalledOnce();
+		await iterator.return?.();
+	});
+
+	it('sanitizes malformed SSE data as stream_read_failed', async () => {
+		const MALFORMED_SENTINEL = 'data: this is not valid json payload-xyz';
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([toBytes(MALFORMED_SENTINEL + '\n\n')])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		const fallback = chunks.find(c => c.provider === 'fallback');
+		expect(fallback).toBeDefined();
+		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(JSON.stringify(chunks)).not.toContain('payload-xyz');
+	});
+
+	it('sanitizes a byte-stream read error as stream_read_failed', async () => {
+		const STREAM_ERR_SENTINEL = 'byte-stream-read-error-7k9j2h';
+		const run = vi.fn().mockResolvedValue(
+			new ReadableStream<Uint8Array>({
+				start(controller) {
+					controller.error(new Error(STREAM_ERR_SENTINEL));
+				},
+			})
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		const fallback = chunks.find(c => c.provider === 'fallback');
+		expect(fallback).toBeDefined();
+		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(JSON.stringify(chunks)).not.toContain(STREAM_ERR_SENTINEL);
+	});
+
+	it('does not leak raw byte-stream bytes in any diagnostic output', async () => {
+		const logWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			const RAW_SENTINEL = 'raw-sse-bytes-must-not-leak-9z8y7x';
+			const run = vi.fn().mockResolvedValueOnce(
+				readableStreamFromBytes([toBytes(`data: ${RAW_SENTINEL}\n\n`)])
+			);
+			const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+			const chunks = await collectStream(chain);
+
+			const allLogs = JSON.stringify(chunks) + JSON.stringify(logWarn.mock.calls);
+			expect(allLogs).not.toContain(RAW_SENTINEL);
+		} finally {
+			logWarn.mockRestore();
+		}
+	});
+});
