@@ -341,6 +341,36 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 | Worker error state ↔ UI stream | Task 10 reports safe `provider_stream_failed`; real answer still ends partially, and Task 2/10 require no fabricated success. | Display partial text plus an honest error/diagnostic; do not mark the response complete. Cost if wrong: visitors/developers may trust an incomplete answer. |
 | Data handling | Human approved transient message/history/public contact to Cloudflare AI, but not persistence/logging. | Keep chat history only in page memory, show the development disclosure, do not log payloads, and never call `/api/lead`. Cost if wrong: visitor content may be sent remotely without clear notice. |
 
+### Task 12: Tolerate recognized metadata frames in Workers AI SSE
+
+**Production evidence:** Task 10's single authorized smoke returned text chunks followed by `diagnosticCode: provider_stream_failed`; the error is in the provider iterator path, not the API deadline. The raw frame/error was not captured. The current parser throws `stream_read_failed` for any valid JSON SSE data event without a string `response`, so a trailing metadata/control object is a plausible, unverified cause.
+
+**Files:**
+- Modify: `worker/src/lib/providers.ts`
+- Modify: `worker/tests/providers.test.ts`
+
+**Interface and behavior:**
+- Extract string `response` fields from SSE data as before.
+- Ignore only recognized valid non-content metadata/control objects: `usage`, `tool_calls`, `finish_reason`, `stop_reason`, or `done`; explicit `error` fields and malformed JSON remain sanitized `stream_read_failed`.
+- Preserve `[DONE]`, upstream cancellation, provider/model attribution, first-content no-retry, Task 7/10 diagnostics, generic fallback and no raw-frame logging/output.
+- This is a local parser hardening hypothesis, not proof of the captured production frame. Do not change model, maxTokens, timeout, provider chain, API schema, quotas, or call the network.
+
+- [ ] **Step 1: Add failing provider tests** for content followed by recognized metadata then `[DONE]`, an explicit error frame after content, malformed JSON after content, no raw error leak, and preserved completion/cancel semantics.
+- [ ] **Step 2: Run focused provider tests and confirm RED.**
+- [ ] **Step 3: Implement only the recognized metadata-frame handling.**
+- [ ] **Step 4: Run focused provider/API tests, full Worker suite, TypeScript build and web checks. No remote request.**
+- [ ] **Step 5: Independent review and T2 Guardian PASS.**
+- [ ] **Step 6: Do not deploy or smoke under this task.** Any post-fix production test requires a fresh explicit authorization; Task 10's single smoke was consumed.
+- [ ] **Step 7: Commit** with preflight and `ai(worker): tolerate Workers AI metadata frames`.
+
+### Task 12 preflight scan
+
+| Check | Finding | Ruling |
+|---|---|---|
+| Task 8 parser ↔ Task 12 metadata frames | The production smoke indicates a provider-stream exception after content; raw frame absent, and the parser currently rejects valid JSON without `response`. | Ignore only allowlisted metadata shapes; keep malformed/error frames fail-closed. Cost if wrong: a provider frame outside the allowlist may still terminate a response. |
+| Task 10 terminal code ↔ Task 12 | Task 10 identifies provider stream failure vs deadline but not the exact internal event. | Preserve the current terminal `provider_stream_failed` surface and use local tests to verify the parser branch; no remote diagnostic request here. Cost if wrong: root cause may remain unknown until a separately authorized smoke. |
+| User test order | User ordered chat connection, Worker response repair, lead-route isolation, then quality pipeline. Task 11 is dev-only; Task 12 is local Worker fix. | Keep production unchanged and no live request while fixing; isolation follows this task, Quality comes last. Cost if wrong: the production chat remains on the prior version longer, but avoids deploying an unreviewed parser change. |
+
 ## Execution and external gates
 
 - SDD orchestration: Luna coordinates; dispatch only free models. Use `opencode-go/qwen3.7-plus` for multi-file implementation/review, `opencode-go/mimo-v2.6-flash` only for isolated mechanical work, `opencode-go/glm-5.3` for design judgment, and `opencode-go/gpt-6-luna` for final review. Never omit the model ID.
@@ -366,7 +396,7 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 
 ## Acceptance criteria
 
-- All accepted tasks (1–8, 10, and 11; Task 9 isolation was explicitly declined) pass their specified tests and reviews; Worker tests and typecheck are wired in CI.
+- All accepted tasks (1–8 and 10–12; the user later re-ordered lead isolation and Quality as follow-up steps) pass their specified tests and reviews; Worker tests and typecheck are wired in CI.
 - No paid Anthropic/Groq path or unapproved third-party provider can enter the active chain via an environment variable.
 - Provider/model attribution is present on every non-empty SSE chunk, and output never contains mixed-provider continuation.
 - Rate/request bounds, fail-closed quota behavior, and cancellation behavior are covered by deterministic tests.
