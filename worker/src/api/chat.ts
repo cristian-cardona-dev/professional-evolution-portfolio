@@ -255,9 +255,9 @@ export default {
 					};
 					cancelStream = () => stop('cancel');
 					const abortFromRequest = () => stop('cancel');
-					const emitFailure = () => {
+					const emitFailure = (diagnosticCode: 'response_timeout' | 'provider_stream_failed') => {
 						if (hasContent) {
-							controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '', done: true, provider: actualProvider, model: actualModel, error: 'stream_interrupted' })}\n\n`));
+							controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '', done: true, provider: actualProvider, model: actualModel, error: 'stream_interrupted', diagnosticCode })}\n\n`));
 						} else {
 							controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: 'El chat no está disponible ahora. Usa el formulario de contacto.', done: true, provider: 'fallback', model: null })}\n\n`));
 						}
@@ -273,7 +273,7 @@ export default {
 								const outcome = await Promise.race([next, stopped.then(reason => reason === 'timeout' ? { kind: 'timeout' as const } : { kind: 'cancel' as const })]);
 								if (outcome.kind === 'cancel') break;
 								if (outcome.kind === 'timeout') {
-									emitFailure();
+									emitFailure('response_timeout');
 									break;
 								}
 								if (outcome.value.done) break;
@@ -288,7 +288,7 @@ export default {
 								if (chunk.done) break;
 							}
 						} catch {
-							if (!stopReason) emitFailure();
+							if (!stopReason) emitFailure('provider_stream_failed');
 						} finally {
 							finished = true;
 							clearTimeout(timer);

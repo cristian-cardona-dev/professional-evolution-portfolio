@@ -371,11 +371,42 @@ describe('chat SSE streaming boundary', () => {
 				provider: 'cloudflare-ai',
 				model: CLOUDFLARE_MODEL,
 				error: 'stream_interrupted',
+				diagnosticCode: 'provider_stream_failed',
 			},
 		]);
 		expect(body).not.toContain('raw provider body');
 		expect(body).not.toContain('secret-key-123');
 		expect(run).toHaveBeenCalledTimes(1);
+	});
+
+	it('classifies the post-content iterator failure as provider_stream_failed without leaking a sentinel exception', async () => {
+		const sentinel = 'raw-api-sentinel-post-content-5f2b8c1d';
+		const run = vi.fn().mockResolvedValue(asyncIterableFrom([{ response: 'partial' }], new Error(sentinel)));
+		const logWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const logError = vi.spyOn(console, 'error').mockImplementation(() => {});
+		try {
+			const response = await chat.fetch(chatRequest(), chatEnv(run));
+			const body = await response.text();
+
+			expect(sseEvents(body)).toEqual([
+				{ content: 'partial', done: false, provider: 'cloudflare-ai', model: CLOUDFLARE_MODEL },
+				{
+					content: '',
+					done: true,
+					provider: 'cloudflare-ai',
+					model: CLOUDFLARE_MODEL,
+					error: 'stream_interrupted',
+					diagnosticCode: 'provider_stream_failed',
+				},
+			]);
+			expect(body).not.toContain(sentinel);
+			expect(JSON.stringify(logWarn.mock.calls)).not.toContain(sentinel);
+			expect(JSON.stringify(logError.mock.calls)).not.toContain(sentinel);
+			expect(run).toHaveBeenCalledTimes(1);
+		} finally {
+			logWarn.mockRestore();
+			logError.mockRestore();
+		}
 	});
 
 	it('emits the sanitized API fallback event when the provider chain exhausts before content', async () => {
@@ -618,7 +649,14 @@ describe('chat SSE streaming boundary', () => {
 
 			expect(sseEvents(new TextDecoder().decode(first.value) + new TextDecoder().decode(terminal.value))).toEqual([
 				{ content: 'partial', done: false, provider: 'cloudflare-ai', model: '@cf/mistral/mistral-7b-instruct-v0.1' },
-				{ content: '', done: true, provider: 'cloudflare-ai', model: '@cf/mistral/mistral-7b-instruct-v0.1', error: 'stream_interrupted' },
+				{
+					content: '',
+					done: true,
+					provider: 'cloudflare-ai',
+					model: '@cf/mistral/mistral-7b-instruct-v0.1',
+					error: 'stream_interrupted',
+					diagnosticCode: 'response_timeout',
+				},
 			]);
 			expect(returnIterator).toHaveBeenCalledOnce();
 			expect(run).toHaveBeenCalledOnce();
