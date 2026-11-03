@@ -17,10 +17,13 @@ const canonicalBase = (
   process.env.PUBLIC_CANONICAL_BASE ||
   'https://cristian-cardona-dev.github.io/professional-evolution-portfolio/'
 ).replace(/\/?$/, '/');
+const basePath = process.env.ASTRO_BASE || '/professional-evolution-portfolio/';
+const chatProxyPrefix = basePath.replace(/\/$/, '');
+const chatProxyPath = `${chatProxyPrefix}/api/chat`;
 
 export default defineConfig({
   site: process.env.ASTRO_SITE || 'https://cristian-cardona-dev.github.io',
-  base: process.env.ASTRO_BASE || '/professional-evolution-portfolio/',
+  base: basePath,
   output: 'static',
   trailingSlash: 'always',
   i18n: {
@@ -30,6 +33,15 @@ export default defineConfig({
   vite: {
     define: {
       'import.meta.env.PUBLIC_CANONICAL_BASE': JSON.stringify(canonicalBase),
+    },
+    server: {
+      proxy: {
+        [chatProxyPath]: {
+          target: 'https://portfolio-ai-chat-worker.crisss198.workers.dev',
+          changeOrigin: true,
+          rewrite: (path) => (chatProxyPrefix ? path.slice(chatProxyPrefix.length) : path),
+        },
+      },
     },
   },
 });

@@ -571,6 +571,19 @@ export interface Copy {
     close: string;
     /** Honesty banner: what the assistant is, and what it is not. */
     banner: string;
+    /** Development-only disclosure for the transient Worker-backed chat. */
+    devNotice: string;
+    /** Agent-facing description of the dev-only Cloudflare AI tool. */
+    devToolDescription: string;
+    /** Mode label shown instead of local search while developing. */
+    devMode: string;
+    chatPlaceholder: string;
+    chatSubmit: string;
+    chatStop: string;
+    chatPending: string;
+    chatStopped: string;
+    chatProviderStreamFailed: string;
+    chatFailure: string;
     /** Live search mode, read from the generated build metadata (semantic). */
     modeSemantic: string;
     /** Live search mode, read from the generated build metadata (keyword-only). */
@@ -1297,6 +1310,19 @@ export const en: Copy = {
     close: 'Close the assistant',
     banner:
       'This searches only what is published on this site â€” it is not an AI model, and it never sends your question anywhere. It can only point at what is already published here, and it says so when it finds nothing.',
+    devNotice:
+      'Development only: messages you submit are sent transiently to Cloudflare AI and use the production free quota. Do not enter sensitive information.',
+    devToolDescription:
+      'Development only: sends your message and recent chat history transiently to Cloudflare AI through the local development proxy. This uses the production free quota; do not submit sensitive information.',
+    devMode: 'Development chat mode — responses are streamed from Cloudflare AI.',
+    chatPlaceholder: 'Ask a question about this portfolio…',
+    chatSubmit: 'Send',
+    chatStop: 'Stop response',
+    chatPending: 'Sending your message to Cloudflare AI…',
+    chatStopped: 'Response stopped. Any displayed text may be incomplete.',
+    chatProviderStreamFailed:
+      'The reply stopped before completion (provider_stream_failed). Any text shown above is partial.',
+    chatFailure: 'The chat response could not be completed. No complete answer is available.',
     modeSemantic:
       'Live search: semantic. The site embedded its own index at build time and ranks results by similarity in your browser. Searching still makes no AI model call.',
     modeKeyword:
@@ -1904,6 +1930,19 @@ export const es: Copy = {
     close: 'Cerrar el asistente',
     banner:
       'Esto busca solo lo que estÃ¡ publicado en este sitio: no es un modelo de IA y nunca envÃ­a tu pregunta a ningÃºn sitio. Solo puede seÃ±alar lo que ya estÃ¡ publicado aquÃ­, y lo dice cuando no encuentra nada.',
+    devNotice:
+      'Solo en desarrollo: los mensajes que env\u00edes se env\u00edan de forma transitoria a Cloudflare AI y consumen la cuota gratuita de producci\u00f3n. No incluyas informaci\u00f3n sensible.',
+    devToolDescription:
+      'Solo en desarrollo: env\u00eda tu mensaje y el historial reciente del chat de forma transitoria a Cloudflare AI mediante el proxy local de desarrollo. Consume la cuota gratuita de producci\u00f3n; no env\u00edes informaci\u00f3n sensible.',
+    devMode: 'Chat de desarrollo \u2014 las respuestas se transmiten desde Cloudflare AI.',
+    chatPlaceholder: 'Haz una pregunta sobre este portafolio\u2026',
+    chatSubmit: 'Enviar',
+    chatStop: 'Detener respuesta',
+    chatPending: 'Enviando tu mensaje a Cloudflare AI\u2026',
+    chatStopped: 'Respuesta detenida. El texto mostrado puede estar incompleto.',
+    chatProviderStreamFailed:
+      'La respuesta se detuvo antes de completarse (provider_stream_failed). El texto mostrado es parcial.',
+    chatFailure: 'No se pudo completar la respuesta del chat. No hay una respuesta completa disponible.',
     modeSemantic:
       'BÃºsqueda activa: semÃ¡ntica. El sitio incrustÃ³ su propio Ã­ndice al compilar y ordena los resultados por similitud en tu navegador. Al buscar sigue sin haber ninguna llamada a un modelo de IA.',
     modeKeyword:

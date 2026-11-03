@@ -22,10 +22,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const WEB = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const WIDGET = resolve(WEB, 'src', 'components', 'AssistantWidget.astro');
+const ASTRO_CONFIG = resolve(WEB, 'astro.config.mjs');
+const COPY = resolve(WEB, 'src', 'i18n', 'copy.ts');
 
 /** Worker endpoints the Pages assistant may never call. */
 const FORBIDDEN_ENDPOINTS = ['/api/chat', '/api/assistant'];
@@ -105,4 +107,56 @@ test('self-check: the contract rejects a streaming transport', () => {
   const source = readFileSync(WIDGET, 'utf8');
   const mutated = `${source}\nconst stream = new WebSocket('wss://chat-worker.example.workers.dev');\n`;
   assert.throws(() => assertLocalAssistant(mutated, 'mutated widget'), /streaming\/XHR transport/);
+});
+
+test('production submission remains local search behind an explicit development-only chat branch', () => {
+  const source = readFileSync(WIDGET, 'utf8');
+
+  assert.match(
+    source,
+    /if\s*\(import\.meta\.env\.DEV\)\s*\{[\s\S]*?runChat\(input\.value\)[\s\S]*?\}\s*else\s*\{[\s\S]*?run\(input\.value\)/,
+    'only Astro dev may submit to chat; the production branch must keep local search',
+  );
+  assertLocalAssistant(source, 'AssistantWidget.astro production search path');
+});
+
+test('dev script receives localized status copy through its DOM boundary', () => {
+  const source = readFileSync(WIDGET, 'utf8');
+  const scriptStart = source.indexOf('<script>');
+  const script = source.slice(scriptStart, source.indexOf('</script>', scriptStart));
+
+  assert.match(source, /data-chat-pending=\{devChatMode \? copy\.assistant\.chatPending : undefined\}/);
+  assert.match(source, /data-chat-provider-stream-failed=\{\s*devChatMode \? copy\.assistant\.chatProviderStreamFailed : undefined\s*\}/);
+  assert.match(script, /root\.dataset\.chatPending/);
+  assert.match(script, /root\.dataset\.chatProviderStreamFailed/);
+  assert.doesNotMatch(script, /copy\.assistant\.chat/);
+});
+
+test('Astro dev proxy matches the configured project base and rewrites to the Worker chat route', async () => {
+  const config = (await import(pathToFileURL(ASTRO_CONFIG).href)).default;
+  const basePrefix = config.base.replace(/\/$/, '');
+  const path = `${basePrefix}/api/chat`;
+  const proxy = config.vite?.server?.proxy?.[path];
+
+  assert.ok(proxy, `expected a dev server proxy for ${path}`);
+  assert.equal(proxy.target, 'https://portfolio-ai-chat-worker.crisss198.workers.dev');
+  assert.equal(proxy.rewrite(path), '/api/chat');
+  assert.equal(config.vite?.preview?.proxy?.[path], undefined, 'the Worker proxy must not be a preview runtime route');
+});
+
+test('English and Spanish development notice and tool description disclose transient Cloudflare AI use', () => {
+  const source = readFileSync(COPY, 'utf8');
+  const spanishStart = source.indexOf('  assistant: {', source.indexOf('export const es'));
+  const spanishNoticeStart = source.indexOf('devNotice:', spanishStart);
+  const spanishToolStart = source.indexOf('devToolDescription:', spanishNoticeStart);
+  const spanishModeStart = source.indexOf('devMode:', spanishToolStart);
+  const spanishNotice = source.slice(spanishNoticeStart, spanishToolStart);
+  const spanishTool = source.slice(spanishToolStart, spanishModeStart);
+
+  assert.ok(source.includes('Development only: messages you submit are sent transiently to Cloudflare AI'));
+  assert.ok(source.includes('Development only: sends your message and recent chat history transiently to Cloudflare AI'));
+  assert.ok(spanishNotice.includes('Solo en desarrollo:') && spanishNotice.includes('transitoria') && spanishNotice.includes('Cloudflare AI'));
+  assert.ok(spanishNotice.includes('cuota gratuita de producci\\u00f3n'));
+  assert.ok(spanishTool.includes('Solo en desarrollo:') && spanishTool.includes('transitoria') && spanishTool.includes('Cloudflare AI'));
+  assert.ok(spanishTool.includes('cuota gratuita de producci\\u00f3n'));
 });

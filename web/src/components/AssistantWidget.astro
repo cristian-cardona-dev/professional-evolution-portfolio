@@ -6,10 +6,10 @@
  * and click-outside close, focus moves in on open and back to the trigger on
  * close) and searches a compact index that is serialized into the page at
  * build time from the canonical `data/*.json` — no API key, no backend and no
- * simulated intelligence: there is no typing animation, no canned prose and no
- * model call anywhere in this component. The honesty banner at the top of the
- * panel says what this is in plain words, a mode line states which search this
- * build actually ships, and an unmatched query renders the honest fallback
+ * simulated intelligence in production: the published assistant has no model
+ * call. Astro development adds an explicitly disclosed, Worker-backed chat
+ * mode. The production honesty banner says what local search is, a mode line
+ * states which search this build actually ships, and an unmatched query renders the honest fallback
  * (links to the full work and evidence listings plus a prefilled `mailto:`
  * carrying the question) instead of an invented answer.
  *
@@ -60,13 +60,16 @@ interface Props {
 }
 
 const { copy, locale } = Astro.props;
+const devChatMode = import.meta.env.DEV;
 
 /** Which search this build ships; stated in the panel, never implied. */
 const buildMetadata = readBuildMetadata();
 const modeNote =
-  buildMetadata.semantic_index === 'semantic'
-    ? copy.assistant.modeSemantic
-    : copy.assistant.modeKeyword;
+  devChatMode
+    ? copy.assistant.devMode
+    : buildMetadata.semantic_index === 'semantic'
+      ? copy.assistant.modeSemantic
+      : copy.assistant.modeKeyword;
 
 /** The widget is useful only with an index; the canonical data is always
  *  non-empty, but the guard keeps the promise explicit. */
@@ -97,7 +100,17 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
 
 {
   entries.length > 0 && (
-    <div class="assistant" data-assistant>
+    <div
+      class="assistant"
+      data-assistant
+      data-locale={locale}
+      data-chat-pending={devChatMode ? copy.assistant.chatPending : undefined}
+      data-chat-stopped={devChatMode ? copy.assistant.chatStopped : undefined}
+      data-chat-provider-stream-failed={
+        devChatMode ? copy.assistant.chatProviderStreamFailed : undefined
+      }
+      data-chat-failure={devChatMode ? copy.assistant.chatFailure : undefined}
+    >
       <button
         type="button"
         class="assistant__fab"
@@ -149,7 +162,9 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
           </button>
         </div>
 
-        <p class="assistant__banner" id="pep-assistant-banner">{copy.assistant.banner}</p>
+        <p class="assistant__banner" id="pep-assistant-banner">
+          {devChatMode ? copy.assistant.devNotice : copy.assistant.banner}
+        </p>
 
         {/* Which search this build actually ships, read from the generated
             build metadata. Keyword-only is the CI build (no Cloudflare token);
@@ -166,28 +181,53 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
         <form
           class="assistant__form"
           data-a-form
-          toolname="site_search"
-          tooldescription="Searches this site's own published index and returns links to the pages that match. It runs entirely in the visitor's browser against an index embedded in the page and, when the build shipped semantic vectors, a same-origin static JSON file: no backend and no AI model or API call at query time. A query that matches nothing returns an honest fallback with the site's own listings instead of an invented answer."
+          toolname={devChatMode ? 'portfolio_ai_chat' : 'site_search'}
+          tooldescription={
+            devChatMode
+              ? copy.assistant.devToolDescription
+              : "Searches this site's own published index and returns links to the pages that match. It runs entirely in the visitor's browser against an index embedded in the page and, when the build shipped semantic vectors, a same-origin static JSON file: no backend and no AI model or API call at query time. A query that matches nothing returns an honest fallback with the site's own listings instead of an invented answer."
+          }
         >
           <label class="visually-hidden" for="pep-assistant-input">{copy.assistant.open}</label>
           <input
             class="assistant__input"
             id="pep-assistant-input"
             data-a-input
-            type="search"
+            type={devChatMode ? 'text' : 'search'}
             name="q"
             autocomplete="off"
-            placeholder={copy.assistant.placeholder}
+            placeholder={devChatMode ? copy.assistant.chatPlaceholder : copy.assistant.placeholder}
             aria-describedby="pep-assistant-banner"
-            toolparamdescription="Keywords matched against the titles, summaries and status text of the site's own published pages."
+            toolparamdescription={
+              devChatMode
+                ? copy.assistant.devToolDescription
+                : "Keywords matched against the titles, summaries and status text of the site's own published pages."
+            }
           />
           <button class="button button--primary assistant__submit" type="submit">
-            {copy.assistant.submit}
+            {devChatMode ? copy.assistant.chatSubmit : copy.assistant.submit}
           </button>
         </form>
 
-        <p class="assistant__chips-heading">{copy.assistant.suggestedHeading}</p>
-        <ul class="assistant__chips">
+        {devChatMode && (
+          <div class="assistant__chat" data-chat>
+            <ol class="assistant__transcript" data-chat-transcript aria-live="polite"></ol>
+            <p class="assistant__chat-status" data-chat-status role="status" aria-live="polite"></p>
+            <p class="assistant__error" data-chat-error hidden role="alert"></p>
+            <button
+              type="button"
+              class="button assistant__chat-stop"
+              data-chat-stop
+              aria-label={copy.assistant.chatStop}
+              hidden
+            >
+              {copy.assistant.chatStop}
+            </button>
+          </div>
+        )}
+
+        <p class="assistant__chips-heading" hidden={devChatMode}>{copy.assistant.suggestedHeading}</p>
+        <ul class="assistant__chips" hidden={devChatMode}>
           {chips.map((chip) => (
             <li>
               <button type="button" class="assistant__chip" data-a-chip data-query={chip.query}>
@@ -255,6 +295,13 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
     const root = document.querySelector<HTMLElement>('[data-assistant]');
     const index = document.querySelector<HTMLScriptElement>('[data-assistant-index]');
     if (!root || !index) return;
+    const locale = root.dataset.locale === 'es' ? 'es' : 'en';
+    const chatCopy = {
+      pending: root.dataset.chatPending ?? '',
+      stopped: root.dataset.chatStopped ?? '',
+      providerStreamFailed: root.dataset.chatProviderStreamFailed ?? '',
+      failure: root.dataset.chatFailure ?? '',
+    };
 
     let entries: AssistantEntry[];
     try {
@@ -277,6 +324,11 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
     const results = root.querySelector<HTMLElement>('[data-a-results]');
     const fallback = root.querySelector<HTMLElement>('[data-a-fallback]');
     const mailto = root.querySelector<HTMLAnchorElement>('[data-a-mailto]');
+    const chatTranscript = root.querySelector<HTMLOListElement>('[data-chat-transcript]');
+    const chatStop = root.querySelector<HTMLButtonElement>('[data-chat-stop]');
+    const chatStatus = root.querySelector<HTMLElement>('[data-chat-status]');
+    const chatError = root.querySelector<HTMLElement>('[data-chat-error]');
+    const submitButton = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
     if (
       !fab || !panel || !closeButton || !form || !input || !source ||
       !out || !error || !label || !results || !fallback || !mailto
@@ -288,6 +340,12 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
     const rows = Array.from(source.children) as HTMLElement[];
     const chips = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-a-chip]'));
     let opener: HTMLElement | null = null;
+    const chatHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+    let activeChatController: AbortController | null = null;
+
+    if (import.meta.env.DEV && (!chatTranscript || !chatStop || !chatStatus || !chatError || !submitButton)) {
+      return;
+    }
 
     /**
      * The semantic asset, fetched at most once per page visit. It is a static,
@@ -325,7 +383,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
       input.focus();
       // Warm the semantic asset while the visitor types, so the first search
       // is not delayed by the fetch. Failures are silent by design.
-      void loadSemantic();
+      if (!import.meta.env.DEV) void loadSemantic();
     };
 
     const closePanel = () => {
@@ -437,9 +495,71 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
       }
     };
 
+    const runChat = async (query: string) => {
+      const trimmed = query.trim();
+      if (
+        !trimmed || activeChatController || !chatTranscript || !chatStop ||
+        !chatStatus || !chatError || !submitButton
+      ) return;
+      chatError.hidden = true;
+      chatStatus.textContent = chatCopy.pending;
+
+      const controller = new AbortController();
+      activeChatController = controller;
+      chatStop.hidden = false;
+      submitButton.disabled = true;
+
+      try {
+        const { appendChatMessage, boundChatHistory, sendChat } = await import('../lib/chat-client.mjs');
+        const priorHistory = boundChatHistory(chatHistory);
+        chatHistory.push({ role: 'user', content: trimmed });
+        appendChatMessage(chatTranscript, 'user', trimmed);
+        const assistantMessage = appendChatMessage(chatTranscript, 'assistant', '');
+        const result = await sendChat({
+          endpoint: `${import.meta.env.BASE_URL}api/chat`,
+          message: trimmed,
+          history: priorHistory,
+          locale,
+          signal: controller.signal,
+          onContent: (delta: string) => {
+            assistantMessage.textContent += delta;
+          },
+        });
+
+        if (result.content) chatHistory.push({ role: 'assistant', content: result.content });
+        if (result.status === 'cancelled') {
+          chatStatus.textContent = chatCopy.stopped;
+        } else if (result.status === 'error') {
+          chatStatus.textContent = '';
+          chatError.textContent = result.errorCode === 'provider_stream_failed'
+            ? chatCopy.providerStreamFailed
+            : chatCopy.failure;
+          chatError.hidden = false;
+        } else {
+          chatStatus.textContent = '';
+        }
+      } catch {
+        chatStatus.textContent = '';
+        chatError.textContent = chatCopy.failure;
+        chatError.hidden = false;
+      } finally {
+        if (activeChatController === controller) activeChatController = null;
+        chatStop.hidden = true;
+        submitButton.disabled = false;
+        if (chatHistory.length > 6) chatHistory.splice(0, chatHistory.length - 6);
+      }
+    };
+
+    chatStop?.addEventListener('click', () => activeChatController?.abort());
+
     form.addEventListener('submit', (event) => {
       event.preventDefault();
-      void run(input.value);
+      if (import.meta.env.DEV) {
+        void runChat(input.value);
+        input.value = '';
+      } else {
+        void run(input.value);
+      }
     });
 
     for (const chip of chips) {
@@ -470,7 +590,8 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
       if (panel.hidden) openPanel();
       else input.focus();
       input.value = query;
-      void run(query);
+      if (import.meta.env.DEV) void runChat(query);
+      else void run(query);
     });
 
     // Guarded regions: at narrow widths the FAB's corner overlaps the home
@@ -600,8 +721,11 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
      animation: reduced motion cannot be disrespected by motion that does
      not exist. */
   .assistant__panel[hidden],
+  .assistant__chips[hidden],
+  .assistant__chips-heading[hidden],
   .assistant__out[hidden],
   .assistant__error[hidden],
+  .assistant__chat-stop[hidden],
   .assistant__out-label[hidden],
   .assistant__results[hidden],
   .assistant__fallback[hidden],
@@ -732,6 +856,54 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
+  }
+
+  .assistant__chat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .assistant__transcript {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-height: 16rem;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .assistant__message {
+    max-width: 95%;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .assistant__message--user {
+    align-self: flex-end;
+    background-color: var(--color-surface-raised);
+  }
+
+  .assistant__message--assistant {
+    align-self: flex-start;
+    background-color: var(--color-bg);
+  }
+
+  .assistant__chat-status {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+  }
+
+  .assistant__chat-stop {
+    align-self: flex-start;
   }
 
   .assistant__out-label {
