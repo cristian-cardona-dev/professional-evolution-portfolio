@@ -376,4 +376,36 @@ describe('Sanitized failure categories on fallback SSE', () => {
 			logWarn.mockRestore();
 		}
 	});
+
+	it('omits diagnosticCode when a provider throws an unknown generic exception', async () => {
+		const UNKNOWN_SENTINEL = 'unknown-provider-error-9f8e7d6c5b4a';
+		const provider = mockProvider('mock', async function* () {
+			throw new Error(UNKNOWN_SENTINEL);
+		});
+		const chain = new ProviderChain([provider]);
+		const chunks = await collectStream(chain);
+
+		const fallback = chunks.find(c => c.provider === 'fallback');
+		expect(fallback).toBeDefined();
+		expect(fallback!.diagnosticCode).toBeUndefined();
+		expect(JSON.stringify(chunks)).not.toContain(UNKNOWN_SENTINEL);
+	});
+
+	it('classifies actual ReadableStream reader rejection as stream_read_failed', async () => {
+		const STREAM_SENTINEL = 'readable-stream-reader-rejection-3a2b1c';
+		const run = vi.fn().mockResolvedValue(
+			new ReadableStream<{ response?: string; text?: string; delta?: string }>({
+				start(controller) {
+					controller.error(new Error(STREAM_SENTINEL));
+				},
+			})
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		const fallback = chunks.find(c => c.provider === 'fallback');
+		expect(fallback).toBeDefined();
+		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(JSON.stringify(chunks)).not.toContain(STREAM_SENTINEL);
+	});
 });

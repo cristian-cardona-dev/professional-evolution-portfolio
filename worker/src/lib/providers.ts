@@ -231,8 +231,8 @@ export class ProviderChain {
 
 	async *stream(messages: Message[], options: CallOptions = {}): AsyncIterable<StreamChunk> {
 		// Track the last failure code for the exhausted-before-content fallback.
-		// Default to 'empty_output' — if no provider threw, the outcome was empty output.
-		let lastFailureCode: FailureCode = 'empty_output';
+		// Start undefined — only set when we know the actual failure mode.
+		let lastFailureCode: FailureCode | undefined = undefined;
 
 		for (const provider of this.providers) {
 			let hasContent = false;
@@ -265,7 +265,8 @@ export class ProviderChain {
 				if (hasContent) {
 					throw new Error(STREAM_INTERRUPTED_ERROR);
 				}
-				// Capture the provider's failure code if it's a recognized ProviderFailure.
+				// Capture the provider's failure code only if it's a recognized ProviderFailure.
+				// Unknown exceptions leave lastFailureCode undefined — no diagnostic emitted.
 				if (error instanceof ProviderFailure) {
 					lastFailureCode = error.failureCode;
 				}
@@ -273,15 +274,18 @@ export class ProviderChain {
 			}
 		}
 
-		// All providers failed or yielded nothing: end with a sanitized error
-		// and the failure category for diagnostic purposes.
-		yield {
+		// All providers failed or yielded nothing: end with a sanitized error.
+		// Include diagnosticCode only if we identified a specific failure mode.
+		const fallbackChunk: StreamChunk = {
 			content: CHAT_UNAVAILABLE_MESSAGE,
 			done: true,
 			provider: 'fallback',
 			model: null,
-			diagnosticCode: lastFailureCode,
 		};
+		if (lastFailureCode !== undefined) {
+			fallbackChunk.diagnosticCode = lastFailureCode;
+		}
+		yield fallbackChunk;
 	}
 }
 
