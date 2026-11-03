@@ -277,6 +277,34 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 | Cloudflare docs ↔ implementation | Docs/type definitions identify a binary SSE ReadableStream; the previous adapter expected object chunks. | Parse `data:` events incrementally and extract `response`; retain a sanitized failure path. Cost if wrong: an unsupported model-specific framing detail may still yield fallback. |
 | External gate | Task 7's authorized smoke was consumed and returned `empty_output`; Task 8 authorization covers code only. | Do not deploy or call Preview without a fresh explicit authorization after review and Guardian. Cost if wrong: live runtime remains unverified, but prevents unauthorized usage. |
 
+### Task 10: Distinguish post-content timeout from stream failure
+
+**Production evidence:** The authorized production smoke returned HTTP 200 and multiple SSE chunks attributed to `cloudflare-ai` / `@cf/mistral/mistral-7b-instruct-v0.1`, followed by terminal `error: stream_interrupted`. This confirms the live byte parser emitted provider content, but not a complete successful response. Current code uses the same terminal error for an API deadline and a provider-chain exception after content.
+
+**Files:**
+- Modify: `worker/src/api/chat.ts`
+- Modify: `worker/tests/api.test.ts`
+
+**Interface:**
+- Add only a fixed `diagnosticCode` to the terminal `stream_interrupted` SSE event: `response_timeout` when the API deadline fired; `provider_stream_failed` when the provider iterator threw after content.
+- Preserve the existing `error: "stream_interrupted"`, content, provider/model, cancellation behavior, and response bounds. Never include the raw exception, stack, prompt, IP, secret, or provider body.
+- No model or max-token change in this diagnostic task; the production smoke produced content, so changing `maxTokens` before identifying the termination branch would be speculative and could reduce answer quality.
+
+- [ ] **Step 1: Add failing API tests** for both terminal paths after content, exact codes, preserved generic error, and no leakage of a sentinel exception.
+- [ ] **Step 2: Run focused API tests and confirm RED.**
+- [ ] **Step 3: Add the minimal fixed-code classification** at the existing timeout and iterator-error branches.
+- [ ] **Step 4: Run API/provider tests, full Worker suite, TypeScript build, and Pages-local regression test.**
+- [ ] **Step 5: Independent review and T2 Guardian must PASS.**
+- [ ] **Step 6: After those gates, the controller has current user authorization for one direct production chat-Worker update and one `/api/chat` smoke only. Do not push/merge `main`, deploy Pages/root Worker, call `/api/lead`, or run `wrangler tail`. Stop after one request, regardless of result.**
+- [ ] **Step 7: Commit** with preflight and `ai(worker): distinguish stream interruption causes`.
+
+### Task 10 preflight scan
+
+| Check | Finding | Ruling |
+|---|---|---|
+| Task 3/8 ↔ Task 10 timeout/stream path | The Worker enforces a 30-second response deadline and now parses binary SSE; both timeout and provider exceptions after content currently emit the same `stream_interrupted`. | Return only `response_timeout` or `provider_stream_failed` at the known branch; keep raw error out. Cost if wrong: operators may tune the wrong layer. |
+| Production smoke boundary | Production emitted Cloudflare AI chunks, then `stream_interrupted`; one request was already made and no more is authorized beyond Task 10's single post-gate smoke. | Add diagnosis locally first, then one authorized direct Worker update/request after review/Guardian. No retries or `/api/lead` calls. Cost if wrong: diagnosis may remain inconclusive, but avoids blind repeated inference. |
+
 ## Execution and external gates
 
 - SDD orchestration: Luna coordinates; dispatch only free models. Use `opencode-go/qwen3.7-plus` for multi-file implementation/review, `opencode-go/mimo-v2.6-flash` only for isolated mechanical work, `opencode-go/glm-5.3` for design judgment, and `opencode-go/gpt-6-luna` for final review. Never omit the model ID.
@@ -302,7 +330,7 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 
 ## Acceptance criteria
 
-- All eight tasks pass their specified tests and reviews; Worker tests and typecheck are wired in CI.
+- All accepted tasks (1–8 and Task 10; Task 9 isolation was explicitly declined) pass their specified tests and reviews; Worker tests and typecheck are wired in CI.
 - No paid Anthropic/Groq path or unapproved third-party provider can enter the active chain via an environment variable.
 - Provider/model attribution is present on every non-empty SSE chunk, and output never contains mixed-provider continuation.
 - Rate/request bounds, fail-closed quota behavior, and cancellation behavior are covered by deterministic tests.
