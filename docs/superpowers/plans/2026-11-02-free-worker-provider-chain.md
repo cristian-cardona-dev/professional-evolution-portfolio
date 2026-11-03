@@ -219,6 +219,36 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 | Task 6 self-consistency | Existing main workflow deploys Pages and the root Worker, not this chat Worker; preview must not bind production D1/KV and must make lead capture fail closed. | Use `wrangler preview` with a distinct name and explicit AI/ChatGuard preview bindings; do not push/merge to `main`. Cost if wrong: production Pages/root Worker could be deployed or preview could claim to save a lead without persistence. |
 | External gate | User confirmed Cloudflare Workers/AI/DO usage cannot incur charges and explicitly authorized one preview deployment plus one smoke request. | Execute only after Task 6 review and Guardian PASS; stop if preview configuration or account output does not match the $0/no-production target. Cost if wrong: unexpected spend or production exposure. |
 
+### Task 7: Expose a sanitized Cloudflare AI failure category
+
+**Files:**
+- Modify: `worker/src/lib/providers.ts`
+- Modify: `worker/src/api/chat.ts`
+- Modify: `worker/tests/providers.test.ts`
+- Modify: `worker/tests/api.test.ts`
+
+**Interfaces:**
+- Fallback SSE may include `diagnosticCode` from this exact fixed allowlist: `ai_run_rejected`, `stream_read_failed`, `empty_output`.
+- `ai_run_rejected` means the `AI.run` call rejected; `stream_read_failed` means consuming the returned stream failed before/after content; `empty_output` means stream completion produced no usable text.
+- These codes are the only new diagnostic data. Never retain/log/return provider exception messages, stack traces, HTTP response bodies/status text, prompts, IPs, secrets, or visitor data. Preserve the existing generic fallback text and sanitized post-content `stream_interrupted` behavior.
+- This task is diagnostics only: do not switch models/providers, retry inference, alter quotas/timeouts, or call the remote preview from the implementer.
+
+- [ ] **Step 1: Add failing provider and API tests** covering all three categories on fallback SSE, including proof that secret-like raw exception strings are absent from returned events and log output.
+- [ ] **Step 2: Run the focused provider/API tests and confirm the new assertions fail.**
+- [ ] **Step 3: Add phase-specific sanitized category propagation** from `CloudflareAIProvider` through `ProviderChain` into the API's final fallback SSE event; keep successful SSE events unchanged.
+- [ ] **Step 4: Run focused and full Worker tests plus TypeScript build.**
+- [ ] **Step 5: Independent review and T2 Guardian must both PASS.**
+- [ ] **Step 6: After those gates, the controller may perform the one newly authorized non-production Preview update and exactly one smoke request.** Use the existing separate preview name and short public-data payload; inspect only HTTP/SSE output. No `wrangler tail`, production deploy, push, PR, or merge is authorized. Stop after the one request, regardless of outcome.
+- [ ] **Step 7: Commit** with preflight and `ai(worker): expose sanitized AI failure code`.
+
+### Task 7 preflight scan
+
+| Check | Finding | Ruling |
+|---|---|---|
+| Task 2 ↔ Task 7 shared interface | Both change provider SSE behavior and fallback attribution. | Keep normal nonempty chunks and post-content termination unchanged; add the code only on the exhausted pre-content fallback. Cost if wrong: clients could observe unintended SSE schema drift. |
+| Task 6 ↔ Task 7 external boundary | Task 6 created a separate Preview; the previous valid smoke returned only generic fallback and AI status was passive/configured. | Add a fixed category field to the existing generic fallback; run only one authorized Preview update/smoke after review and Guardian. Cost if wrong: the failure classification may remain ambiguous while quota is consumed. |
+| Privacy boundary | Diagnostic is externally visible through SSE. | Use only the three fixed codes above; no raw/provider-derived values or request data. Cost if wrong: even a supposedly safe diagnostic could disclose operational details. |
+
 ## Execution and external gates
 
 - SDD orchestration: Luna coordinates; dispatch only free models. Use `opencode-go/qwen3.7-plus` for multi-file implementation/review, `opencode-go/mimo-v2.6-flash` only for isolated mechanical work, `opencode-go/glm-5.3` for design judgment, and `opencode-go/gpt-6-luna` for final review. Never omit the model ID.
@@ -244,12 +274,12 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 
 ## Acceptance criteria
 
-- All six tasks pass their specified tests and reviews; Worker tests and typecheck are wired in CI.
+- All seven tasks pass their specified tests and reviews; Worker tests and typecheck are wired in CI.
 - No paid Anthropic/Groq path or unapproved third-party provider can enter the active chain via an environment variable.
 - Provider/model attribution is present on every non-empty SSE chunk, and output never contains mixed-provider continuation.
 - Rate/request bounds, fail-closed quota behavior, and cancellation behavior are covered by deterministic tests.
 - The Pages assistant remains local; no prompt, key, IP, or private Personal OS data is sent to or stored by the Worker.
-- The named Preview binds only Workers AI and its own ChatGuard Durable Object; it does not bind production D1/KV. Browser CORS is restricted to the official Pages origin. The one authorized preview deployment and one smoke request are recorded separately from all production release actions.
+- The named Preview binds only Workers AI and its own ChatGuard Durable Object; it does not bind production D1/KV. Browser CORS is restricted to the official Pages origin. Each explicitly authorized preview deployment/smoke is recorded separately from all production release actions.
 - No external provider has been claimed as working merely because it is configured. Live smoke and deploy remain separate authorization gates.
 
 ## Final-review fix wave — 2026-11-02
