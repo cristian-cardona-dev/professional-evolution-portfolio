@@ -254,7 +254,7 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 - SDD orchestration: Luna coordinates; dispatch only free models. Use `opencode-go/qwen3.7-plus` for multi-file implementation/review, `opencode-go/mimo-v2.6-flash` only for isolated mechanical work, `opencode-go/glm-5.3` for design judgment, and `opencode-go/gpt-6-luna` for final review. Never omit the model ID.
 - Before implementation, create/verify the required `ai/<slug>` linked worktree and run the repository preflight; this plan does not authorize implementation edits or commits by itself.
 - Before any provider smoke test, verify in the Cloudflare account that Workers, Workers AI, and Durable Object usage are within genuinely free allocations and that the configured account cannot incur a charge. User confirmed this for the preview on 2026-11-02; if deploy output indicates production or billable configuration, stop.
-- Only Task 6's separately named non-production Wrangler Preview and one short smoke call are authorized after review and Guardian PASS. Do not push, merge, create a PR, run the production deployment workflow, or connect the Pages widget to this Worker.
+- Task 6's separately named non-production Wrangler Preview was authorized and executed. Task 7 has a new authorization for one Preview update and one smoke after its review and Guardian PASS. Do not push, merge, create a PR, run the production deployment workflow, or connect the Pages widget to this Worker.
 - Final review must check all deferred provider-eligibility gates, the free-only invariant, and the unchanged local Pages assistant. Report the existing visual mobile timeout separately; this plan does not expand or alter that baseline.
 
 ## Preflight scan / rulings
@@ -278,7 +278,7 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 - No paid Anthropic/Groq path or unapproved third-party provider can enter the active chain via an environment variable.
 - Provider/model attribution is present on every non-empty SSE chunk, and output never contains mixed-provider continuation.
 - Rate/request bounds, fail-closed quota behavior, and cancellation behavior are covered by deterministic tests.
-- The Pages assistant remains local; no prompt, key, IP, or private Personal OS data is sent to or stored by the Worker.
+- The Pages assistant remains local; no prompt, key, IP, or private Personal OS data is persisted/logged by the Worker. Visitor messages/history and public portfolio contact data may be transmitted transiently to Cloudflare AI under the user's explicit ruling; the Web3Forms key is excluded.
 - The named Preview binds only Workers AI and its own ChatGuard Durable Object; it does not bind production D1/KV. Browser CORS is restricted to the official Pages origin. Each explicitly authorized preview deployment/smoke is recorded separately from all production release actions.
 - No external provider has been claimed as working merely because it is configured. Live smoke and deploy remain separate authorization gates.
 
