@@ -249,6 +249,34 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 | Task 6 ↔ Task 7 external boundary | Task 6 created a separate Preview; the previous valid smoke returned only generic fallback and AI status was passive/configured. | Add a fixed category field to the existing generic fallback; run only one authorized Preview update/smoke after review and Guardian. Cost if wrong: the failure classification may remain ambiguous while quota is consumed. |
 | Privacy boundary | Diagnostic is externally visible through SSE. | Use only the three fixed codes above; no raw/provider-derived values or request data. Cost if wrong: even a supposedly safe diagnostic could disclose operational details. |
 
+### Task 8: Parse Cloudflare Workers AI streaming SSE bytes
+
+**Files:**
+- Modify: `worker/src/lib/providers.ts`
+- Modify: `worker/tests/providers.test.ts`
+
+**Root-cause evidence:** The authorized Task 7 smoke returned `diagnosticCode: empty_output`, which means the stream completed but no recognized text was extracted. Cloudflare Workers AI docs describe `stream:true` as binary SSE such as `data: {"response":"..."}`; the installed Worker type overload is `Promise<ReadableStream>`. The current adapter treats each read value as an object, so it likely drops the documented Uint8Array/SSE payload. The remote payload bytes themselves were not captured; this remains a highly supported root-cause hypothesis, not a direct observation.
+
+**Interfaces:**
+- For a Cloudflare `ReadableStream<Uint8Array>`, incrementally decode UTF-8 and parse SSE `data:` events across arbitrary chunk boundaries, yielding only the JSON `response` string. Keep the existing object-chunk path if needed for compatibility with the structural adapter/test fixtures.
+- Preserve stream cancellation, the exact allowlisted model, phase-specific diagnostic codes, generic fallback text, and no retry after output starts. Malformed stream events must fail sanitized (`stream_read_failed`); never expose frame bytes or raw errors.
+
+- [ ] **Step 1: Add failing parser tests** for event data split across reads, multiple events, a UTF-8 multibyte character split across chunks, CRLF boundaries, `[DONE]`, empty stream, reader cancellation, and sanitized malformed/read failure.
+- [ ] **Step 2: Run focused provider tests and confirm RED.**
+- [ ] **Step 3: Implement only the incremental SSE-byte parser in the Cloudflare ReadableStream path.** Do not change model/provider, API contract, quota, timeout, or diagnostic allowlist.
+- [ ] **Step 4: Run focused provider/API tests, full Worker suite, TypeScript build, and Pages-local regression test.**
+- [ ] **Step 5: Independent review and T2 Guardian must both PASS.**
+- [ ] **Step 6: Stop for a separate explicit authorization before any Preview update or remote request.** Task 7's one-preview/one-smoke authorization has been consumed; this task has local-code authorization only.
+- [ ] **Step 7: Commit** with preflight and `ai(worker): parse Workers AI streaming events`.
+
+### Task 8 preflight scan
+
+| Check | Finding | Ruling |
+|---|---|---|
+| Task 2/7 ↔ Task 8 provider stream interface | Task 2 defines attribution/fallback boundaries; Task 7 classifies stream failures; Task 8 decodes the documented binary SSE format. | Preserve attribution and first-content semantics; parsed response text is the only content yielded. Cost if wrong: malformed parsing or post-content retry could mix or drop output. |
+| Cloudflare docs ↔ implementation | Docs/type definitions identify a binary SSE ReadableStream; the previous adapter expected object chunks. | Parse `data:` events incrementally and extract `response`; retain a sanitized failure path. Cost if wrong: an unsupported model-specific framing detail may still yield fallback. |
+| External gate | Task 7's authorized smoke was consumed and returned `empty_output`; Task 8 authorization covers code only. | Do not deploy or call Preview without a fresh explicit authorization after review and Guardian. Cost if wrong: live runtime remains unverified, but prevents unauthorized usage. |
+
 ## Execution and external gates
 
 - SDD orchestration: Luna coordinates; dispatch only free models. Use `opencode-go/qwen3.7-plus` for multi-file implementation/review, `opencode-go/mimo-v2.6-flash` only for isolated mechanical work, `opencode-go/glm-5.3` for design judgment, and `opencode-go/gpt-6-luna` for final review. Never omit the model ID.
@@ -274,7 +302,7 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 
 ## Acceptance criteria
 
-- All seven tasks pass their specified tests and reviews; Worker tests and typecheck are wired in CI.
+- All eight tasks pass their specified tests and reviews; Worker tests and typecheck are wired in CI.
 - No paid Anthropic/Groq path or unapproved third-party provider can enter the active chain via an environment variable.
 - Provider/model attribution is present on every non-empty SSE chunk, and output never contains mixed-provider continuation.
 - Rate/request bounds, fail-closed quota behavior, and cancellation behavior are covered by deterministic tests.
