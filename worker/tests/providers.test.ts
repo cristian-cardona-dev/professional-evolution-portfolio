@@ -551,6 +551,34 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 		expect(run).toHaveBeenCalledTimes(1);
 	});
 
+	it('cancels the underlying reader when [DONE] terminates the stream', async () => {
+		const cancelUpstream = vi.fn();
+		let pullCount = 0;
+		const run = vi.fn(async () => new ReadableStream<Uint8Array>({
+			pull(controller) {
+				pullCount++;
+				if (pullCount === 1) {
+					controller.enqueue(new TextEncoder().encode(
+						'data: {"response":"Hello"}\n\ndata: [DONE]\n\n'
+					));
+					return;
+				}
+				// Never resolves — simulates a server keeping connection open after [DONE].
+				return new Promise<void>(() => {});
+			},
+			cancel: cancelUpstream,
+		}, { highWaterMark: 0 }));
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([
+			{ content: 'Hello', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+		]);
+		expect(cancelUpstream).toHaveBeenCalledOnce();
+		expect(run).toHaveBeenCalledOnce();
+	});
+
 	it('yields empty_output fallback when the byte stream contains no events', async () => {
 		const run = vi.fn().mockResolvedValueOnce(readableStreamFromBytes([]));
 		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);

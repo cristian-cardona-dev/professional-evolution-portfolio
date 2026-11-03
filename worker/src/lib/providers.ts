@@ -284,6 +284,9 @@ export class CloudflareAIProvider implements Provider {
 								yield { content, done: false, provider: this.name, model: this.model };
 							}
 							if (byteParser.isDone()) {
+								// [DONE] received — cancel the upstream reader to release resources
+								// even if the server hasn't closed the connection yet.
+								cancelReader();
 								streamFinished = true;
 								break;
 							}
