@@ -388,6 +388,7 @@ describe('chat SSE streaming boundary', () => {
 			done: true,
 			provider: 'fallback',
 			model: null,
+			diagnosticCode: 'ai_run_rejected',
 		}]);
 		expect(body).not.toContain('raw provider failure detail');
 		expect(run).toHaveBeenCalledOnce();
@@ -679,5 +680,66 @@ describe('chat SSE streaming boundary', () => {
 		} finally {
 			vi.restoreAllMocks();
 		}
+	});
+
+	it('includes diagnosticCode ai_run_rejected in the fallback SSE when AI.run rejects', async () => {
+		const sentinel = 'raw-api-sentinel-run-rejection-8e4f2a7b';
+		const run = vi.fn().mockRejectedValue(new Error(sentinel));
+		const logWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const logError = vi.spyOn(console, 'error').mockImplementation(() => {});
+		try {
+			const response = await chat.fetch(chatRequest(), chatEnv(run));
+			const body = await response.text();
+
+			expect(sseEvents(body)).toEqual([{
+				content: 'El chat no está disponible ahora. Usa el formulario de contacto.',
+				done: true,
+				provider: 'fallback',
+				model: null,
+				diagnosticCode: 'ai_run_rejected',
+			}]);
+			expect(body).not.toContain(sentinel);
+			expect(JSON.stringify(logWarn.mock.calls)).not.toContain(sentinel);
+			expect(JSON.stringify(logError.mock.calls)).not.toContain(sentinel);
+		} finally {
+			logWarn.mockRestore();
+			logError.mockRestore();
+		}
+	});
+
+	it('includes diagnosticCode stream_read_failed in the fallback SSE when stream reading fails', async () => {
+		const sentinel = 'raw-api-sentinel-stream-read-3b7c9d2e';
+		const run = vi.fn().mockResolvedValue(asyncIterableFrom([], new Error(sentinel)));
+		const logWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			const response = await chat.fetch(chatRequest(), chatEnv(run));
+			const body = await response.text();
+
+			expect(sseEvents(body)).toEqual([{
+				content: 'El chat no está disponible ahora. Usa el formulario de contacto.',
+				done: true,
+				provider: 'fallback',
+				model: null,
+				diagnosticCode: 'stream_read_failed',
+			}]);
+			expect(body).not.toContain(sentinel);
+			expect(JSON.stringify(logWarn.mock.calls)).not.toContain(sentinel);
+		} finally {
+			logWarn.mockRestore();
+		}
+	});
+
+	it('includes diagnosticCode empty_output in the fallback SSE when the stream yields no content', async () => {
+		const run = vi.fn().mockResolvedValue(asyncIterableFrom([]));
+		const response = await chat.fetch(chatRequest(), chatEnv(run));
+		const body = await response.text();
+
+		expect(sseEvents(body)).toEqual([{
+			content: 'El chat no está disponible ahora. Usa el formulario de contacto.',
+			done: true,
+			provider: 'fallback',
+			model: null,
+			diagnosticCode: 'empty_output',
+		}]);
 	});
 });

@@ -162,6 +162,7 @@ describe('CloudflareAIProvider streaming', () => {
 			done: true,
 			provider: 'fallback',
 			model: null,
+			diagnosticCode: 'ai_run_rejected',
 		}]);
 	});
 
@@ -179,6 +180,7 @@ describe('CloudflareAIProvider streaming', () => {
 			done: true,
 			provider: 'fallback',
 			model: null,
+			diagnosticCode: 'empty_output',
 		});
 	});
 
@@ -290,6 +292,7 @@ describe('ProviderChain streaming semantics', () => {
 			done: true,
 			provider: 'fallback',
 			model: null,
+			diagnosticCode: 'empty_output',
 		}]);
 	});
 
@@ -307,5 +310,70 @@ describe('ProviderChain streaming semantics', () => {
 		expect(fallbackChunk!.content).not.toContain('detailed error info');
 		expect(fallbackChunk!.content).toContain('El chat no está disponible');
 		expect(fallbackChunk!.model).toBeNull();
+	});
+});
+
+describe('Sanitized failure categories on fallback SSE', () => {
+	const RAW_SENTINEL_RUN = 'raw-sentinel-ai-run-rejection-7f3a9b2c';
+	const RAW_SENTINEL_STREAM = 'raw-sentinel-stream-read-failure-4d8e1f5a';
+
+	it('classifies AI.run rejection as ai_run_rejected on the exhausted fallback', async () => {
+		const run = vi.fn().mockRejectedValue(new Error(RAW_SENTINEL_RUN));
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain, [{ role: 'user', content: 'hi' }]);
+		const fallback = chunks.find(c => c.provider === 'fallback');
+
+		expect(fallback).toBeDefined();
+		expect(fallback!.diagnosticCode).toBe('ai_run_rejected');
+		expect(JSON.stringify(chunks)).not.toContain(RAW_SENTINEL_RUN);
+	});
+
+	it('classifies stream read failure as stream_read_failed on the exhausted fallback', async () => {
+		const run = vi.fn().mockResolvedValue(asyncIterableFrom([], new Error(RAW_SENTINEL_STREAM)));
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain, [{ role: 'user', content: 'hi' }]);
+		const fallback = chunks.find(c => c.provider === 'fallback');
+
+		expect(fallback).toBeDefined();
+		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(JSON.stringify(chunks)).not.toContain(RAW_SENTINEL_STREAM);
+	});
+
+	it('classifies empty stream output as empty_output on the exhausted fallback', async () => {
+		const run = vi.fn().mockResolvedValue(asyncIterableFrom([]));
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain, [{ role: 'user', content: 'hi' }]);
+		const fallback = chunks.find(c => c.provider === 'fallback');
+
+		expect(fallback).toBeDefined();
+		expect(fallback!.diagnosticCode).toBe('empty_output');
+	});
+
+	it('does not leak raw provider error strings through console warnings', async () => {
+		const logWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			const run = vi.fn().mockRejectedValue(new Error(RAW_SENTINEL_RUN));
+			const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+			await collectStream(chain);
+
+			const allLogs = JSON.stringify(logWarn.mock.calls);
+			expect(allLogs).not.toContain(RAW_SENTINEL_RUN);
+		} finally {
+			logWarn.mockRestore();
+		}
+	});
+
+	it('does not leak raw stream error strings through console warnings', async () => {
+		const logWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			const run = vi.fn().mockResolvedValue(asyncIterableFrom([], new Error(RAW_SENTINEL_STREAM)));
+			const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+			await collectStream(chain);
+
+			const allLogs = JSON.stringify(logWarn.mock.calls);
+			expect(allLogs).not.toContain(RAW_SENTINEL_STREAM);
+		} finally {
+			logWarn.mockRestore();
+		}
 	});
 });

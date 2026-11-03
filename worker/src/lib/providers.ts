@@ -38,6 +38,20 @@ export interface StreamChunk {
 	done: boolean;
 	provider: string;
 	model: string | null;
+	diagnosticCode?: FailureCode;
+}
+
+/** Sanitized failure category for diagnostic purposes only. */
+export type FailureCode = 'ai_run_rejected' | 'stream_read_failed' | 'empty_output';
+
+/** Internal error class that carries a failure code without leaking details. */
+class ProviderFailure extends Error {
+	readonly failureCode: FailureCode;
+	constructor(code: FailureCode) {
+		super('Cloudflare AI stream failed');
+		this.name = 'ProviderFailure';
+		this.failureCode = code;
+	}
 }
 
 /**
@@ -130,8 +144,15 @@ export class CloudflareAIProvider implements Provider {
 			stream: true,
 		};
 
+		let streamResult: unknown;
 		try {
-			const streamResult = await ai.run(this.model, input);
+			streamResult = await ai.run(this.model, input);
+		} catch {
+			// AI.run rejected — classify as ai_run_rejected
+			throw new ProviderFailure('ai_run_rejected');
+		}
+
+		try {
 			if (streamResult && typeof (streamResult as { getReader?: unknown }).getReader === 'function') {
 				const reader = (streamResult as ReadableStream<WorkersAIStreamChunk>).getReader();
 				let streamFinished = false;
@@ -169,9 +190,10 @@ export class CloudflareAIProvider implements Provider {
 				}
 			}
 		} catch {
+			// Stream reading failed — classify as stream_read_failed
 			// The chain decides whether another provider may be tried. Never
 			// make a second inference with this provider after a stream error.
-			throw new Error('Cloudflare AI stream failed');
+			throw new ProviderFailure('stream_read_failed');
 		}
 
 		yield { content: '', done: true, provider: this.name, model: this.model };
@@ -208,6 +230,10 @@ export class ProviderChain {
 	}
 
 	async *stream(messages: Message[], options: CallOptions = {}): AsyncIterable<StreamChunk> {
+		// Track the last failure code for the exhausted-before-content fallback.
+		// Default to 'empty_output' — if no provider threw, the outcome was empty output.
+		let lastFailureCode: FailureCode = 'empty_output';
+
 		for (const provider of this.providers) {
 			let hasContent = false;
 			let model: string | null = null;
@@ -231,22 +257,30 @@ export class ProviderChain {
 					yield { content: '', done: true, provider: provider.name, model };
 					return;
 				}
+				// Provider completed normally but yielded no content — empty_output.
+				lastFailureCode = 'empty_output';
 				console.warn(`Provider ${provider.name} yielded no content, advancing to fallback`);
-			} catch {
+			} catch (error) {
 				console.warn(`Streaming provider ${provider.name} failed`);
 				if (hasContent) {
 					throw new Error(STREAM_INTERRUPTED_ERROR);
+				}
+				// Capture the provider's failure code if it's a recognized ProviderFailure.
+				if (error instanceof ProviderFailure) {
+					lastFailureCode = error.failureCode;
 				}
 				continue;
 			}
 		}
 
-		// All providers failed or yielded nothing: end with a sanitized error.
+		// All providers failed or yielded nothing: end with a sanitized error
+		// and the failure category for diagnostic purposes.
 		yield {
 			content: CHAT_UNAVAILABLE_MESSAGE,
 			done: true,
 			provider: 'fallback',
 			model: null,
+			diagnosticCode: lastFailureCode,
 		};
 	}
 }

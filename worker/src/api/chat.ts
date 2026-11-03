@@ -284,7 +284,7 @@ export default {
 									actualProvider = chunk.provider;
 									actualModel = chunk.model;
 								}
-								controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: chunk.content, done: chunk.done, provider: chunk.provider, model: chunk.model })}\n\n`));
+								controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: chunk.content, done: chunk.done, provider: chunk.provider, model: chunk.model, diagnosticCode: chunk.diagnosticCode })}\n\n`));
 								if (chunk.done) break;
 							}
 						} catch {
