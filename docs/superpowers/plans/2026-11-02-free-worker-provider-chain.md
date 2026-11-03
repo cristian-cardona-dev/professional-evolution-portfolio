@@ -305,12 +305,48 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 | Task 3/8 ↔ Task 10 timeout/stream path | The Worker enforces a 30-second response deadline and now parses binary SSE; both timeout and provider exceptions after content currently emit the same `stream_interrupted`. | Return only `response_timeout` or `provider_stream_failed` at the known branch; keep raw error out. Cost if wrong: operators may tune the wrong layer. |
 | Production smoke boundary | Production emitted Cloudflare AI chunks, then `stream_interrupted`; one request was already made and no more is authorized beyond Task 10's single post-gate smoke. | Add diagnosis locally first, then one authorized direct Worker update/request after review/Guardian. No retries or `/api/lead` calls. Cost if wrong: diagnosis may remain inconclusive, but avoids blind repeated inference. |
 
+### Task 11: Connect the portfolio chat in development only
+
+**Intent:** let the active portfolio widget exercise the chat Worker while coding, without changing the shipped Pages assistant. This development connection uses the existing production chat Worker via the local Astro/Vite dev proxy; a developer submission will send transient visitor text to Cloudflare AI and consume production free quota. The UI must say that clearly. No request is made by this implementation task.
+
+**Files:**
+- Modify: `web/src/components/AssistantWidget.astro`
+- Modify: `web/src/i18n/copy.ts`
+- Modify: `web/astro.config.mjs`
+- Modify: `web/tests/assistant-local.test.mjs`
+- Create: `web/src/lib/chat-client.mjs`
+- Create: `web/tests/chat-client.test.mjs`
+
+**Interfaces and behavior:**
+- `import.meta.env.DEV` selects the development chat mode. Production build/preview must keep the current local keyword/semantic search behavior and must not issue `/api/chat` requests.
+- In Astro/Vite `dev` only, proxy the base-prefixed `/api/chat` path to `https://portfolio-ai-chat-worker.crisss198.workers.dev/api/chat`, rewriting the configured project base before forwarding. The proxy must not be added to build/production runtime.
+- The active AssistantWidget gets a modest chat transcript path: append user text safely via `textContent`, progressively render SSE content, preserve the last six history messages in memory only, support cancel, and render `provider_stream_failed`/partial completion as an honest error state. Do not reuse the orphaned legacy `ChatWidget.astro` (it is not wired and uses unsafe `innerHTML`).
+- Add localized EN/ES development notice and tool description stating that messages go to Cloudflare AI transiently in development; production keeps the existing local-search copy.
+- No `/api/lead`, no UI call from published Pages, no Worker/config/deploy changes, no remote smoke during implementation. Do not claim the chat response is fixed; Task 10's last production response remains `provider_stream_failed`.
+
+- [ ] **Step 1: Add failing tests** for the dev-only API path/proxy contract, production local-only behavior, SSE chunk/error parsing, history bound, and safe text rendering contract.
+- [ ] **Step 2: Run focused tests and confirm RED.**
+- [ ] **Step 3: Implement the dev-only connection** using existing portfolio styles/tokens; no visual redesign and no modifications to production behavior.
+- [ ] **Step 4: Run frontend tests, build, Worker tests, TypeScript build, and the Pages-local contract.** No network requests.
+- [ ] **Step 5: Independent review and T2 Guardian must both PASS.**
+- [ ] **Step 6: Stop.** No push, main update, deployment, or chat request is authorized by Task 11. The code only prepares local development. The planned next task fixes the Worker response before any production exposure through Pages.
+- [ ] **Step 7: Commit** with preflight and `ai(web): connect chat in development only`.
+
+### Task 11 preflight scan
+
+| Check | Finding | Ruling |
+|---|---|---|
+| Task 5 local-only guard ↔ Task 11 | Task 5 protected production Pages from `/api/chat`; user now explicitly approved a development-only connection, while production must remain local. | Narrow the guard to prove `/api/chat` can only be used under `import.meta.env.DEV`; preserve the production local search. Cost if wrong: published visitors could be routed to a currently failing Worker. |
+| Astro base ↔ Vite dev proxy | Pages uses a project base path; proxy must match that prefix and rewrite it to Worker `/api/chat`. | Derive the proxy prefix from the configured Astro base and keep it within `vite.server.proxy` (dev only). Cost if wrong: local requests 404 or proxy unexpectedly leaks into production. |
+| Worker error state ↔ UI stream | Task 10 reports safe `provider_stream_failed`; real answer still ends partially, and Task 2/10 require no fabricated success. | Display partial text plus an honest error/diagnostic; do not mark the response complete. Cost if wrong: visitors/developers may trust an incomplete answer. |
+| Data handling | Human approved transient message/history/public contact to Cloudflare AI, but not persistence/logging. | Keep chat history only in page memory, show the development disclosure, do not log payloads, and never call `/api/lead`. Cost if wrong: visitor content may be sent remotely without clear notice. |
+
 ## Execution and external gates
 
 - SDD orchestration: Luna coordinates; dispatch only free models. Use `opencode-go/qwen3.7-plus` for multi-file implementation/review, `opencode-go/mimo-v2.6-flash` only for isolated mechanical work, `opencode-go/glm-5.3` for design judgment, and `opencode-go/gpt-6-luna` for final review. Never omit the model ID.
 - Before implementation, create/verify the required `ai/<slug>` linked worktree and run the repository preflight; this plan does not authorize implementation edits or commits by itself.
 - Before any provider smoke test, verify in the Cloudflare account that Workers, Workers AI, and Durable Object usage are within genuinely free allocations and that the configured account cannot incur a charge. User confirmed this for the preview on 2026-11-02; if deploy output indicates production or billable configuration, stop.
-- Task 6's separately named non-production Wrangler Preview was authorized and executed. Task 7 has a new authorization for one Preview update and one smoke after its review and Guardian PASS. Do not push, merge, create a PR, run the production deployment workflow, or connect the Pages widget to this Worker.
+- Task 6's separately named Preview and Tasks 7/10's explicitly authorized bounded production smokes have been executed. Task 11 authorizes only a development-mode Astro/Vite proxy; it does not authorize another production deployment, chat request, push, merge, PR, or Pages/root-Worker release. The published Pages widget remains local.
 - Final review must check all deferred provider-eligibility gates, the free-only invariant, and the unchanged local Pages assistant. Report the existing visual mobile timeout separately; this plan does not expand or alter that baseline.
 
 ## Preflight scan / rulings
@@ -330,11 +366,11 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 
 ## Acceptance criteria
 
-- All accepted tasks (1–8 and Task 10; Task 9 isolation was explicitly declined) pass their specified tests and reviews; Worker tests and typecheck are wired in CI.
+- All accepted tasks (1–8, 10, and 11; Task 9 isolation was explicitly declined) pass their specified tests and reviews; Worker tests and typecheck are wired in CI.
 - No paid Anthropic/Groq path or unapproved third-party provider can enter the active chain via an environment variable.
 - Provider/model attribution is present on every non-empty SSE chunk, and output never contains mixed-provider continuation.
 - Rate/request bounds, fail-closed quota behavior, and cancellation behavior are covered by deterministic tests.
-- The Pages assistant remains local; no prompt, key, IP, or private Personal OS data is persisted/logged by the Worker. Visitor messages/history and public portfolio contact data may be transmitted transiently to Cloudflare AI under the user's explicit ruling; the Web3Forms key is excluded.
+- The published Pages assistant remains local until a later explicit production connection decision; Task 11 connects only `astro dev`. No prompt, key, IP, or private Personal OS data is persisted/logged by the Worker. Visitor messages/history and public portfolio contact data may be transmitted transiently to Cloudflare AI under the user's explicit ruling; the Web3Forms key is excluded.
 - The named Preview binds only Workers AI and its own ChatGuard Durable Object; it does not bind production D1/KV. Browser CORS is restricted to the official Pages origin. Each explicitly authorized preview deployment/smoke is recorded separately from all production release actions.
 - No external provider has been claimed as working merely because it is configured. Live smoke and deploy remain separate authorization gates.
 
