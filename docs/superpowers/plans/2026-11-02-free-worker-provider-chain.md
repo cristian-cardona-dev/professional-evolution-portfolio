@@ -371,6 +371,38 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 | Task 10 terminal code ↔ Task 12 | Task 10 identifies provider stream failure vs deadline but not the exact internal event. | Preserve the current terminal `provider_stream_failed` surface and use local tests to verify the parser branch; no remote diagnostic request here. Cost if wrong: root cause may remain unknown until a separately authorized smoke. |
 | User test order | User ordered chat connection, Worker response repair, lead-route isolation, then quality pipeline. Task 11 is dev-only; Task 12 is local Worker fix. | Keep production unchanged and no live request while fixing; isolation follows this task, Quality comes last. Cost if wrong: the production chat remains on the prior version longer, but avoids deploying an unreviewed parser change. |
 
+### Task 13: Isolate lead capture from the chat Worker
+
+**Intent:** remove the live lead-capture surface from the separate chat Worker after the development chat/stream work. Preserve the portfolio form and root Worker, which are separate.
+
+**Files:**
+- Modify: `worker/src/index.ts`
+- Modify: `worker/src/api/lead.ts` (give the retained directly-tested module its own environment type)
+- Modify: `worker/wrangler.jsonc` (remove unused chat Worker production D1/KV bindings)
+- Modify: `worker/tests/api.test.ts`
+
+**Interfaces and behavior:**
+- The chat Worker entrypoint routes only `/api/chat` and `/api/ai-status`; `/api/lead` receives the ordinary 404 path and no D1 or Resend call.
+- Remove D1 and RATE_LIMIT KV bindings from the nested chat Worker's production config; retain AI and CHAT_GUARD. The root `worker/index.ts`, root Worker config, and portfolio lead form remain unchanged.
+- Keep `worker/src/api/lead.ts` directly unit-testable with its own narrow `LeadEnv` interface; its presence in source does not mean the chat entrypoint exposes it.
+- Tests must prove `/api/lead` returns 404 via the chat Worker entrypoint and production chat config has no D1/KV bindings; keep the standalone lead module tests.
+- No production deployment/request during implementation/review. After review and Guardian, pause for a separate explicit confirmation before redeploying to remove the already-live route.
+
+- [ ] **Step 1: Add failing route/config isolation tests** for POST/OPTIONS `/api/lead` returning 404 and no D1/KV bindings in the chat Worker config.
+- [ ] **Step 2: Run focused tests and confirm RED.**
+- [ ] **Step 3: Remove the route and unused bindings; narrow the chat Env type.** Do not edit the root Worker/form.
+- [ ] **Step 4: Run API/lead tests, full Worker suite, TypeScript build and Pages-local regression.**
+- [ ] **Step 5: Independent review and T2 Guardian must PASS.**
+- [ ] **Step 6: Stop for a separate per-deploy confirmation.** The current authorization is local code/review only; redeployment changes production configuration.
+- [ ] **Step 7: Commit** with preflight and `ai(worker): isolate lead capture from chat worker`.
+
+### Task 13 preflight scan
+
+| Check | Finding | Ruling |
+|---|---|---|
+| Chat Worker ↔ root Worker routes | `worker/src/api/lead.ts` belongs to the nested chat config; `worker/index.ts` is the separately deployed root Worker used by the public form. | Remove only the `src/index.ts` route and nested `wrangler.jsonc` D1/KV bindings; preserve root form behavior. Cost if wrong: lead capture could stop for the existing portfolio form. |
+| Production exposure | Chat Worker production currently exposes `/api/lead` with D1 and optional email; user authorized isolation after Task 12, but has not authorized the isolation redeploy in this Task 13 dispatch. | Code/review first, then obtain a separate confirmation before redeploy; never call `/api/lead`. Cost if wrong: route remains live until a later authorized deploy, but no new data is submitted by this workflow. |
+
 ## Execution and external gates
 
 - SDD orchestration: Luna coordinates; dispatch only free models. Use `opencode-go/qwen3.7-plus` for multi-file implementation/review, `opencode-go/mimo-v2.6-flash` only for isolated mechanical work, `opencode-go/glm-5.3` for design judgment, and `opencode-go/gpt-6-luna` for final review. Never omit the model ID.
@@ -396,7 +428,7 @@ Expected: focused/full tests and typecheck pass; dry-run validates config and pe
 
 ## Acceptance criteria
 
-- All accepted tasks (1–8 and 10–12; the user later re-ordered lead isolation and Quality as follow-up steps) pass their specified tests and reviews; Worker tests and typecheck are wired in CI.
+- All accepted tasks (1–8 and 10–13; Task 9 isolation was deferred, Task 13 is its re-authorized replacement) pass their specified tests and reviews; Worker tests and typecheck are wired in CI.
 - No paid Anthropic/Groq path or unapproved third-party provider can enter the active chain via an environment variable.
 - Provider/model attribution is present on every non-empty SSE chunk, and output never contains mixed-provider continuation.
 - Rate/request bounds, fail-closed quota behavior, and cancellation behavior are covered by deterministic tests.
