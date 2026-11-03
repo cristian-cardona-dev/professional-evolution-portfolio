@@ -669,4 +669,221 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 			logWarn.mockRestore();
 		}
 	});
+
+	it('tolerates recognized metadata frames (usage) after content and before [DONE]', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"response":"Hello"}\n\n'),
+				toBytes('data: {"usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n'),
+				toBytes('data: [DONE]\n\n'),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([
+			{ content: 'Hello', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+		]);
+	});
+
+	it('tolerates finish_reason metadata frame after content', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"response":"Answer"}\n\n'),
+				toBytes('data: {"finish_reason":"stop"}\n\n'),
+				toBytes('data: [DONE]\n\n'),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([
+			{ content: 'Answer', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+		]);
+	});
+
+	it('tolerates tool_calls metadata frame (ignored)', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"response":"Using tools"}\n\n'),
+				toBytes('data: {"tool_calls":[{"id":"call_1","function":{"name":"test"}}]}\n\n'),
+				toBytes('data: [DONE]\n\n'),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([
+			{ content: 'Using tools', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+		]);
+	});
+
+	it('tolerates stop_reason metadata frame', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"response":"Done"}\n\n'),
+				toBytes('data: {"stop_reason":"end_turn"}\n\n'),
+				toBytes('data: [DONE]\n\n'),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([
+			{ content: 'Done', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+		]);
+	});
+
+	it('tolerates done metadata frame', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"response":"Complete"}\n\n'),
+				toBytes('data: {"done":true}\n\n'),
+				toBytes('data: [DONE]\n\n'),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([
+			{ content: 'Complete', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+		]);
+	});
+
+	it('tolerates multiple metadata frames in sequence', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"response":"Multi"}\n\n'),
+				toBytes('data: {"finish_reason":"stop"}\n\n'),
+				toBytes('data: {"usage":{"tokens":20}}\n\n'),
+				toBytes('data: [DONE]\n\n'),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks = await collectStream(chain);
+
+		expect(chunks).toEqual([
+			{ content: 'Multi', done: false, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+			{ content: '', done: true, provider: 'cloudflare-ai', model: ALLOWED_MODEL },
+		]);
+	});
+
+	it('fails on explicit error frame after content', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"response":"Partial"}\n\n'),
+				toBytes('data: {"error":"rate_limit_exceeded"}\n\n'),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks: StreamChunk[] = [];
+		let streamError: Error | undefined;
+		try {
+			for await (const chunk of chain.stream([{ role: 'user', content: 'hi' }])) {
+				chunks.push(chunk);
+			}
+		} catch (error) {
+			streamError = error as Error;
+		}
+
+		expect(chunks.map(c => c.content)).toEqual(['Partial']);
+		expect(streamError?.message).toBe('Stream interrupted after output began');
+	});
+
+	it('fails on malformed JSON after content', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"response":"Content"}\n\n'),
+				toBytes('data: {invalid json here}\n\n'),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const chunks: StreamChunk[] = [];
+		let streamError: Error | undefined;
+		try {
+			for await (const chunk of chain.stream([{ role: 'user', content: 'hi' }])) {
+				chunks.push(chunk);
+			}
+		} catch (error) {
+			streamError = error as Error;
+		}
+
+		expect(chunks.map(c => c.content)).toEqual(['Content']);
+		expect(streamError?.message).toBe('Stream interrupted after output began');
+	});
+
+	it('does not leak raw error frame content in diagnostic output', async () => {
+		const RAW_ERROR_SENTINEL = 'secret-error-detail-xyz789';
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"response":"OK"}\n\n'),
+				toBytes(`data: {"error":"${RAW_ERROR_SENTINEL}"}\n\n`),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const logWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			const chunks: StreamChunk[] = [];
+			try {
+				for await (const chunk of chain.stream([{ role: 'user', content: 'hi' }])) {
+					chunks.push(chunk);
+				}
+			} catch {
+				// Expected to throw after content
+			}
+
+			const allOutput = JSON.stringify(chunks) + JSON.stringify(logWarn.mock.calls);
+			expect(allOutput).not.toContain(RAW_ERROR_SENTINEL);
+		} finally {
+			logWarn.mockRestore();
+		}
+	});
+
+	it('preserves single inference when metadata frames are present', async () => {
+		const run = vi.fn().mockResolvedValueOnce(
+			readableStreamFromBytes([
+				toBytes('data: {"response":"Test"}\n\n'),
+				toBytes('data: {"usage":{"tokens":5}}\n\n'),
+				toBytes('data: [DONE]\n\n'),
+			])
+		);
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		await collectStream(chain);
+
+		expect(run).toHaveBeenCalledTimes(1);
+		expect(run).toHaveBeenCalledWith(ALLOWED_MODEL, expect.objectContaining({ stream: true }));
+	});
+
+	it('preserves cancellation semantics when metadata frames are pending', async () => {
+		const cancelUpstream = vi.fn();
+		let pullCount = 0;
+		const run = vi.fn(async () => new ReadableStream<Uint8Array>({
+			pull(controller) {
+				pullCount++;
+				if (pullCount === 1) {
+					controller.enqueue(new TextEncoder().encode('data: {"response":"Content"}\n\n'));
+					return;
+				}
+				// Metadata frame pending, but we abort before it arrives
+				return new Promise<void>(() => {});
+			},
+			cancel: cancelUpstream,
+		}, { highWaterMark: 0 }));
+		const controller = new AbortController();
+		const chain = new ProviderChain([new CloudflareAIProvider({ AI: { run } } as any)]);
+		const iterator = chain.stream([], { signal: controller.signal } as any)[Symbol.asyncIterator]();
+
+		const firstChunk = await iterator.next();
+		controller.abort();
+
+		expect(firstChunk.value).toMatchObject({ content: 'Content', provider: 'cloudflare-ai' });
+		expect(cancelUpstream).toHaveBeenCalledOnce();
+		expect(run).toHaveBeenCalledOnce();
+		await iterator.return?.();
+	});
 });

@@ -177,8 +177,27 @@ class SSEByteParser {
 		}
 		try {
 			const parsed = JSON.parse(data);
+			// 1. Extract string `response` content if present.
 			if (parsed && typeof parsed.response === 'string') return parsed.response;
-			// Valid JSON but no string `response` field — not a recognized frame.
+
+			// 2. Explicit error frame — fail closed (checked BEFORE metadata
+			//    so an error+metadata hybrid is never silently tolerated).
+			if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+				throw new Error('error frame received');
+			}
+
+			// 3. Recognized metadata/control frames — tolerate but don't extract.
+			if (parsed && typeof parsed === 'object') {
+				const isMetadata =
+					'usage' in parsed ||
+					'tool_calls' in parsed ||
+					'finish_reason' in parsed ||
+					'stop_reason' in parsed ||
+					'done' in parsed;
+				if (isMetadata) return null;
+			}
+
+			// 4. Valid JSON but not a recognized frame — fail closed.
 			throw new Error('missing response field');
 		} catch {
 			throw new ProviderFailure('stream_read_failed');
