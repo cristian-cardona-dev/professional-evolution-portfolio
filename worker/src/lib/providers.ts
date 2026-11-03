@@ -177,28 +177,73 @@ class SSEByteParser {
 		}
 		try {
 			const parsed = JSON.parse(data);
-			// 1. Extract string `response` content if present.
-			if (parsed && typeof parsed.response === 'string') return parsed.response;
+			
+			// Reject non-objects (primitives, arrays) immediately
+			if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+				throw new Error('non-object JSON frame');
+			}
 
-			// 2. Explicit error frame — fail closed (checked BEFORE metadata
-			//    so an error+metadata hybrid is never silently tolerated).
-			if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+			// 1. Explicit error frame — fail closed BEFORE response or metadata
+			//    so a hybrid frame with both error and response/metadata fails closed.
+			if ('error' in parsed) {
 				throw new Error('error frame received');
 			}
 
-			// 3. Recognized metadata/control frames — tolerate but don't extract.
-			if (parsed && typeof parsed === 'object') {
-				const isMetadata =
-					'usage' in parsed ||
-					'tool_calls' in parsed ||
-					'finish_reason' in parsed ||
-					'stop_reason' in parsed ||
-					'done' in parsed;
-				if (isMetadata) return null;
+			// 2. If `response` exists, only string is accepted; non-string fails closed
+			if ('response' in parsed) {
+				if (typeof parsed.response === 'string') return parsed.response;
+				throw new Error('non-string response field');
 			}
 
-			// 4. Valid JSON but not a recognized frame — fail closed.
-			throw new Error('missing response field');
+			// 3. Recognized metadata/control frames — validate shapes
+			const hasMetadata =
+				'usage' in parsed ||
+				'tool_calls' in parsed ||
+				'finish_reason' in parsed ||
+				'stop_reason' in parsed ||
+				'done' in parsed;
+			
+			if (hasMetadata) {
+				// Validate each present metadata value shape
+				if ('usage' in parsed) {
+					const usage = parsed.usage;
+					// usage must be non-null non-array object
+					if (!usage || typeof usage !== 'object' || Array.isArray(usage)) {
+						throw new Error('invalid usage shape');
+					}
+				}
+				if ('tool_calls' in parsed) {
+					// tool_calls must be array
+					if (!Array.isArray(parsed.tool_calls)) {
+						throw new Error('invalid tool_calls shape');
+					}
+				}
+				if ('finish_reason' in parsed) {
+					// finish_reason must be string or null
+					const fr = parsed.finish_reason;
+					if (fr !== null && typeof fr !== 'string') {
+						throw new Error('invalid finish_reason shape');
+					}
+				}
+				if ('stop_reason' in parsed) {
+					// stop_reason must be string or null
+					const sr = parsed.stop_reason;
+					if (sr !== null && typeof sr !== 'string') {
+						throw new Error('invalid stop_reason shape');
+					}
+				}
+				if ('done' in parsed) {
+					// done must be boolean
+					if (typeof parsed.done !== 'boolean') {
+						throw new Error('invalid done shape');
+					}
+				}
+				// All metadata values are valid — tolerate the frame
+				return null;
+			}
+
+			// 4. Valid JSON object but not a recognized frame — fail closed
+			throw new Error('unrecognized frame');
 		} catch {
 			throw new ProviderFailure('stream_read_failed');
 		}
