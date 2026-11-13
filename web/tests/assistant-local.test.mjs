@@ -175,3 +175,32 @@ test('English and Spanish development notice and tool description disclose trans
   assert.ok(spanishTool.includes('Solo en desarrollo:') && spanishTool.includes('transitoria') && spanishTool.includes('Cloudflare AI'));
   assert.ok(spanishTool.includes('cuota gratuita de producci\\u00f3n'));
 });
+
+test('English and Spanish production chat notice discloses transient Cloudflare AI use without dev label', () => {
+  const source = readFileSync(COPY, 'utf8');
+  const englishStart = source.indexOf('export const en');
+  const englishAssistantStart = source.indexOf('assistant: {', englishStart);
+  const englishChatNoticeStart = source.indexOf('chatNotice:', englishAssistantStart);
+  const englishChatNoticeEnd = source.indexOf('devToolDescription:', englishChatNoticeStart);
+  const englishChatNotice = source.slice(englishChatNoticeStart, englishChatNoticeEnd);
+  const spanishStart = source.indexOf('export const es');
+  const spanishAssistantStart = source.indexOf('assistant: {', spanishStart);
+  const spanishChatNoticeStart = source.indexOf('chatNotice:', spanishAssistantStart);
+  const spanishChatNoticeEnd = source.indexOf('devToolDescription:', spanishChatNoticeStart);
+  const spanishChatNotice = source.slice(spanishChatNoticeStart, spanishChatNoticeEnd);
+
+  assert.ok(englishChatNotice.includes('Cloudflare AI'));
+  assert.ok(!englishChatNotice.includes('Development only'));
+  assert.ok(spanishChatNotice.includes('Cloudflare AI'));
+  assert.ok(spanishChatNotice.includes('transitoria'));
+  assert.ok(!spanishChatNotice.includes('Solo en desarrollo'));
+});
+
+test('widget banner uses chatNotice in production and devNotice in dev mode', () => {
+  const source = readFileSync(WIDGET, 'utf8');
+  assert.match(
+    source,
+    /chatWorkerUrl\s*\?\s*\(\s*import\.meta\.env\.PUBLIC_CHAT_WORKER_URL\s*\?\s*copy\.assistant\.chatNotice\s*:\s*copy\.assistant\.devNotice\s*\)\s*:\s*copy\.assistant\.banner/,
+    'banner must select chatNotice for production and devNotice for dev mode',
+  );
+});

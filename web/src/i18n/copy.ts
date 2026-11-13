@@ -573,6 +573,8 @@ export interface Copy {
     banner: string;
     /** Development-only disclosure for the transient Worker-backed chat. */
     devNotice: string;
+    /** Production disclosure for the transient Worker-backed chat (no dev label). */
+    chatNotice: string;
     /** Agent-facing description of the dev-only Cloudflare AI tool. */
     devToolDescription: string;
     /** Mode label shown instead of local search while developing. */
@@ -1312,6 +1314,8 @@ export const en: Copy = {
       'This searches only what is published on this site â€” it is not an AI model, and it never sends your question anywhere. It can only point at what is already published here, and it says so when it finds nothing.',
     devNotice:
       'Development only: messages you submit are sent transiently to Cloudflare AI and use the production free quota. Do not enter sensitive information.',
+    chatNotice:
+      'Messages you submit are sent transiently to Cloudflare AI. Do not enter sensitive information.',
     devToolDescription:
       'Development only: sends your message and recent chat history transiently to Cloudflare AI through the local development proxy. This uses the production free quota; do not submit sensitive information.',
     devMode: 'Development chat mode — responses are streamed from Cloudflare AI.',
@@ -1932,6 +1936,8 @@ export const es: Copy = {
       'Esto busca solo lo que estÃ¡ publicado en este sitio: no es un modelo de IA y nunca envÃ­a tu pregunta a ningÃºn sitio. Solo puede seÃ±alar lo que ya estÃ¡ publicado aquÃ­, y lo dice cuando no encuentra nada.',
     devNotice:
       'Solo en desarrollo: los mensajes que env\u00edes se env\u00edan de forma transitoria a Cloudflare AI y consumen la cuota gratuita de producci\u00f3n. No incluyas informaci\u00f3n sensible.',
+    chatNotice:
+      'Los mensajes que env\u00edes se env\u00edan de forma transitoria a Cloudflare AI. No incluyas informaci\u00f3n sensible.',
     devToolDescription:
       'Solo en desarrollo: env\u00eda tu mensaje y el historial reciente del chat de forma transitoria a Cloudflare AI mediante el proxy local de desarrollo. Consume la cuota gratuita de producci\u00f3n; no env\u00edes informaci\u00f3n sensible.',
     devMode: 'Chat de desarrollo \u2014 las respuestas se transmiten desde Cloudflare AI.',

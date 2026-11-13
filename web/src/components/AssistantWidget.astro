@@ -168,7 +168,11 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
         </div>
 
         <p class="assistant__banner" id="pep-assistant-banner">
-          {chatWorkerUrl ? copy.assistant.devNotice : copy.assistant.banner}
+          {chatWorkerUrl
+            ? (import.meta.env.PUBLIC_CHAT_WORKER_URL
+                ? copy.assistant.chatNotice
+                : copy.assistant.devNotice)
+            : copy.assistant.banner}
         </p>
 
         {/* Which search this build actually ships, read from the generated
