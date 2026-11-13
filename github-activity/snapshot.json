@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-11-02T15:55:04Z",
+  "captured_at": "2026-11-09T16:21:19Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -26,22 +26,22 @@
       "pull_requests": [],
       "commits": [
         {
-          "id": "4515e39f77e124d603149a9616bf721f8d45262f",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/4515e39f77e124d603149a9616bf721f8d45262f",
-          "captured_at": "2026-11-02T09:49:18Z",
-          "title": "ai(portfolio): update chat implementation and provider chain"
+          "id": "da5c826823d3773e331bd31c3eb004c620daa830",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/da5c826823d3773e331bd31c3eb004c620daa830",
+          "captured_at": "2026-11-03T13:55:37Z",
+          "title": "ai(git): sync remote main before push"
         },
         {
-          "id": "0bdb34809acd3b196827d5917d1216804fb339e9",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/0bdb34809acd3b196827d5917d1216804fb339e9",
-          "captured_at": "2026-11-02T09:49:01Z",
-          "title": "ai(portfolio): fix AI chat with Cloudflare AI (Mistral) as primary provider"
+          "id": "f58be05501f3a44000a409f3f1ee1116c057621f",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/f58be05501f3a44000a409f3f1ee1116c057621f",
+          "captured_at": "2026-11-03T13:14:36Z",
+          "title": "ai(worker): distinguish stream interruption causes"
         },
         {
-          "id": "a92630bbd2748feb5cb7e5820d1b032f915d849c",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/a92630bbd2748feb5cb7e5820d1b032f915d849c",
-          "captured_at": "2026-11-01T23:17:55Z",
-          "title": "ai(portfolio): add SEO structured data, a11y improvements, and fix visual baselines"
+          "id": "3b664e6315213b260868a9e6e34bf266dece612c",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/3b664e6315213b260868a9e6e34bf266dece612c",
+          "captured_at": "2026-11-03T12:24:59Z",
+          "title": "ai(docs): plan stream interruption diagnostics"
         }
       ],
       "releases": [],
