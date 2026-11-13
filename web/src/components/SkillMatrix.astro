@@ -331,10 +331,18 @@ const filterCategories = groups.map((group) => ({
   /* The pressed state is carried by aria-pressed, so the visual state can never
      disagree with the announced one. */
   .matrix__filter-button[aria-pressed='true'] {
-    background-color: color-mix(in srgb, var(--color-accent) 14%, transparent);
-    border-color: color-mix(in srgb, var(--color-accent) 42%, transparent);
+    background-color: color-mix(in srgb, var(--color-accent) 20%, transparent);
+    border-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
     color: var(--color-accent);
     font-weight: 600;
+  }
+
+  :global([data-theme='light']) .matrix__filter-button[aria-pressed='true'] {
+    color: #7f0066;
+  }
+
+  :global(html:not([data-theme='light'])) .matrix__filter-button[aria-pressed='true'] {
+    color: #ff7ae8;
   }
 
   /* Author styles outrank the UA `[hidden]` rule, so hiding a flex or grid item

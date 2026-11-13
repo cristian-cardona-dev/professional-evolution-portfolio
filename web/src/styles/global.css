@@ -347,8 +347,8 @@ html.js .copy-control__button {
   align-items: center;
   gap: var(--space-1);
   padding: 2px var(--space-2);
-  background-color: color-mix(in srgb, var(--chip-color, var(--color-text-muted)) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--chip-color, var(--color-text-muted)) 42%, transparent);
+  background-color: color-mix(in srgb, var(--chip-color, var(--color-text-muted)) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chip-color, var(--color-text-muted)) 50%, transparent);
   border-radius: var(--radius-full);
   color: var(--chip-color, var(--color-text-muted));
   font-size: var(--text-xs);
@@ -372,6 +372,31 @@ html.js .copy-control__button {
 
 .chip--neutral {
   --chip-color: var(--color-text-muted);
+}
+
+/* Light-mode override: darken chip text so it keeps sufficient contrast against
+   the tinted chip background on light surfaces. (Color is reinforcement only;
+   the label text carries the meaning.) */
+[data-theme='light'] .chip--success {
+  --chip-color: #1e563a;
+}
+
+[data-theme='light'] .chip--warn {
+  --chip-color: #764e14;
+}
+
+[data-theme='light'] .chip--accent {
+  --chip-color: #7f0066;
+}
+
+/* Dark-mode (default) overrides: lighten chip text for contrast against the
+   tinted chip background on dark surfaces. */
+html:not([data-theme='light']) .chip--neutral {
+  --chip-color: #c0bab0;
+}
+
+html:not([data-theme='light']) .chip--accent {
+  --chip-color: #ff7ae8;
 }
 
 /* --- Reveal on scroll -----------------------------------------------------
