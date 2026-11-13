@@ -30,7 +30,7 @@ const ASTRO_CONFIG = resolve(WEB, 'astro.config.mjs');
 const COPY = resolve(WEB, 'src', 'i18n', 'copy.ts');
 
 /** Worker endpoints the Pages assistant may never call. */
-const FORBIDDEN_ENDPOINTS = ['/api/chat', '/api/assistant'];
+const FORBIDDEN_ENDPOINTS = ['/api/chat', '/api/assistant', '/api/lead'];
 
 /**
  * The locality contract, shared by the real-widget test and the mutation
@@ -109,15 +109,30 @@ test('self-check: the contract rejects a streaming transport', () => {
   assert.throws(() => assertLocalAssistant(mutated, 'mutated widget'), /streaming\/XHR transport/);
 });
 
-test('production submission remains local search behind an explicit development-only chat branch', () => {
+test('chat is gated on DEV or PUBLIC_CHAT_WORKER_URL; production without it keeps local search', () => {
   const source = readFileSync(WIDGET, 'utf8');
 
   assert.match(
     source,
-    /if\s*\(import\.meta\.env\.DEV\)\s*\{[\s\S]*?runChat\(input\.value\)[\s\S]*?\}\s*else\s*\{[\s\S]*?run\(input\.value\)/,
-    'only Astro dev may submit to chat; the production branch must keep local search',
+    /const chatWorkerUrl =[\s\S]*?import\.meta\.env\.PUBLIC_CHAT_WORKER_URL/,
+    'chat mode must activate when PUBLIC_CHAT_WORKER_URL is set (or in dev via the proxy)',
+  );
+  assert.match(
+    source,
+    /if\s*\(\s*chatWorkerUrl\s*\)\s*\{[\s\S]*?runChat\(input\.value\)[\s\S]*?\}\s*else\s*\{[\s\S]*?run\(input\.value\)/,
+    'chat submission must use runChat when chat mode is active, local search otherwise',
   );
   assertLocalAssistant(source, 'AssistantWidget.astro production search path');
+});
+
+test('assistant:ask deep link follows the same chat/local gate', () => {
+  const source = readFileSync(WIDGET, 'utf8');
+
+  assert.match(
+    source,
+    /if\s*\(\s*chatWorkerUrl\s*\)\s*void\s*runChat\(query\)[\s\S]*?else\s*void\s*run\(query\)/,
+    'deep-linked queries must follow the same chat/local gate',
+  );
 });
 
 test('dev script receives localized status copy through its DOM boundary', () => {
@@ -125,8 +140,8 @@ test('dev script receives localized status copy through its DOM boundary', () =>
   const scriptStart = source.indexOf('<script>');
   const script = source.slice(scriptStart, source.indexOf('</script>', scriptStart));
 
-  assert.match(source, /data-chat-pending=\{devChatMode \? copy\.assistant\.chatPending : undefined\}/);
-  assert.match(source, /data-chat-provider-stream-failed=\{\s*devChatMode \? copy\.assistant\.chatProviderStreamFailed : undefined\s*\}/);
+  assert.match(source, /data-chat-pending=\{chatWorkerUrl \? copy\.assistant\.chatPending : undefined\}/);
+  assert.match(source, /data-chat-provider-stream-failed=\{\s*chatWorkerUrl \? copy\.assistant\.chatProviderStreamFailed : undefined\s*\}/);
   assert.match(script, /root\.dataset\.chatPending/);
   assert.match(script, /root\.dataset\.chatProviderStreamFailed/);
   assert.doesNotMatch(script, /copy\.assistant\.chat/);

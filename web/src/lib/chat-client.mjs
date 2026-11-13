@@ -121,7 +121,12 @@ export async function sendChat({
   onContent,
   fetchImpl = globalThis.fetch,
 }) {
-  if (typeof endpoint !== 'string' || !endpoint.startsWith('/') || endpoint.startsWith('//')) {
+  if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+    throw new ChatClientError('chat_request_failed');
+  }
+  const isRelative = endpoint.startsWith('/') && !endpoint.startsWith('//');
+  const isAbsolute = /^https?:\/\//i.test(endpoint);
+  if (!isRelative && !isAbsolute) {
     throw new ChatClientError('chat_request_failed');
   }
 

@@ -60,12 +60,17 @@ interface Props {
 }
 
 const { copy, locale } = Astro.props;
-const devChatMode = import.meta.env.DEV;
+const chatWorkerUrl =
+  import.meta.env.PUBLIC_CHAT_WORKER_URL
+    ? `${String(import.meta.env.PUBLIC_CHAT_WORKER_URL).replace(/\/+$/, '')}/${['api', 'chat'].join('/')}`
+    : import.meta.env.DEV
+      ? `${import.meta.env.BASE_URL}api/chat`
+      : null;
 
 /** Which search this build ships; stated in the panel, never implied. */
 const buildMetadata = readBuildMetadata();
 const modeNote =
-  devChatMode
+  chatWorkerUrl
     ? copy.assistant.devMode
     : buildMetadata.semantic_index === 'semantic'
       ? copy.assistant.modeSemantic
@@ -104,12 +109,12 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
       class="assistant"
       data-assistant
       data-locale={locale}
-      data-chat-pending={devChatMode ? copy.assistant.chatPending : undefined}
-      data-chat-stopped={devChatMode ? copy.assistant.chatStopped : undefined}
+      data-chat-pending={chatWorkerUrl ? copy.assistant.chatPending : undefined}
+      data-chat-stopped={chatWorkerUrl ? copy.assistant.chatStopped : undefined}
       data-chat-provider-stream-failed={
-        devChatMode ? copy.assistant.chatProviderStreamFailed : undefined
+        chatWorkerUrl ? copy.assistant.chatProviderStreamFailed : undefined
       }
-      data-chat-failure={devChatMode ? copy.assistant.chatFailure : undefined}
+      data-chat-failure={chatWorkerUrl ? copy.assistant.chatFailure : undefined}
     >
       <button
         type="button"
@@ -163,7 +168,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
         </div>
 
         <p class="assistant__banner" id="pep-assistant-banner">
-          {devChatMode ? copy.assistant.devNotice : copy.assistant.banner}
+          {chatWorkerUrl ? copy.assistant.devNotice : copy.assistant.banner}
         </p>
 
         {/* Which search this build actually ships, read from the generated
@@ -181,9 +186,9 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
         <form
           class="assistant__form"
           data-a-form
-          toolname={devChatMode ? 'portfolio_ai_chat' : 'site_search'}
+          toolname={chatWorkerUrl ? 'portfolio_ai_chat' : 'site_search'}
           tooldescription={
-            devChatMode
+            chatWorkerUrl
               ? copy.assistant.devToolDescription
               : "Searches this site's own published index and returns links to the pages that match. It runs entirely in the visitor's browser against an index embedded in the page and, when the build shipped semantic vectors, a same-origin static JSON file: no backend and no AI model or API call at query time. A query that matches nothing returns an honest fallback with the site's own listings instead of an invented answer."
           }
@@ -193,23 +198,23 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
             class="assistant__input"
             id="pep-assistant-input"
             data-a-input
-            type={devChatMode ? 'text' : 'search'}
+            type={chatWorkerUrl ? 'text' : 'search'}
             name="q"
             autocomplete="off"
-            placeholder={devChatMode ? copy.assistant.chatPlaceholder : copy.assistant.placeholder}
+            placeholder={chatWorkerUrl ? copy.assistant.chatPlaceholder : copy.assistant.placeholder}
             aria-describedby="pep-assistant-banner"
             toolparamdescription={
-              devChatMode
+              chatWorkerUrl
                 ? copy.assistant.devToolDescription
                 : "Keywords matched against the titles, summaries and status text of the site's own published pages."
             }
           />
           <button class="button button--primary assistant__submit" type="submit">
-            {devChatMode ? copy.assistant.chatSubmit : copy.assistant.submit}
+            {chatWorkerUrl ? copy.assistant.chatSubmit : copy.assistant.submit}
           </button>
         </form>
 
-        {devChatMode && (
+        {chatWorkerUrl && (
           <div class="assistant__chat" data-chat>
             <ol class="assistant__transcript" data-chat-transcript aria-live="polite"></ol>
             <p class="assistant__chat-status" data-chat-status role="status" aria-live="polite"></p>
@@ -226,8 +231,8 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
           </div>
         )}
 
-        <p class="assistant__chips-heading" hidden={devChatMode}>{copy.assistant.suggestedHeading}</p>
-        <ul class="assistant__chips" hidden={devChatMode}>
+        <p class="assistant__chips-heading" hidden={chatWorkerUrl}>{copy.assistant.suggestedHeading}</p>
+        <ul class="assistant__chips" hidden={chatWorkerUrl}>
           {chips.map((chip) => (
             <li>
               <button type="button" class="assistant__chip" data-a-chip data-query={chip.query}>
@@ -292,6 +297,12 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
   import type { SemanticIndex } from '../lib/semantic-search';
 
   (() => {
+    const chatWorkerUrl =
+      import.meta.env.PUBLIC_CHAT_WORKER_URL
+        ? `${String(import.meta.env.PUBLIC_CHAT_WORKER_URL).replace(/\/+$/, '')}/${['api', 'chat'].join('/')}`
+        : import.meta.env.DEV
+          ? `${import.meta.env.BASE_URL}api/chat`
+          : null;
     const root = document.querySelector<HTMLElement>('[data-assistant]');
     const index = document.querySelector<HTMLScriptElement>('[data-assistant-index]');
     if (!root || !index) return;
@@ -343,7 +354,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
     const chatHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [];
     let activeChatController: AbortController | null = null;
 
-    if (import.meta.env.DEV && (!chatTranscript || !chatStop || !chatStatus || !chatError || !submitButton)) {
+    if (chatWorkerUrl && (!chatTranscript || !chatStop || !chatStatus || !chatError || !submitButton)) {
       return;
     }
 
@@ -383,7 +394,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
       input.focus();
       // Warm the semantic asset while the visitor types, so the first search
       // is not delayed by the fetch. Failures are silent by design.
-      if (!import.meta.env.DEV) void loadSemantic();
+      if (!chatWorkerUrl) void loadSemantic();
     };
 
     const closePanel = () => {
@@ -516,7 +527,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
         appendChatMessage(chatTranscript, 'user', trimmed);
         const assistantMessage = appendChatMessage(chatTranscript, 'assistant', '');
         const result = await sendChat({
-          endpoint: `${import.meta.env.BASE_URL}api/chat`,
+          endpoint: chatWorkerUrl,
           message: trimmed,
           history: priorHistory,
           locale,
@@ -542,6 +553,9 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
         chatStatus.textContent = '';
         chatError.textContent = chatCopy.failure;
         chatError.hidden = false;
+        // If the Worker cannot be reached, fall back to the local search so the
+        // visitor still gets the published, honest results.
+        void run(trimmed);
       } finally {
         if (activeChatController === controller) activeChatController = null;
         chatStop.hidden = true;
@@ -554,7 +568,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
 
     form.addEventListener('submit', (event) => {
       event.preventDefault();
-      if (import.meta.env.DEV) {
+      if (chatWorkerUrl) {
         void runChat(input.value);
         input.value = '';
       } else {
@@ -590,7 +604,7 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
       if (panel.hidden) openPanel();
       else input.focus();
       input.value = query;
-      if (import.meta.env.DEV) void runChat(query);
+      if (chatWorkerUrl) void runChat(query);
       else void run(query);
     });
 
