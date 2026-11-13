@@ -303,12 +303,14 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
   import type { SemanticIndex } from '../lib/semantic-search';
 
   (() => {
+    const CHAT_WORKER_ORIGIN = 'https://portfolio-ai-chat-worker.crisss198.workers.dev';
+    const CHAT_API_PATH = ['api', 'chat'].join('/');
     const chatWorkerUrl =
       import.meta.env.PUBLIC_CHAT_WORKER_URL
-        ? `${String(import.meta.env.PUBLIC_CHAT_WORKER_URL).replace(/\/+$/, '')}/${['api', 'chat'].join('/')}`
+        ? `${String(import.meta.env.PUBLIC_CHAT_WORKER_URL).replace(/\/+$/, '')}/${CHAT_API_PATH}`
         : import.meta.env.DEV
-          ? `${import.meta.env.BASE_URL}api/chat`
-          : null;
+          ? `${import.meta.env.BASE_URL}${CHAT_API_PATH}`
+          : `${CHAT_WORKER_ORIGIN}/${CHAT_API_PATH}`;
     const root = document.querySelector<HTMLElement>('[data-assistant]');
     const index = document.querySelector<HTMLScriptElement>('[data-assistant-index]');
     if (!root || !index) return;
