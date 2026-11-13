@@ -63,15 +63,15 @@ describe('Worker source files', () => {
 	}
 });
 
-describe('index.ts routes to all three endpoints', () => {
-	it('routes to chat, ai-status, and lead', () => {
+describe('index.ts routes to chat and ai-status endpoints only', () => {
+	it('routes to chat and ai-status but not lead', () => {
 		const content = readFileSync(join(WORKER_SRC, 'index.ts'), 'utf-8');
 		expect(content).toContain('/api/chat');
 		expect(content).toContain('/api/ai-status');
-		expect(content).toContain('/api/lead');
+		expect(content).not.toContain('/api/lead');
 		expect(content).toContain('chat.fetch');
 		expect(content).toContain('aiStatus.fetch');
-		expect(content).toContain('lead.fetch');
+		expect(content).not.toContain('lead.fetch');
 	});
 });
 
@@ -133,12 +133,14 @@ describe('providers.ts has the free-only Cloudflare provider', () => {
 });
 
 describe('wrangler.jsonc has correct configuration', () => {
-	it('has worker config, AI binding, D1, KV and no provider vars', () => {
+	it('has worker config, AI binding, and no D1/KV bindings', () => {
 		const content = readFileSync(resolve(WORKER_SRC, '..', 'wrangler.jsonc'), 'utf-8');
 		expect(content).toContain('portfolio-ai-chat-worker');
 		expect(content).toContain('"binding": "AI"');
-		expect(content).toContain('d1_databases');
-		expect(content).toContain('portfolio-leads');
+		expect(content).not.toContain('d1_databases');
+		expect(content).not.toContain('portfolio-leads');
+		expect(content).not.toContain('kv_namespaces');
+		expect(content).not.toContain('RATE_LIMIT');
 		expect(content).toContain('durable_objects');
 		expect(content).toContain('CHAT_GUARD');
 		expect(content).toContain('new_sqlite_classes');
@@ -779,5 +781,61 @@ describe('chat SSE streaming boundary', () => {
 			model: null,
 			diagnosticCode: 'empty_output',
 		}]);
+	});
+});
+
+describe('Task 13: lead isolation from chat Worker', () => {
+	it('returns 404 for POST /api/lead via chat Worker entrypoint', async () => {
+		const entrypoint = (await import('../src/index')).default;
+		const request = new Request('https://portfolio.test/api/lead', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ email: 'test@example.com', message: 'test' }),
+		});
+		const env = {
+			AI: { run: vi.fn() },
+			CHAT_GUARD: { idFromName: vi.fn(), get: vi.fn() },
+		} as any;
+		const response = await entrypoint.fetch(request, env, {} as any);
+		expect(response.status).toBe(404);
+	});
+
+	it('returns 404 for OPTIONS /api/lead via chat Worker entrypoint', async () => {
+		const entrypoint = (await import('../src/index')).default;
+		const request = new Request('https://portfolio.test/api/lead', {
+			method: 'OPTIONS',
+			headers: { 'Origin': 'https://cristian-cardona-dev.github.io' },
+		});
+		const env = {
+			AI: { run: vi.fn() },
+			CHAT_GUARD: { idFromName: vi.fn(), get: vi.fn() },
+		} as any;
+		const response = await entrypoint.fetch(request, env, {} as any);
+		expect(response.status).toBe(404);
+	});
+
+	it('chat Worker config has no D1 database bindings', () => {
+		const content = readFileSync(resolve(WORKER_SRC, '..', 'wrangler.jsonc'), 'utf-8');
+		const config = JSON.parse(content.replace(/^\s*\/\/.*$/gmu, ''));
+		expect(config.d1_databases).toBeUndefined();
+		expect(content).not.toContain('portfolio-leads');
+		expect(content).not.toContain('38a41618-6b70-4e32-9200-f267be599a96');
+	});
+
+	it('chat Worker config has no KV namespace bindings', () => {
+		const content = readFileSync(resolve(WORKER_SRC, '..', 'wrangler.jsonc'), 'utf-8');
+		const config = JSON.parse(content.replace(/^\s*\/\/.*$/gmu, ''));
+		expect(config.kv_namespaces).toBeUndefined();
+		expect(content).not.toContain('RATE_LIMIT');
+		expect(content).not.toContain('f31d3ce50d6f4e60bf21426fccb56e24');
+	});
+
+	it('chat Worker config retains AI and CHAT_GUARD bindings only', () => {
+		const content = readFileSync(resolve(WORKER_SRC, '..', 'wrangler.jsonc'), 'utf-8');
+		const config = JSON.parse(content.replace(/^\s*\/\/.*$/gmu, ''));
+		expect(config.ai).toEqual({ binding: 'AI' });
+		expect(config.durable_objects).toEqual({
+			bindings: [{ name: 'CHAT_GUARD', class_name: 'ChatGuard' }],
+		});
 	});
 });

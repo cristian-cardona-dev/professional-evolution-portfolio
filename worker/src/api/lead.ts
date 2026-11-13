@@ -1,10 +1,22 @@
 ﻿/**
  * Lead Capture API - /api/lead
  * Stores leads in Cloudflare D1 + sends email notification
+ *
+ * Note: This module is retained for direct unit testing but is not exposed by
+ * the chat Worker entrypoint after Task 13. It defines its own LeadEnv interface
+ * to remain independently typed.
  */
 
-import { Env } from '../index';
 import { corsHeaders } from '../lib/cors';
+
+/**
+ * Minimal environment interface for lead capture.
+ * This module is no longer wired into the chat Worker's Env type.
+ */
+export interface LeadEnv {
+	DB?: D1Database;
+	RESEND_API_KEY?: string;
+}
 
 interface LeadRequest {
 	name: string;
@@ -16,7 +28,7 @@ interface LeadRequest {
 }
 
 export default {
-	async fetch(request: Request, env: Env): Promise<Response> {
+	async fetch(request: Request, env: LeadEnv): Promise<Response> {
 		const cors = corsHeaders(request.headers.get('Origin'), 'POST, OPTIONS');
 
 		if (request.method === 'OPTIONS') {
@@ -75,7 +87,7 @@ export default {
 	},
 };
 
-async function sendEmailNotification(env: any, lead: any): Promise<void> {
+async function sendEmailNotification(env: LeadEnv, lead: LeadRequest): Promise<void> {
 	if (!env.RESEND_API_KEY) return;
 
 	try {
