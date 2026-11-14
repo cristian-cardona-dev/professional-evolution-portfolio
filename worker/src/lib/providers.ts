@@ -130,6 +130,7 @@ class SSEByteParser {
 		try {
 			this.buffer += this.decoder.decode();
 		} catch {
+			console.warn('chat_diag_provider', JSON.stringify({ code: 'sse_malformed', where: 'finalize' }));
 			throw new ProviderFailure('sse_malformed');
 		}
 		return this.drain({ final: true });
@@ -180,18 +181,21 @@ class SSEByteParser {
 
 			// Reject non-objects (primitives, arrays) immediately
 			if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+				console.warn('chat_diag_provider', JSON.stringify({ code: 'sse_malformed', where: 'non_object' }));
 				throw new ProviderFailure('sse_malformed');
 			}
 
 			// 1. Explicit error frame — fail closed BEFORE response or metadata
 			//    so a hybrid frame with both error and response/metadata fails closed.
 			if ('error' in parsed) {
+				console.warn('chat_diag_provider', JSON.stringify({ code: 'sse_error_frame' }));
 				throw new ProviderFailure('sse_error_frame');
 			}
 
 			// 2. If `response` exists, only string is accepted; non-string fails closed
 			if ('response' in parsed) {
 				if (typeof parsed.response === 'string') return parsed.response;
+				console.warn('chat_diag_provider', JSON.stringify({ code: 'sse_malformed', where: 'non_string_response' }));
 				throw new ProviderFailure('sse_malformed');
 			}
 
@@ -245,7 +249,8 @@ class SSEByteParser {
 			// 4. Valid JSON object but not a recognized frame — fail closed
 			throw new ProviderFailure('sse_malformed');
 		} catch (error) {
-			if (error instanceof ProviderFailure) throw error;
+			if (error instanceof ProviderFailure) { console.warn('chat_diag_provider', JSON.stringify({ code: error.failureCode })); throw error; }
+			console.warn('chat_diag_provider', JSON.stringify({ code: 'sse_malformed' }));
 			throw new ProviderFailure('sse_malformed');
 		}
 	}
@@ -305,6 +310,7 @@ export class CloudflareAIProvider implements Provider {
 			streamResult = await ai.run(this.model, input);
 		} catch {
 			// AI.run rejected — classify as ai_run_rejected
+			console.warn('chat_diag_provider', JSON.stringify({ code: 'ai_run_rejected' }));
 			throw new ProviderFailure('ai_run_rejected');
 		}
 
@@ -381,7 +387,8 @@ export class CloudflareAIProvider implements Provider {
 			// sse_error_frame, sse_malformed) so the taxonomy is not collapsed.
 			// A plain exception here means reader.read() rejected (network/edge
 			// reset) — classify as read_rejected.
-			if (error instanceof ProviderFailure) throw error;
+			if (error instanceof ProviderFailure) { console.warn('chat_diag_provider', JSON.stringify({ code: error.failureCode })); throw error; }
+			console.warn('chat_diag_provider', JSON.stringify({ code: 'read_rejected' }));
 			throw new ProviderFailure('read_rejected');
 		}
 
@@ -450,7 +457,8 @@ export class ProviderChain {
 				lastFailureCode = 'empty_output';
 				console.warn(`Provider ${provider.name} yielded no content, advancing to fallback`);
 			} catch (error) {
-				console.warn(`Streaming provider ${provider.name} failed`);
+				const code = error instanceof ProviderFailure ? error.failureCode : 'unknown';
+				console.warn(`Streaming provider ${provider.name} failed`, JSON.stringify({ code }));
 				if (hasContent) {
 					throw new Error(STREAM_INTERRUPTED_ERROR);
 				}
