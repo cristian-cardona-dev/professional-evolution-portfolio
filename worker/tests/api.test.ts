@@ -328,7 +328,7 @@ describe('chat SSE streaming boundary', () => {
 		expect(run).not.toHaveBeenCalled();
 	});
 
-	it('cancels a stalled incoming body reader at the 30-second deadline', async () => {
+	it('cancels a stalled incoming body reader at the 60-second deadline', async () => {
 		vi.useFakeTimers();
 		const run = vi.fn();
 		const env = chatEnv(run);
@@ -345,7 +345,7 @@ describe('chat SSE streaming boundary', () => {
 		} as RequestInit);
 		try {
 			const pendingResponse = chat.fetch(request, env);
-			await vi.advanceTimersByTimeAsync(30_000);
+			await vi.advanceTimersByTimeAsync(60_000);
 			const response = await pendingResponse;
 
 			expect(response.status).toBe(503);
@@ -554,14 +554,14 @@ describe('chat SSE streaming boundary', () => {
 		expect(run).not.toHaveBeenCalled();
 	});
 
-	it('applies the same 30-second request deadline while quota storage is pending', async () => {
+	it('applies the same 60-second request deadline while quota storage is pending', async () => {
 		vi.useFakeTimers();
 		const run = vi.fn();
 		const env = chatEnv(run);
 		env.CHAT_GUARD.get.mockReturnValue({ fetch: () => new Promise<Response>(() => {}) });
 		try {
 			const pendingResponse = chat.fetch(chatRequest(), env);
-			await vi.advanceTimersByTimeAsync(30_000);
+			await vi.advanceTimersByTimeAsync(60_000);
 			const response = await pendingResponse;
 
 			expect(response.status).toBe(503);
@@ -596,7 +596,7 @@ describe('chat SSE streaming boundary', () => {
 		expect(inferenceInput?.max_tokens).toBe(1024);
 	});
 
-	it('terminates at 30 seconds, requests iterator cancellation, and does not retry inference', async () => {
+	it('terminates at 60 seconds, requests iterator cancellation, and does not retry inference', async () => {
 		vi.useFakeTimers();
 		const run = vi.fn();
 		let started = false;
@@ -615,7 +615,7 @@ describe('chat SSE streaming boundary', () => {
 			const response = await chat.fetch(chatRequest(), chatEnv(run));
 			const reader = response.body!.getReader();
 			const read = reader.read();
-			await vi.advanceTimersByTimeAsync(30_000);
+			await vi.advanceTimersByTimeAsync(60_000);
 			const terminal = await read;
 
 			expect(terminal.done).toBe(false);
@@ -646,7 +646,7 @@ describe('chat SSE streaming boundary', () => {
 			const reader = response.body!.getReader();
 			const first = await reader.read();
 			const terminalRead = reader.read();
-			await vi.advanceTimersByTimeAsync(30_000);
+			await vi.advanceTimersByTimeAsync(60_000);
 			const terminal = await terminalRead;
 
 			expect(sseEvents(new TextDecoder().decode(first.value) + new TextDecoder().decode(terminal.value))).toEqual([
