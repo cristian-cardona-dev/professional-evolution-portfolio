@@ -117,7 +117,7 @@ async function checkQuota(env: Env, request: Request): Promise<'allowed' | 'limi
 	}
 }
 
-const RESPONSE_DEADLINE_MS = 30_000;
+const RESPONSE_DEADLINE_MS = 60_000;
 const DEADLINE_EXPIRED = Symbol('deadline-expired');
 
 async function readBoundedBody(request: Request, deadlineAt: number): Promise<BodyReadResult> {

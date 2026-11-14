@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-11-09T16:21:19Z",
+  "captured_at": "2026-11-14T14:27:51Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -26,22 +26,22 @@
       "pull_requests": [],
       "commits": [
         {
-          "id": "da5c826823d3773e331bd31c3eb004c620daa830",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/da5c826823d3773e331bd31c3eb004c620daa830",
-          "captured_at": "2026-11-03T13:55:37Z",
-          "title": "ai(git): sync remote main before push"
+          "id": "24fbd7c2c240fcac3a6f4e11ac4942585b84c324",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/24fbd7c2c240fcac3a6f4e11ac4942585b84c324",
+          "captured_at": "2026-11-14T13:37:30Z",
+          "title": "fix(i18n): repair double-encoded UTF-8 mojibake in copy.ts"
         },
         {
-          "id": "f58be05501f3a44000a409f3f1ee1116c057621f",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/f58be05501f3a44000a409f3f1ee1116c057621f",
-          "captured_at": "2026-11-03T13:14:36Z",
-          "title": "ai(worker): distinguish stream interruption causes"
+          "id": "a27f59bf3a7653383a52b3a804190dc20bef3479",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/a27f59bf3a7653383a52b3a804190dc20bef3479",
+          "captured_at": "2026-11-13T18:55:38Z",
+          "title": "fix(web): hardcode chat worker url so production shows the widget"
         },
         {
-          "id": "3b664e6315213b260868a9e6e34bf266dece612c",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/3b664e6315213b260868a9e6e34bf266dece612c",
-          "captured_at": "2026-11-03T12:24:59Z",
-          "title": "ai(docs): plan stream interruption diagnostics"
+          "id": "99f11287179496baa7c11feee02158b126d8093c",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/99f11287179496baa7c11feee02158b126d8093c",
+          "captured_at": "2026-11-13T18:49:10Z",
+          "title": "ci: pass PUBLIC_CHAT_WORKER_URL to production builds"
         }
       ],
       "releases": [],
