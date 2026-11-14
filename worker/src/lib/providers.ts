@@ -273,7 +273,7 @@ export class CloudflareAIProvider implements Provider {
 		const input = {
 			messages: messages.map(m => ({ role: m.role, content: m.content })),
 			temperature: options.temperature ?? 0.3,
-			max_tokens: options.maxTokens ?? 1024,
+			max_tokens: options.maxTokens ?? 256,
 			stream: false,
 		};
 
@@ -295,7 +295,7 @@ export class CloudflareAIProvider implements Provider {
 		const input = {
 			messages: messages.map(m => ({ role: m.role, content: m.content })),
 			temperature: options.temperature ?? 0.3,
-			max_tokens: options.maxTokens ?? 1024,
+			max_tokens: options.maxTokens ?? 256,
 			stream: true,
 		};
 

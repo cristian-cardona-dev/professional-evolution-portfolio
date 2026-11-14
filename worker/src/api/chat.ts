@@ -236,7 +236,7 @@ export default {
 					const iterator = providerChain.stream(messages, {
 						stream: true,
 						temperature: 0.3,
-						maxTokens: 1024,
+						maxTokens: 256,
 						signal: providerAbortController.signal,
 					})[Symbol.asyncIterator]();
 					let timer: ReturnType<typeof setTimeout>;
@@ -294,7 +294,7 @@ export default {
 									const retryIterator = providerChain.stream(messages, {
 										stream: true,
 										temperature: 0.3,
-										maxTokens: 1024,
+										maxTokens: 256,
 										signal: providerAbortController.signal,
 									})[Symbol.asyncIterator]();
 									let retryDone = false;

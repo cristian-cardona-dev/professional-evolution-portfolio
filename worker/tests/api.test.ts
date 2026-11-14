@@ -571,7 +571,7 @@ describe('chat SSE streaming boundary', () => {
 		}
 	});
 
-	it('uses only Cloudflare source IP and passes all six allowed history messages with 1024 output tokens', async () => {
+	it('uses only Cloudflare source IP and passes all six allowed history messages with 256 output tokens', async () => {
 		let inferenceInput: { messages: Array<{ role: string; content: string }>; max_tokens: number } | undefined;
 		const run = vi.fn(async (_model: string, input: unknown) => {
 			inferenceInput = input as typeof inferenceInput;
@@ -593,7 +593,7 @@ describe('chat SSE streaming boundary', () => {
 		const quotaRequest = guardFetch.mock.calls[0][0] as Request;
 		expect(await quotaRequest.text()).toBe(JSON.stringify({ ip: '198.51.100.6' }));
 		expect(inferenceInput?.messages.map(message => message.content)).toEqual(expect.arrayContaining(history.map(item => item.content)));
-		expect(inferenceInput?.max_tokens).toBe(1024);
+		expect(inferenceInput?.max_tokens).toBe(256);
 	});
 
 	it('terminates at 60 seconds, requests iterator cancellation, and does not retry inference', async () => {
