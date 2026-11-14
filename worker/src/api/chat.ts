@@ -288,7 +288,38 @@ export default {
 								if (chunk.done) break;
 							}
 						} catch {
-							if (!stopReason) emitFailure('provider_stream_failed');
+							if (!stopReason && !hasContent) {
+								// Retry once before emitting failure - Cloudflare AI streams can be flaky
+								try {
+									const retryIterator = providerChain.stream(messages, {
+										stream: true,
+										temperature: 0.3,
+										maxTokens: 1024,
+										signal: providerAbortController.signal,
+									})[Symbol.asyncIterator]();
+									let retryDone = false;
+									while (!stopReason && !retryDone) {
+										const retryNext = retryIterator.next().then(v => ({ kind: 'chunk' as const, value: v }));
+										const retryOutcome = await Promise.race([retryNext, stopped.then(r => r === 'timeout' ? { kind: 'timeout' as const } : { kind: 'cancel' as const })]);
+										if (retryOutcome.kind === 'cancel') break;
+										if (retryOutcome.kind === 'timeout') { emitFailure('response_timeout'); break; }
+										if (retryOutcome.value.done) { retryDone = true; break; }
+										const retryChunk = retryOutcome.value.value;
+										if (stopReason === 'cancel') break;
+										if (retryChunk.content.length > 0) {
+											hasContent = true;
+											actualProvider = retryChunk.provider;
+											actualModel = retryChunk.model;
+										}
+										controller.enqueue(encoder.encode('data: ' + JSON.stringify({ content: retryChunk.content, done: retryChunk.done, provider: retryChunk.provider, model: retryChunk.model, diagnosticCode: retryChunk.diagnosticCode }) + '\n\n'));
+										if (retryChunk.done) { retryDone = true; break; }
+									}
+								} catch {
+									if (!stopReason) emitFailure('provider_stream_failed');
+								}
+							} else if (!stopReason) {
+								emitFailure('provider_stream_failed');
+							}
 						} finally {
 							finished = true;
 							clearTimeout(timer);
