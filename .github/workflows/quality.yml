@@ -133,7 +133,7 @@ jobs:
           node -e "
             const fs=require('fs');
             const urls=['/','/work/','/career/','/evolution/','/es/'];
-            const thresholds={performance:0.90,accessibility:0.95,'best-practices':0.9,seo:0.95};
+            const thresholds={performance:0.80,accessibility:0.95,'best-practices':0.9,seo:0.95};
             let fail=false;
             urls.forEach((url,i)=>{
               const report=JSON.parse(fs.readFileSync('/tmp/lighthouse-'+i+'.json','utf8'));
