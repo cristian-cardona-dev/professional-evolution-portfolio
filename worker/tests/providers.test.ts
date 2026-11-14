@@ -335,7 +335,7 @@ describe('Sanitized failure categories on fallback SSE', () => {
 		const fallback = chunks.find(c => c.provider === 'fallback');
 
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(fallback!.diagnosticCode).toBe('read_rejected');
 		expect(JSON.stringify(chunks)).not.toContain(RAW_SENTINEL_STREAM);
 	});
 
@@ -405,7 +405,7 @@ describe('Sanitized failure categories on fallback SSE', () => {
 
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(fallback!.diagnosticCode).toBe('read_rejected');
 		expect(JSON.stringify(chunks)).not.toContain(STREAM_SENTINEL);
 	});
 });
@@ -631,7 +631,7 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(fallback!.diagnosticCode).toBe('sse_malformed');
 		expect(JSON.stringify(chunks)).not.toContain('payload-xyz');
 	});
 
@@ -649,7 +649,7 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(fallback!.diagnosticCode).toBe('read_rejected');
 		expect(JSON.stringify(chunks)).not.toContain(STREAM_ERR_SENTINEL);
 	});
 
@@ -908,7 +908,7 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 		// Should fall back with sanitized error
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(fallback!.diagnosticCode).toBe('sse_error_frame');
 		// Must not leak the error sentinel
 		expect(JSON.stringify(chunks)).not.toContain(ERROR_SENTINEL);
 	});
@@ -945,7 +945,7 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 		expect(chunks.find(c => c.content === '123' || c.content === 123 as any)).toBeUndefined();
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(fallback!.diagnosticCode).toBe('sse_malformed');
 	});
 
 	it('fails closed on non-string response value (boolean)', async () => {
@@ -960,7 +960,7 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 		expect(chunks.find(c => c.content === 'true' || c.content === true as any)).toBeUndefined();
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(fallback!.diagnosticCode).toBe('sse_malformed');
 	});
 
 	it('fails closed on usage:null metadata', async () => {
@@ -1172,7 +1172,7 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(fallback!.diagnosticCode).toBe('sse_malformed');
 	});
 
 	it('fails closed on primitive JSON frame (string)', async () => {
@@ -1186,7 +1186,7 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(fallback!.diagnosticCode).toBe('sse_malformed');
 	});
 
 	it('fails closed on primitive JSON frame (number)', async () => {
@@ -1200,7 +1200,7 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(fallback!.diagnosticCode).toBe('sse_malformed');
 	});
 
 	it('fails closed on primitive JSON frame (boolean)', async () => {
@@ -1214,7 +1214,7 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(fallback!.diagnosticCode).toBe('sse_malformed');
 	});
 
 	it('fails closed on JSON array frame', async () => {
@@ -1228,7 +1228,7 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(fallback!.diagnosticCode).toBe('sse_malformed');
 	});
 
 	it('accepts finish_reason:null as valid metadata', async () => {
@@ -1276,6 +1276,6 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('stream_read_failed');
+		expect(fallback!.diagnosticCode).toBe('sse_error_frame');
 	});
 });

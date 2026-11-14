@@ -42,7 +42,7 @@ export interface StreamChunk {
 }
 
 /** Sanitized failure category for diagnostic purposes only. */
-export type FailureCode = 'ai_run_rejected' | 'stream_read_failed' | 'empty_output';
+export type FailureCode = 'ai_run_rejected' | 'stream_read_failed' | 'read_rejected' | 'sse_error_frame' | 'sse_malformed' | 'empty_output';
 
 /** Internal error class that carries a failure code without leaking details. */
 class ProviderFailure extends Error {
@@ -130,7 +130,7 @@ class SSEByteParser {
 		try {
 			this.buffer += this.decoder.decode();
 		} catch {
-			throw new ProviderFailure('stream_read_failed');
+			throw new ProviderFailure('sse_malformed');
 		}
 		return this.drain({ final: true });
 	}
@@ -180,19 +180,19 @@ class SSEByteParser {
 
 			// Reject non-objects (primitives, arrays) immediately
 			if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-				throw new Error('non-object JSON frame');
+				throw new ProviderFailure('sse_malformed');
 			}
 
 			// 1. Explicit error frame — fail closed BEFORE response or metadata
 			//    so a hybrid frame with both error and response/metadata fails closed.
 			if ('error' in parsed) {
-				throw new Error('error frame received');
+				throw new ProviderFailure('sse_error_frame');
 			}
 
 			// 2. If `response` exists, only string is accepted; non-string fails closed
 			if ('response' in parsed) {
 				if (typeof parsed.response === 'string') return parsed.response;
-				throw new Error('non-string response field');
+				throw new ProviderFailure('sse_malformed');
 			}
 
 			// 3. Recognized metadata/control frames — validate shapes
@@ -243,9 +243,10 @@ class SSEByteParser {
 			}
 
 			// 4. Valid JSON object but not a recognized frame — fail closed
-			throw new Error('unrecognized frame');
-		} catch {
-			throw new ProviderFailure('stream_read_failed');
+			throw new ProviderFailure('sse_malformed');
+		} catch (error) {
+			if (error instanceof ProviderFailure) throw error;
+			throw new ProviderFailure('sse_malformed');
 		}
 	}
 }
@@ -375,11 +376,13 @@ export class CloudflareAIProvider implements Provider {
 					}
 				}
 			}
-		} catch {
-			// Stream reading failed — classify as stream_read_failed
-			// The chain decides whether another provider may be tried. Never
-			// make a second inference with this provider after a stream error.
-			throw new ProviderFailure('stream_read_failed');
+		} catch (error) {
+			// Preserve the specific ProviderFailure code thrown inside (e.g.
+			// sse_error_frame, sse_malformed) so the taxonomy is not collapsed.
+			// A plain exception here means reader.read() rejected (network/edge
+			// reset) — classify as read_rejected.
+			if (error instanceof ProviderFailure) throw error;
+			throw new ProviderFailure('read_rejected');
 		}
 
 		yield { content: '', done: true, provider: this.name, model: this.model };

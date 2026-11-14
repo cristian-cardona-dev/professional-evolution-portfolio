@@ -227,6 +227,7 @@ export default {
 				start(controller) {
 					const encoder = new TextEncoder();
 					let hasContent = false;
+					let chunkCount = 0;
 					let actualProvider = 'fallback';
 					let actualModel: string | null = null;
 					let finished = false;
@@ -273,6 +274,7 @@ export default {
 								const outcome = await Promise.race([next, stopped.then(reason => reason === 'timeout' ? { kind: 'timeout' as const } : { kind: 'cancel' as const })]);
 								if (outcome.kind === 'cancel') break;
 								if (outcome.kind === 'timeout') {
+									console.warn('chat_diag', JSON.stringify({ code: 'response_timeout', hasContent, chunks: chunkCount, ms: Date.now() - (deadlineAt - RESPONSE_DEADLINE_MS) }));
 									emitFailure('response_timeout');
 									break;
 								}
@@ -281,13 +283,17 @@ export default {
 								if (stopReason === 'cancel') break;
 								if (chunk.content.length > 0) {
 									hasContent = true;
+									chunkCount += 1;
 									actualProvider = chunk.provider;
 									actualModel = chunk.model;
 								}
 								controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: chunk.content, done: chunk.done, provider: chunk.provider, model: chunk.model, diagnosticCode: chunk.diagnosticCode })}\n\n`));
 								if (chunk.done) break;
 							}
-						} catch {
+						} catch (err) {
+							const code = err instanceof Error && 'failureCode' in err ? (err as { failureCode?: string }).failureCode : 'unknown';
+							const diagCode = code === 'sse_error_frame' || code === 'sse_malformed' || code === 'read_rejected' || code === 'ai_run_rejected' ? code : 'provider_stream_failed';
+							console.warn('chat_diag', JSON.stringify({ code: diagCode, hasContent, chunks: chunkCount, ms: Date.now() - (deadlineAt - RESPONSE_DEADLINE_MS) }));
 							if (!stopReason && !hasContent) {
 								// Retry once before emitting failure - Cloudflare AI streams can be flaky
 								try {
@@ -318,6 +324,7 @@ export default {
 									if (!stopReason) emitFailure('provider_stream_failed');
 								}
 							} else if (!stopReason) {
+								console.warn('chat_diag', JSON.stringify({ code: 'provider_stream_failed', hasContent: true, chunks: chunkCount, ms: Date.now() - (deadlineAt - RESPONSE_DEADLINE_MS) }));
 								emitFailure('provider_stream_failed');
 							}
 						} finally {

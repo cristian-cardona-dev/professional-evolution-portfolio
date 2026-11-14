@@ -760,7 +760,7 @@ describe('chat SSE streaming boundary', () => {
 				done: true,
 				provider: 'fallback',
 				model: null,
-				diagnosticCode: 'stream_read_failed',
+				diagnosticCode: 'read_rejected',
 			}]);
 			expect(body).not.toContain(sentinel);
 			expect(JSON.stringify(logWarn.mock.calls)).not.toContain(sentinel);
