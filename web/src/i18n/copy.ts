@@ -1,5 +1,5 @@
 ﻿/**
- * Typed bilingual copy catalog â€” the only place UI strings live.
+ * Typed bilingual copy catalog — the only place UI strings live.
  *
  * `en` is the reference implementation. `es` is typed as `Copy` as well, so a
  * missing or misspelled key is a compile error rather than an English string
@@ -7,7 +7,7 @@
  * every key added to `en` must be translated here in the same edit.
  *
  * Status labels and their tooltips follow the public snapshot's claim
- * semantics (`public-snapshot/snapshot.json` â†’ `claim_status_semantics`), so a
+ * semantics (`public-snapshot/snapshot.json` — `claim_status_semantics`), so a
  * label always means the same thing as the underlying evidence.
  *
  * Counts are functions instead of `{placeholder}` strings so an interpolated
@@ -69,7 +69,7 @@ export interface Copy {
     switchToEs: string;
   };
   /**
-   * Hero (first screen) â€” "Void, then statement on axis" (Task 4 redesign).
+   * Hero (first screen) — "Void, then statement on axis" (Task 4 redesign).
    *
    * The statement itself is the person's name and comes from
    * `data/profile.json`, not from copy; these are the two strings set with
@@ -106,8 +106,8 @@ export interface Copy {
   /**
    * Notes feed on the home page (`components/NotesFeed.astro`).
    *
-   * The feed renders the most recent hand-written milestones only â€” the same
-   * curated set the evolution preview draws from â€” so an unreviewed git
+   * The feed renders the most recent hand-written milestones only — the same
+   * curated set the evolution preview draws from — so an unreviewed git
    * candidate can never appear in it. Every string here is UI copy; the
    * entries themselves come from `data/evolution.json`.
    */
@@ -259,7 +259,7 @@ export interface Copy {
     /** Milestone count inside one roadmap row. */
     roadmapMilestones: (count: number) => string;
     /**
-     * The goal â†’ skill â†’ proof roadmap table (`components/RoadmapTable.astro`),
+     * The goal — skill — proof roadmap table (`components/RoadmapTable.astro`),
      * built from `data/roadmap.json`.
      *
      * This is the forward-looking half of the roadmap area: the phase rows above
@@ -311,7 +311,7 @@ export interface Copy {
      */
     phaseItems: Record<'foundation' | 'transition' | 'frontier', Array<{ label: string; date: string }>>;
     /**
-     * Closing inverted row on the evolution slip â€” the "Today:" statement
+     * Closing inverted row on the evolution slip — the "Today:" statement
      * declaring the current direction and that evidence is public.
      */
     finalText: string;
@@ -360,13 +360,13 @@ export interface Copy {
     /** CTA from the compact home timeline to the full career page. */
     viewAll: string;
     /**
-     * Label of the link to the printable HTML rÃ©sumÃ© shipped as a static file
+     * Label of the link to the printable HTML résumé shipped as a static file
      * (`web/public/resume-en.html` / `resume-es.html`), rendered on `/career/`.
      */
     resume: string;
     /**
-     * Label of the prominent button that downloads the PDF rÃ©sumÃ© the build
-     * prints from the `/print/` route (`scripts/generate-resume-pdf.mjs` â†’
+     * Label of the prominent button that downloads the PDF résumé the build
+     * prints from the `/print/` route (`scripts/generate-resume-pdf.mjs` —
      * `resume-en.pdf` / `resume-es.pdf`), rendered beside the HTML link.
      */
     resumePdf: string;
@@ -448,7 +448,7 @@ export interface Copy {
     statusLabel: Record<ClaimStatus, string>;
     statusHint: Record<ClaimStatus, string>;
     /**
-     * Evidence page heading â€” "Checked against" (2-3 words). The page renders
+     * Evidence page heading — "Checked against" (2-3 words). The page renders
      * a sentence of evidence names from the dataset, each with a status badge.
      */
     pageHeading: string;
@@ -708,8 +708,8 @@ export interface Copy {
   /**
    * "How this site is built" page (`/build/`, `/es/build/`).
    *
-   * The page explains the artifact itself â€” stack, deployment, the assistant's
-   * honest limits and the published-data boundary â€” from copy only, so no claim
+   * The page explains the artifact itself — stack, deployment, the assistant's
+   * honest limits and the published-data boundary — from copy only, so no claim
    * about the build can drift from what the build actually does. The official
    * links beside the credits are constants in the view, not copy: the targets
    * never change with the locale.
@@ -728,7 +728,7 @@ export interface Copy {
      * Stack line rendered when this build shipped the Cloudflare Web Analytics
      * beacon (task E4). `BuildNotes` picks this or `stackItemNoAnalytics` from
      * the generated build metadata, so the page states the analytics the build
-     * actually has â€” never a claim either way that the build does not support.
+     * actually has — never a claim either way that the build does not support.
      */
     stackItemAnalytics: string;
     /** Stack line rendered when this build shipped no analytics. */
@@ -775,7 +775,7 @@ export interface Copy {
    *
    * Deliberately tiny: an honest intro plus the shared comment system, which
    * carries the whole moderation/privacy contract on its own. There is no
-   * guestbook-specific data, form or storage â€” the page id is just another
+   * guestbook-specific data, form or storage — the page id is just another
    * route enabled in `config/comments.json`, so nothing here can promise more
    * than the comment system actually does.
    */
@@ -791,7 +791,7 @@ export interface Copy {
    * Comments (`components/Comments.astro`, spec 9).
    *
    * Enabled per route by `config/comments.json`; the copy carries the whole
-   * honesty contract â€” no account, no tracking cookies (Turnstile's strictly
+   * honesty contract — no account, no tracking cookies (Turnstile's strictly
    * required clearance cookie is disclosed in `notice`), AI screening plus
    * human review, machine translation is labelled, and the GDPR removal path.
    * The client reads most of these through `data-*` attributes on the section,
@@ -859,7 +859,7 @@ export interface Copy {
     statusUnavailable: string;
     /** Reply button label on each top-level comment. */
     reply: string;
-    /** Composer context: "Replying to {name}" â€” the name token is filled client-side. */
+    /** Composer context: "Replying to {name}" — the name token is filled client-side. */
     replyingTo: string;
     /** Composer context when the reply is tied to an evidence anchor. */
     replyingToEvidence: string;
@@ -877,7 +877,7 @@ export interface Copy {
     replyDepthHint: string;
   };
   /**
-   * Milestone reactions â€” one anonymous â¤ï¸ per milestone detail page.
+   * Milestone reactions — one anonymous 👍 per milestone detail page.
    *
    * Counts are aggregate and shared between the EN and ES routes of the same
    * canonical milestone id. The control is honest about its own availability:
@@ -921,7 +921,7 @@ export interface Copy {
 
 export const en: Copy = {
   meta: {
-    title: 'Cristian Cardona â€” Professional Evolution',
+    title: 'Cristian Cardona — Professional Evolution',
     description:
       "Cristian Cardona's evidence-backed professional evolution from Full Stack and Cloud toward AI Engineering, AI Automation and Agentic Systems. Every capability claim points at an inspectable artifact.",
     languageName: 'English',
@@ -952,7 +952,7 @@ export const en: Copy = {
     label: 'Language',
     current: 'Current language',
     switchToEn: 'Read this page in English',
-    switchToEs: 'Leer esta pÃ¡gina en espaÃ±ol',
+    switchToEs: 'Leer esta página en español',
   },
   hero: {
     sentence: 'AI engineer shipping production LLM systems. Formerly full-stack & cloud.',
@@ -1066,7 +1066,7 @@ export const en: Copy = {
     completedHeading: 'Completed & ongoing',
     completedNote:
       'Work that is published or in flight. Every entry links to the commits and artifacts behind it.',
-    candidateHeading: 'Git-derived candidates Â· not reviewed',
+    candidateHeading: 'Git-derived candidates · not reviewed',
     candidateNote:
       'These entries come from commit subjects. Their narratives are placeholders, not reviewed editorial history or verified milestone claims.',
     directionAheadHeading: 'Direction ahead',
@@ -1105,13 +1105,13 @@ export const en: Copy = {
     roadmapTable: {
       heading: 'Roadmap: goal, skill, proof',
       note:
-        'One row per declared goal: the skills it exercises and the artifacts that prove it. A planned row is an intention, not a result â€” its proofs name the work it would extend, and no artifact exists until it ships.',
+        'One row per declared goal: the skills it exercises and the artifacts that prove it. A planned row is an intention, not a result — its proofs name the work it would extend, and no artifact exists until it ships.',
       goalLabel: 'Goal',
       skillsLabel: 'Skills',
       proofLabel: 'Proof',
       proofProject: 'Project',
       proofEvolution: 'Milestone',
-      noProofs: 'Proof: planned â€” none published',
+      noProofs: 'Proof: planned — none published',
       viewAll: 'View the roadmap',
     },
     pageHeading: 'The evolution',
@@ -1140,7 +1140,7 @@ export const en: Copy = {
       ],
     },
     finalText:
-      'Today: AI engineering, automation and agentic systems â€” direction recorded, evidence public, in progress.',
+      'Today: AI engineering, automation and agentic systems — direction recorded, evidence public, in progress.',
   },
   career: {
     eyebrow: 'Career',
@@ -1156,10 +1156,10 @@ export const en: Copy = {
     },
     timelineHeading: 'Employer history',
     present: 'Present',
-    sourceLabel: 'Human-declared Â· corroborated on LinkedIn',
+    sourceLabel: 'Human-declared · corroborated on LinkedIn',
     stackLabel: 'Declared stack',
     viewAll: 'View the full career',
-    resume: 'Download the rÃ©sumÃ© (HTML)',
+    resume: 'Download the résumé (HTML)',
     resumePdf: 'Download the resume (PDF)',
     guestbookCta: 'Sign the guestbook',
     pageHeading: 'Since 2017, five companies',
@@ -1168,7 +1168,7 @@ export const en: Copy = {
       { text: '2017', mark: true },
       { text: '. Since then I have built full-stack software for ', mark: false },
       { text: 'five companies', mark: true },
-      { text: ' â€” SINCOSOFT, ITEHL, BITS Americas, Siigo and Talan â€” almost all of it running on ', mark: false },
+      { text: ' — SINCOSOFT, ITEHL, BITS Americas, Siigo and Talan — almost all of it running on ', mark: false },
       { text: 'Azure', mark: true },
       { text: ', from Angular frontends through .NET and Java services to databases and Terraform-managed infrastructure. At ', mark: false },
       { text: 'Talan', mark: true },
@@ -1176,13 +1176,13 @@ export const en: Copy = {
       { text: 'Azure AI', mark: true },
       { text: '. That arc is the point: years of shipping production systems are the foundation the new work stands on. Since ', mark: false },
       { text: 'October 2026', mark: true },
-      { text: ' I have been building public AI engineering evidence â€” a reliability lab that fails closed, an approval-gated automation workflow with audit trails, and this portfolio, which separates shipped work from planned work and points every claim at something you can inspect.', mark: false },
+      { text: ' I have been building public AI engineering evidence — a reliability lab that fails closed, an approval-gated automation workflow with audit trails, and this portfolio, which separates shipped work from planned work and points every claim at something you can inspect.', mark: false },
     ],
     cta: 'Talk to me about AI engineering, automation and cloud work.',
   },
   skills: {
     heading: 'Skills, and what stands behind each one.',
-    lead: 'Every skill names where it was used: the employers that declared it, the public repositories where it can be inspected, or the verified career facts. No levels, no percentages, no ranking â€” only the evidence that exists.',
+    lead: 'Every skill names where it was used: the employers that declared it, the public repositories where it can be inspected, or the verified career facts. No levels, no percentages, no ranking — only the evidence that exists.',
     filterLabel: 'Filter skills by category',
     filterAll: 'All',
     categoryLabel: {
@@ -1269,14 +1269,14 @@ export const en: Copy = {
       'Describe what to improve. This opens your email client with the subject and message already filled in.',
     suggestionSubject: 'Portfolio suggestion',
     suggestionCta: 'Compose email',
-    submitPending: 'Sending your messageâ€¦',
+    submitPending: 'Sending your message…',
     submitSuccess: 'Message sent. Thanks for writing.',
     submitError: 'Sending failed. Try again, or write to the address below.',
     submitSubject: 'New message from your portfolio site',
     submitFrom: 'Portfolio contact form',
     displayRowLocation: 'Remote-first',
     displayRowHours: 'US-hours aligned',
-    displayRowLanguages: 'English, EspaÃ±ol',
+    displayRowLanguages: 'English, Español',
     greeting: 'Talk soon',
     ctaAriaLabel: 'Book a 30-minute call',
   },
@@ -1311,7 +1311,7 @@ export const en: Copy = {
     title: 'Portfolio assistant',
     close: 'Close the assistant',
     banner:
-      'This searches only what is published on this site â€” it is not an AI model, and it never sends your question anywhere. It can only point at what is already published here, and it says so when it finds nothing.',
+      'This searches only what is published on this site — it is not an AI model, and it never sends your question anywhere. It can only point at what is already published here, and it says so when it finds nothing.',
     devNotice:
       'Development only: messages you submit are sent transiently to Cloudflare AI and use the production free quota. Do not enter sensitive information.',
     chatNotice:
@@ -1331,7 +1331,7 @@ export const en: Copy = {
       'Live search: semantic. The site embedded its own index at build time and ranks results by similarity in your browser. Searching still makes no AI model call.',
     modeKeyword:
       'Live search: keyword-only. A plain keyword match over the published index; the build had no Cloudflare token to embed it, so it says so instead of pretending.',
-    placeholder: 'Projects, evidence, milestonesâ€¦',
+    placeholder: 'Projects, evidence, milestones…',
     submit: 'Search',
     suggestedHeading: 'Suggested questions',
     chips: {
@@ -1351,8 +1351,8 @@ export const en: Copy = {
     open: 'Open the command palette',
     title: 'Command palette',
     close: 'Close the command palette',
-    placeholder: 'Go to a page, project or evidence itemâ€¦',
-    hint: 'â†‘â†“ to move Â· Enter to open Â· Esc to close',
+    placeholder: 'Go to a page, project or evidence item…',
+    hint: '↑↓ to move · Enter to open · Esc to close',
     empty: 'No destination matches that.',
     home: 'Home',
     print: 'Print profile',
@@ -1406,8 +1406,8 @@ export const en: Copy = {
     printProfile: 'Print profile',
     buildPage: 'How this site is built',
     guestbook: 'Guestbook',
-    creditLine: 'Found pictures: title, creator, licence, source â€” filled in Task 5/6 when the open-collection pictures are chosen.',
-    bilingualNotice: 'This site also exists in EspaÃ±ol:',
+    creditLine: 'Found pictures: title, creator, licence, source — filled in Task 5/6 when the open-collection pictures are chosen.',
+    bilingualNotice: 'This site also exists in Español:',
   },
   build: {
     eyebrow: 'How this site is built',
@@ -1428,17 +1428,17 @@ export const en: Copy = {
     deployNote:
       'Every push to main is built and published automatically by GitHub Actions. GitHub Pages is the canonical host; a Cloudflare Workers mirror serves the same static build.',
     deployHeadersNote:
-      'As of 2026-10-12 the Workers mirror also serves security headers â€” X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, X-Frame-Options: DENY, Permissions-Policy: camera=(), microphone=(), geolocation=() and Strict-Transport-Security â€” and Cache-Control: public, max-age=31536000, immutable for the hashed assets under /_astro/. The mechanism is a _headers file in the build output. The canonical GitHub Pages host is a project site and cannot set response headers, so it serves the same pages without them.',
+      'As of 2026-10-12 the Workers mirror also serves security headers — X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, X-Frame-Options: DENY, Permissions-Policy: camera=(), microphone=(), geolocation=() and Strict-Transport-Security — and Cache-Control: public, max-age=31536000, immutable for the hashed assets under /_astro/. The mechanism is a _headers file in the build output. The canonical GitHub Pages host is a project site and cannot set response headers, so it serves the same pages without them.',
     assistantHeading: 'The assistant is a search, not an AI',
     assistantNote:
       'The floating assistant searches only the public data published on this site. It is not an AI model and makes no API call: it can only point at what is already published here, and it says so when it finds nothing.',
     searchModeSemantic:
-      'This build shipped a semantic search index: the assistantâ€™s own index was embedded at build time with the Workers AI model @cf/baai/bge-m3, and a search ranks the published entries by similarity in your browser. No AI model is called when you search.',
+      'This build shipped a semantic search index: the assistant’s own index was embedded at build time with the Workers AI model @cf/baai/bge-m3, and a search ranks the published entries by similarity in your browser. No AI model is called when you search.',
     searchModeKeyword:
       'This build shipped no search vectors, so the assistant runs its keyword search only. Embedding the index needs a Cloudflare token at build time; this page reports the mode the build actually has instead of claiming the other one.',
     agentHeading: 'Readable by AI agents',
     agentNote:
-      'As of 2026-10-12 the site publishes an llms.txt file and annotates two forms with WebMCP: its contact form (contact_message) and the assistantâ€™s search box (site_search), so an agent can find the site and identify both actions as tools. The search tool is honest about what it is: a client-side search of the index already embedded in the page and, when the build shipped semantic vectors, one same-origin static JSON file â€” no backend and no AI model or API call at query time. A Lighthouse 13.5.0 run of the agentic-browsing category in Chrome 154 registered both tools with valid schemas, passed the accessibility-tree audit, reported no form missing annotations and measured a cumulative layout shift of 0. The llms.txt audit checks the domain root: it passes on the Cloudflare mirror, which serves the build at /, and is not applicable to the GitHub Pages path, which serves it under /professional-evolution-portfolio/.',
+      'As of 2026-10-12 the site publishes an llms.txt file and annotates two forms with WebMCP: its contact form (contact_message) and the assistant’s search box (site_search), so an agent can find the site and identify both actions as tools. The search tool is honest about what it is: a client-side search of the index already embedded in the page and, when the build shipped semantic vectors, one same-origin static JSON file — no backend and no AI model or API call at query time. A Lighthouse 13.5.0 run of the agentic-browsing category in Chrome 154 registered both tools with valid schemas, passed the accessibility-tree audit, reported no form missing annotations and measured a cumulative layout shift of 0. The llms.txt audit checks the domain root: it passes on the Cloudflare mirror, which serves the build at /, and is not applicable to the GitHub Pages path, which serves it under /professional-evolution-portfolio/.',
     sourceHeading: 'Source',
     sourceNote:
       'The site and its data layer are public. The repository below is the artifact you can inspect; nothing is published from a private source.',
@@ -1453,15 +1453,15 @@ export const en: Copy = {
     eyebrow: 'Guestbook',
     title: 'Guestbook',
     summary:
-      'Leave a short, honest note about what you found here. It is the same comment system the other pages use â€” no account, no tracking cookies, an optional display name â€” and every note is reviewed before it appears.',
+      'Leave a short, honest note about what you found here. It is the same comment system the other pages use — no account, no tracking cookies, an optional display name — and every note is reviewed before it appears.',
   },
   comments: {
     eyebrow: 'Comments',
     heading: 'Join the conversation',
     summary:
-      'Comments are open on this page. No account, no tracking cookies and no email address â€” a display name is optional.',
+      'Comments are open on this page. No account, no tracking cookies and no email address — a display name is optional.',
     notice:
-      'How this works: an AI model screens every comment before it appears, and anything it is unsure about goes to a human review queue, so nothing is published unreviewed. The comment form\'s Cloudflare Turnstile challenge stores one strictly required clearance cookie; the site itself sets no others. Comments are anonymous â€” your IP address is used only for a temporary rate limit and is never stored. To have a comment removed, write to me through the contact form (GDPR).',
+      'How this works: an AI model screens every comment before it appears, and anything it is unsure about goes to a human review queue, so nothing is published unreviewed. The comment form\'s Cloudflare Turnstile challenge stores one strictly required clearance cookie; the site itself sets no others. Comments are anonymous — your IP address is used only for a temporary rate limit and is never stored. To have a comment removed, write to me through the contact form (GDPR).',
     formHeading: 'Leave a comment',
     nameLabel: 'Name (optional)',
     nameHint: 'Shown next to your comment. Leave it empty to stay anonymous.',
@@ -1474,12 +1474,12 @@ export const en: Copy = {
     langOther: 'Another language',
     honeypot: 'Leave this field empty',
     submit: 'Post comment',
-    submitting: 'Postingâ€¦',
+    submitting: 'Posting…',
     privacy:
       'No account, no tracking cookies, no email collection. Your comment is public once it passes review, and you can ask for its removal at any time.',
     listHeading: 'Comments',
     empty: 'No comments yet. Be the first.',
-    loading: 'Loading commentsâ€¦',
+    loading: 'Loading comments…',
     retry: 'Try again',
     anonymous: 'Anonymous',
     report: 'Report',
@@ -1488,7 +1488,7 @@ export const en: Copy = {
     viewTranslation: 'Translate',
     translationUnavailable: 'Translation is not available for this source language.',
     machineTranslated: 'Machine translated',
-    translationLoading: 'Translating commentâ€¦',
+    translationLoading: 'Translating comment…',
     translationError: 'Could not translate this comment.',
     translationFallback: 'The original text is still shown. Try again later.',
     translationReady: 'Machine-translated version shown.',
@@ -1496,7 +1496,7 @@ export const en: Copy = {
     translationNoJs: 'Comments stay in their original language unless you explicitly choose Translate; that control needs JavaScript.',
     unavailableHeading: 'Comments are temporarily unavailable.',
     unavailableNote:
-      'The comment service is not configured on this deployment, so the form stays disabled â€” nothing typed here would be sent.',
+      'The comment service is not configured on this deployment, so the form stays disabled — nothing typed here would be sent.',
     turnstileBlocked:
       'The verification widget could not load, so the form stays disabled. Please try again later or use the contact form.',
     noJsHeading: 'JavaScript is off',
@@ -1504,10 +1504,10 @@ export const en: Copy = {
       'The comment form needs JavaScript for spam verification. You can still write to me directly:',
     noJsCta: 'Send an email instead',
     presenceTemplate: '~{n} viewing now',
-    reconnecting: 'Reconnectingâ€¦',
+    reconnecting: 'Reconnecting…',
     newComment: 'A new comment arrived.',
     statusPosted: 'Comment published.',
-    statusQueued: 'Thanks â€” your comment was received and is waiting for review.',
+    statusQueued: 'Thanks — your comment was received and is waiting for review.',
     statusRateLimited: 'Too many comments in a short time. Please try again in an hour.',
     statusInvalidBody: 'Write between 1 and 2000 characters.',
     statusInvalidToken: 'Verification failed. Reload the page and try again.',
@@ -1521,7 +1521,7 @@ export const en: Copy = {
     cancelReply: 'Cancel',
     submitReply: 'Post reply',
     replyPosted: 'Reply published.',
-    replyQueued: 'Thanks â€” your reply is waiting for review.',
+    replyQueued: 'Thanks — your reply is waiting for review.',
     removedParent: 'Comment removed',
     replyDepthHint: 'Replies are limited to one level.',
   },
@@ -1530,8 +1530,8 @@ export const en: Copy = {
     useful: 'This was useful',
     countOne: '1 person found this useful',
     countMany: '{n} people found this useful',
-    loading: 'Loading reactionsâ€¦',
-    added: 'Thanks â€” your reaction was counted.',
+    loading: 'Loading reactions…',
+    added: 'Thanks — your reaction was counted.',
     removed: 'Your reaction was removed.',
     error: 'Could not save your reaction. Please try again.',
     rateLimited: 'Too many reactions in a short time. Please try again later.',
@@ -1544,26 +1544,26 @@ export const en: Copy = {
 
 export const es: Copy = {
   meta: {
-    title: 'Cristian Cardona â€” EvoluciÃ³n Profesional',
+    title: 'Cristian Cardona — Evolución Profesional',
     description:
-      'EvoluciÃ³n profesional de Cristian Cardona respaldada por evidencia: de Full Stack y Cloud hacia IngenierÃ­a de IA, AutomatizaciÃ³n de IA y Sistemas AgÃ©nticos. Cada afirmaciÃ³n apunta a un artefacto inspeccionable.',
-    languageName: 'EspaÃ±ol',
+      'Evolución profesional de Cristian Cardona respaldada por evidencia: de Full Stack y Cloud hacia Ingeniería de IA, Automatización de IA y Sistemas Agénticos. Cada afirmación apunta a un artefacto inspeccionable.',
+    languageName: 'Español',
   },
   a11y: {
     skipToContent: 'Saltar al contenido principal',
     primaryNav: 'Principal',
     externalLink: 'Enlace externo',
-    opensInNewTab: 'se abre en una pestaÃ±a nueva',
+    opensInNewTab: 'se abre en una pestaña nueva',
     required: 'obligatorio',
-    onThisPage: 'En esta pÃ¡gina',
+    onThisPage: 'En esta página',
   },
   nav: {
     work: 'Trabajo',
     career: 'Trayectoria',
-    evolution: 'EvoluciÃ³n',
+    evolution: 'Evolución',
     evidence: 'Evidencia',
     contact: 'Contacto',
-    menuLabel: 'MenÃº',
+    menuLabel: 'Menú',
   },
   theme: {
     label: 'Tema',
@@ -1575,7 +1575,7 @@ export const es: Copy = {
     label: 'Idioma',
     current: 'Idioma actual',
     switchToEn: 'Read this page in English',
-    switchToEs: 'Leer esta pÃ¡gina en espaÃ±ol',
+    switchToEs: 'Leer esta página en español',
   },
   hero: {
     sentence: 'Ingeniero de IA que entrega sistemas LLM en producci��n. Antes, full-stack y cloud.',
@@ -1587,7 +1587,7 @@ export const es: Copy = {
     heading: 'Cifras verificadas',
     companies: (count, since) => `${count} empresas desde ${since}`,
     projects: (count) =>
-      count === 1 ? '1 pÃ¡gina de proyecto documentado' : `${count} pÃ¡ginas de proyectos documentados`,
+      count === 1 ? '1 página de proyecto documentado' : `${count} páginas de proyectos documentados`,
     milestones: (count) => (count === 1 ? '1 hito registrado' : `${count} hitos registrados`),
     locales: 'EN + ES',
   },
@@ -1595,23 +1595,23 @@ export const es: Copy = {
     eyebrow: 'Notas',
     heading: 'Notas recientes.',
     summary:
-      'Los hitos escritos a mano mÃ¡s recientes, del mÃ¡s nuevo al mÃ¡s antiguo. Los candidatos derivados de git sin revisar no se listan aquÃ­; permanecen en la lÃ­nea de tiempo completa, etiquetados como candidatos.',
+      'Los hitos escritos a mano más recientes, del más nuevo al más antiguo. Los candidatos derivados de git sin revisar no se listan aquí; permanecen en la línea de tiempo completa, etiquetados como candidatos.',
     allNotes: 'Todas las notas',
     rss: 'Suscribirse por RSS',
   },
   work: {
     eyebrow: 'Trabajo seleccionado',
-    heading: 'Proyectos con sus lÃ­mites a la vista.',
+    heading: 'Proyectos con sus límites a la vista.',
     summary:
-      'Un prototipo puede ser Ãºtil sin estar listo para producciÃ³n. El trabajo planificado sigue etiquetado como planificado hasta que exista algo pÃºblico que inspeccionar.',
+      'Un prototipo puede ser útil sin estar listo para producción. El trabajo planificado sigue etiquetado como planificado hasta que exista algo público que inspeccionar.',
     viewAll: 'Ver todos los proyectos',
     repo: 'Repositorio',
     caseStudy: 'Estudio de caso',
     related: 'Trabajo relacionado',
-    relatedEmpty: 'TodavÃ­a no hay entradas relacionadas en el conjunto de datos.',
-    screenshotPlaceholder: 'TodavÃ­a no hay capturas publicadas para este proyecto.',
+    relatedEmpty: 'Todavía no hay entradas relacionadas en el conjunto de datos.',
+    screenshotPlaceholder: 'Todavía no hay capturas publicadas para este proyecto.',
     screenshotAlt: {
-      'site-career.png': 'Captura de pantalla de la pÃ¡gina de trayectoria y habilidades',
+      'site-career.png': 'Captura de pantalla de la página de trayectoria y habilidades',
     },
     screenshotAltFallback: (name) => `Captura de pantalla de ${name}`,
     filterLabel: 'Filtrar proyectos por etiqueta',
@@ -1621,15 +1621,15 @@ export const es: Copy = {
     demonstrates: 'Esto demuestra',
     doesNot: 'Esto no',
     evidence: 'Evidencia',
-    flipClaim: 'Voltea la afirmaciÃ³n',
+    flipClaim: 'Voltea la afirmación',
   },
   caseStudy: {
     eyebrow: 'Estudio de caso',
     back: 'Volver a todos los proyectos',
-    disclosure: 'Leer detalles tÃ©cnicos',
+    disclosure: 'Leer detalles técnicos',
     empty:
-      'TodavÃ­a no hay un estudio de caso publicado para este proyecto. El repositorio de abajo es el artefacto que puedes inspeccionar; no se inventa un resumen donde no lo hay.',
-    ctaHeading: 'Â¿Preguntas sobre este trabajo?',
+      'Todavía no hay un estudio de caso publicado para este proyecto. El repositorio de abajo es el artefacto que puedes inspeccionar; no se inventa un resumen donde no lo hay.',
+    ctaHeading: '¿Preguntas sobre este trabajo?',
     ctaContact: 'Preguntar sobre este trabajo',
     contextHeading: 'Contexto',
     decisionsHeading: 'Decisiones',
@@ -1645,102 +1645,102 @@ export const es: Copy = {
       lab: 'Laboratorio / planificado',
     },
     hint: {
-      live: 'Publicado y accesible ahora; los enlaces y artefactos de esta pÃ¡gina se resuelven.',
-      mvp: 'Producto mÃ­nimo viable: existe algo utilizable, con los lÃ­mites documentados.',
-      demo: 'VersiÃ³n de demostraciÃ³n. No implica disponibilidad ni uso en producciÃ³n.',
+      live: 'Publicado y accesible ahora; los enlaces y artefactos de esta página se resuelven.',
+      mvp: 'Producto mínimo viable: existe algo utilizable, con los límites documentados.',
+      demo: 'Versión de demostración. No implica disponibilidad ni uso en producción.',
       prototype:
-        'Prototipo: una reproducciÃ³n pÃºblica cubierta por pruebas, sin ningÃºn sistema en producciÃ³n detrÃ¡s.',
-      lab: 'Trabajo de laboratorio o planificado. No estÃ¡ construido ni desplegado como producto.',
+        'Prototipo: una reproducción pública cubierta por pruebas, sin ningún sistema en producción detrás.',
+      lab: 'Trabajo de laboratorio o planificado. No está construido ni desplegado como producto.',
     },
   },
   evolution: {
-    eyebrow: 'EvoluciÃ³n',
-    heading: 'De dÃ³nde viene esto y hacia dÃ³nde va.',
+    eyebrow: 'Evolución',
+    heading: 'De dónde viene esto y hacia dónde va.',
     summary:
       'La trayectoria es inspeccionable: cada hito enlaza con los commits y artefactos que lo respaldan, y las entradas derivadas de git sin revisar se etiquetan como candidatas.',
     featuredEyebrow: 'Entrada del diario',
     featuredHeading: 'Empieza por esta entrada',
-    latestMilestonesHeading: 'Ãšltimos hitos',
+    latestMilestonesHeading: 'últimos hitos',
     curatedNav: 'Historial curado',
-    candidateNav: 'Candidatos de git Â· sin revisar',
-    plannedNav: 'DirecciÃ³n planificada',
+    candidateNav: 'Candidatos de git · sin revisar',
+    plannedNav: 'Dirección planificada',
     roadmapNav: 'Hoja de ruta',
     contributionNote:
-      'Â¿Tienes contexto o preguntas? CompÃ¡rtelos en la conversaciÃ³n. Las aportaciones no verifican la evidencia.',
-    viewAll: 'Ver la lÃ­nea de tiempo completa',
-    previewNote: 'Se muestran solo las entradas mÃ¡s recientes.',
+      '¿Tienes contexto o preguntas? Compártelos en la conversación. Las aportaciones no verifican la evidencia.',
+    viewAll: 'Ver la línea de tiempo completa',
+    previewNote: 'Se muestran solo las entradas más recientes.',
     shipped: 'Entregado',
     inProgress: 'En curso',
     planned: 'Planificado',
     sourceLabel: {
       curated: 'Curado',
       git: 'Candidato de git · sin revisar',
-      snapshot: 'InstantÃ¡nea',
+      snapshot: 'Instantánea',
     },
-    sourcesNote: 'CÃ³mo leer la insignia de origen',
+    sourcesNote: 'Cómo leer la insignia de origen',
     sourceHint: {
       curated: 'Escrito a mano y revisado antes de publicarse.',
-      git: 'Generado a partir del historial de commits y todavÃ­a sin revisar: se trata de un candidato, no de historia curada.',
+      git: 'Generado a partir del historial de commits y todavía sin revisar: se trata de un candidato, no de historia curada.',
       snapshot:
-        'LeÃ­do de la instantÃ¡nea pÃºblica cuando se construye el sitio; la siguiente compilaciÃ³n recoge cualquier cambio.',
+        'Leído de la instantánea pública cuando se construye el sitio; la siguiente compilación recoge cualquier cambio.',
     },
-    timelineHeading: 'LÃ­nea de tiempo completa',
+    timelineHeading: 'Línea de tiempo completa',
     evidenceLinks: (count) =>
       count === 1 ? '1 enlace de evidencia' : `${count} enlaces de evidencia`,
     completedHeading: 'Completado y en curso',
     completedNote:
       'Trabajo publicado o en marcha. Cada entrada enlaza con los commits y artefactos que lo respaldan.',
-    candidateHeading: 'Candidatos derivados de git Â· sin revisar',
+    candidateHeading: 'Candidatos derivados de git · sin revisar',
     candidateNote:
       'Estas entradas proceden de asuntos de commits. Sus narraciones son borradores, no historia editorial revisada ni afirmaciones de hitos verificadas.',
-    directionAheadHeading: 'DirecciÃ³n por delante',
+    directionAheadHeading: 'Dirección por delante',
     directionAheadNote:
-      'No son logros. Estas entradas solo registran intenciÃ³n: todavÃ­a no existe ningÃºn artefacto y los enlaces apuntan a lo que se ampliarÃ­a.',
+      'No son logros. Estas entradas solo registran intención: todavía no existe ningún artefacto y los enlaces apuntan a lo que se ampliaría.',
     relatedLabel: 'Relacionado',
     curatedPreviewNote:
-      'Se muestran los hitos escritos a mano mÃ¡s recientes, con lo entregado primero; los candidatos de git sin revisar estÃ¡n en la lÃ­nea de tiempo completa.',
-    backToTimeline: 'Volver a la lÃ­nea de tiempo',
+      'Se muestran los hitos escritos a mano más recientes, con lo entregado primero; los candidatos de git sin revisar están en la línea de tiempo completa.',
+    backToTimeline: 'Volver a la línea de tiempo',
     evidenceHeading: 'Evidencia',
     discussEvidence: 'Comentar esta evidencia',
     previousMilestone: 'Hito anterior',
     nextMilestone: 'Hito siguiente',
-    joinDiscussion: 'Ãšnete a la conversaciÃ³n',
+    joinDiscussion: 'únete a la conversación',
     readStory: 'Leer la historia',
     roadmapHeading: 'Hoja de ruta por fase',
     roadmapNote:
-      'Derivada de los propios hitos: cada fase muestra el foco que cubriÃ³ y los proyectos que lo respaldaron. Las fases describen lo que ocurriÃ³; solo Â«DirecciÃ³n por delanteÂ» describe lo que se pretende.',
+      'Derivada de los propios hitos: cada fase muestra el foco que cubrió y los proyectos que lo respaldaron. Las fases describen lo que ocurrió; solo «Dirección por delante» describe lo que se pretende.',
     roadmapProjectsLabel: 'Proyectos de apoyo',
     roadmapNoProjects:
-      'NingÃºn hito de esta fase enlaza un proyecto, asÃ­ que no se lista ninguno.',
+      'Ningún hito de esta fase enlaza un proyecto, así que no se lista ninguno.',
     phaseLabel: {
-      foundation: 'FundaciÃ³n',
-      transition: 'TransiciÃ³n',
-      frontier: 'DirecciÃ³n por delante',
+      foundation: 'Fundación',
+      transition: 'Transición',
+      frontier: 'Dirección por delante',
     },
     phaseFocus: {
       foundation:
-        'Hacer real el contrato de evidencia: una instantÃ¡nea publicada, dos locales revisados y una declaraciÃ³n de lÃ­mites explÃ­cita para cada reproducciÃ³n pÃºblica.',
+        'Hacer real el contrato de evidencia: una instantánea publicada, dos locales revisados y una declaración de límites explícita para cada reproducción pública.',
       transition:
-        'Reconstruir sobre Astro con una capa de datos validada, manteniendo el sitio anterior en lÃ­nea hasta que la puerta de corte se supere.',
+        'Reconstruir sobre Astro con una capa de datos validada, manteniendo el sitio anterior en línea hasta que la puerta de corte se supere.',
       frontier:
-        'Intencionado, no iniciado. Cada fila apunta a los repositorios que el prÃ³ximo trabajo ampliarÃ­a; nada de eso estÃ¡ construido todavÃ­a.',
+        'Intencionado, no iniciado. Cada fila apunta a los repositorios que el próximo trabajo ampliaría; nada de eso está construido todavía.',
     },
     roadmapMilestones: (count) => (count === 1 ? '1 hito' : `${count} hitos`),
     roadmapTable: {
       heading: 'Hoja de ruta: objetivo, habilidad, prueba',
       note:
-        'Una fila por cada objetivo declarado: las habilidades que ejerce y los artefactos que lo prueban. Una fila planificada es una intenciÃ³n, no un resultado: sus pruebas nombran el trabajo que ampliarÃ­a, y ningÃºn artefacto existe hasta que se entregue.',
+        'Una fila por cada objetivo declarado: las habilidades que ejerce y los artefactos que lo prueban. Una fila planificada es una intención, no un resultado: sus pruebas nombran el trabajo que ampliaría, y ningún artefacto existe hasta que se entregue.',
       goalLabel: 'Objetivo',
       skillsLabel: 'Habilidades',
       proofLabel: 'Prueba',
       proofProject: 'Proyecto',
       proofEvolution: 'Hito',
-      noProofs: 'Prueba: prevista â€” nada publicado todavÃ­a',
+      noProofs: 'Prueba: prevista — nada publicado todavía',
       viewAll: 'Ver la hoja de ruta',
     },
-    pageHeading: 'La evoluciÃ³n',
+    pageHeading: 'La evolución',
     intro:
-      'Cada hito estÃ¡ fechado, y nada estÃ¡ fechado que no haya ocurrido. La lÃ­nea de tiempo muestra la progresiÃ³n a travÃ©s de tres fases: FundaciÃ³n, TransiciÃ³n y DirecciÃ³n por delante.',
+      'Cada hito está fechado, y nada está fechado que no haya ocurrido. La línea de tiempo muestra la progresión a través de tres fases: Fundación, Transición y Dirección por delante.',
     phaseRange: {
       foundation: '2017 a 2021',
       transition: '2021 a 2026',
@@ -1749,28 +1749,28 @@ export const es: Copy = {
     phaseItems: {
       foundation: [
         { label: 'Desarrollo full-stack en SINCOSOFT, ITEHL, BITS Americas', date: '2017' },
-        { label: 'Azure, .NET, Java, Angular, SQL en producciÃ³n', date: '2021' },
+        { label: 'Azure, .NET, Java, Angular, SQL en producción', date: '2021' },
       ],
       transition: [
         { label: 'Siigo: .NET, Angular, Azure, SQL', date: '2021' },
         { label: 'Talan: Azure, Java, React, Terraform, Node, Azure AI', date: '2023' },
         { label: 'Portafolio basado en evidencia publicado', date: '2026-10-03' },
-        { label: 'VersiÃ³n bilingÃ¼e EN/ES, paridad de accesibilidad', date: '2026-10-08' },
-        { label: 'ReconstrucciÃ³n en Astro, lanzamiento en ambos hosts', date: '2026-10-09' },
+        { label: 'Versión bilingüe EN/ES, paridad de accesibilidad', date: '2026-10-08' },
+        { label: 'Reconstrucción en Astro, lanzamiento en ambos hosts', date: '2026-10-09' },
       ],
       frontier: [
-        { label: 'ConstrucciÃ³n de evidencia de ingenierÃ­a de IA', date: 'planificado' },
-        { label: 'Laboratorio de flujos agÃ©nticos, replay e iteraciones adversariales', date: 'planificado' },
+        { label: 'Construcción de evidencia de ingeniería de IA', date: 'planificado' },
+        { label: 'Laboratorio de flujos agénticos, replay e iteraciones adversariales', date: 'planificado' },
       ],
     },
     finalText:
-      'Hoy: ingenierÃ­a de IA, automatizaciÃ³n y sistemas agÃ©nticos â€” direcciÃ³n registrada, evidencia pÃºblica, en progreso.',
+      'Hoy: ingeniería de IA, automatización y sistemas agénticos — dirección registrada, evidencia pública, en progreso.',
   },
   career: {
     eyebrow: 'Trayectoria',
-    heading: 'DÃ³nde ocurriÃ³ el trabajo, y sobre quÃ©.',
+    heading: 'Dónde ocurrió el trabajo, y sobre qué.',
     summary:
-      'Cinco empleadores, declarados por la persona (datos verificados, 2026-10-08) y corroborados en el perfil pÃºblico de LinkedIn. Los periodos, roles y stacks se reproducen tal como se declararon; nada aquÃ­ se infiere de un repositorio.',
+      'Cinco empleadores, declarados por la persona (datos verificados, 2026-10-08) y corroborados en el perfil público de LinkedIn. Los periodos, roles y stacks se reproducen tal como se declararon; nada aquí se infiere de un repositorio.',
     availability: {
       label: 'Disponibilidad',
       available: 'Abierto a conversaciones',
@@ -1780,34 +1780,34 @@ export const es: Copy = {
     },
     timelineHeading: 'Historial de empleadores',
     present: 'Actualidad',
-    sourceLabel: 'Declarado por la persona Â· corroborado en LinkedIn',
+    sourceLabel: 'Declarado por la persona · corroborado en LinkedIn',
     stackLabel: 'Stack declarado',
     viewAll: 'Ver la trayectoria completa',
-    resume: 'Descargar el currÃ­culum (HTML)',
-    resumePdf: 'Descargar el currÃ­culum (PDF)',
+    resume: 'Descargar el currículum (HTML)',
+    resumePdf: 'Descargar el currículum (PDF)',
     guestbookCta: 'Firma el libro de visitas',
     pageHeading: 'Desde 2017, cinco empresas',
     statement: [
-      { text: 'Mi primer sistema en producciÃ³n se desplegÃ³ en ', mark: false },
+      { text: 'Mi primer sistema en producción se desplegó en ', mark: false },
       { text: '2017', mark: true },
       { text: '. Desde entonces he construido software full-stack para ', mark: false },
       { text: 'cinco empresas', mark: true },
-      { text: ' â€” SINCOSOFT, ITEHL, BITS Americas, Siigo y Talan â€” casi todo ejecutÃ¡ndose en ', mark: false },
+      { text: ' — SINCOSOFT, ITEHL, BITS Americas, Siigo y Talan — casi todo ejecutándose en ', mark: false },
       { text: 'Azure', mark: true },
       { text: ', desde frontends en Angular pasando por servicios en .NET y Java hasta bases de datos e infraestructura gestionada con Terraform. En ', mark: false },
       { text: 'Talan', mark: true },
-      { text: ', donde trabajo hoy, el stack se ampliÃ³ a React, Node, PostgreSQL y ', mark: false },
+      { text: ', donde trabajo hoy, el stack se amplió a React, Node, PostgreSQL y ', mark: false },
       { text: 'Azure AI', mark: true },
-      { text: '. Ese arco es el punto: aÃ±os entregando sistemas en producciÃ³n son la base sobre la que se sostiene el trabajo nuevo. Desde ', mark: false },
+      { text: '. Ese arco es el punto: años entregando sistemas en producción son la base sobre la que se sostiene el trabajo nuevo. Desde ', mark: false },
       { text: 'octubre de 2026', mark: true },
-      { text: ' he estado construyendo evidencia pÃºblica de ingenierÃ­a de IA â€” un laboratorio de fiabilidad que falla en cerrado, un flujo de automatizaciÃ³n con puertas de aprobaciÃ³n y trazas de auditorÃ­a, y este portafolio, que separa el trabajo entregado del planificado y apunta cada afirmaciÃ³n a algo que puedes inspeccionar.', mark: false },
+      { text: ' he estado construyendo evidencia pública de ingeniería de IA — un laboratorio de fiabilidad que falla en cerrado, un flujo de automatización con puertas de aprobación y trazas de auditoría, y este portafolio, que separa el trabajo entregado del planificado y apunta cada afirmación a algo que puedes inspeccionar.', mark: false },
     ],
-    cta: 'Hablemos de ingenierÃ­a de IA, automatizaciÃ³n y trabajo en la nube.',
+    cta: 'Hablemos de ingeniería de IA, automatización y trabajo en la nube.',
   },
   skills: {
-    heading: 'Habilidades, y quÃ© respalda cada una.',
-    lead: 'Cada habilidad indica dÃ³nde se usÃ³: los empleadores que la declararon, los repositorios pÃºblicos donde se puede inspeccionar, o los datos verificados de la trayectoria. Sin niveles, sin porcentajes, sin rankings: solo la evidencia que existe.',
-    filterLabel: 'Filtrar habilidades por categorÃ­a',
+    heading: 'Habilidades, y qué respalda cada una.',
+    lead: 'Cada habilidad indica dónde se usó: los empleadores que la declararon, los repositorios públicos donde se puede inspeccionar, o los datos verificados de la trayectoria. Sin niveles, sin porcentajes, sin rankings: solo la evidencia que existe.',
+    filterLabel: 'Filtrar habilidades por categoría',
     filterAll: 'Todas',
     categoryLabel: {
       languages: 'Lenguajes',
@@ -1819,30 +1819,30 @@ export const es: Copy = {
       devops: 'DevOps',
     },
     badge: {
-      listLabel: (skill) => `Evidencia detrÃ¡s de ${skill}`,
+      listLabel: (skill) => `Evidencia detrás de ${skill}`,
       companies: (count) => (count === 1 ? '1 empleador' : `${count} empleadores`),
       companiesTitle: (names) => `Declarado en ${names.join(', ')}`,
-      projects: (count) => (count === 1 ? '1 proyecto pÃºblico' : `${count} proyectos pÃºblicos`),
+      projects: (count) => (count === 1 ? '1 proyecto público' : `${count} proyectos públicos`),
       projectsTitle: (names) => `Inspeccionable en ${names.join(', ')}`,
       facts: 'Dato verificado',
       factsTitle:
-        'Declarado en los datos verificados de la trayectoria (2026-10-08). No hay ningÃºn artefacto pÃºblico detrÃ¡s, asÃ­ que esta insignia no es un enlace.',
+        'Declarado en los datos verificados de la trayectoria (2026-10-08). No hay ningún artefacto público detrás, así que esta insignia no es un enlace.',
     },
-    more: (count) => (count === 1 ? '1 mÃ¡s' : `${count} mÃ¡s`),
+    more: (count) => (count === 1 ? '1 más' : `${count} más`),
     viewAll: 'Ver todas las habilidades',
   },
   evidence: {
     eyebrow: 'Evidencia',
-    heading: 'Evidencia, no una puntuaciÃ³n de habilidades.',
+    heading: 'Evidencia, no una puntuación de habilidades.',
     summary:
-      'Cada afirmaciÃ³n lleva un estado. La falta de prueba pÃºblica se muestra como una laguna en lugar de rellenarse con lenguaje de marketing.',
+      'Cada afirmación lleva un estado. La falta de prueba pública se muestra como una laguna en lugar de rellenarse con lenguaje de marketing.',
     introNote:
-      'La lista siguiente se genera desde la instantÃ¡nea pÃºblica en tiempo de compilaciÃ³n. Las entradas se agrupan por el estado de la afirmaciÃ³n que respaldan, y nada aparece aquÃ­ sin un enlace pÃºblico.',
+      'La lista siguiente se genera desde la instantánea pública en tiempo de compilación. Las entradas se agrupan por el estado de la afirmación que respaldan, y nada aparece aquí sin un enlace público.',
     listHeading: 'Evidencia publicada',
     count: (count) =>
       count === 1 ? '1 elemento de evidencia enlazado' : `${count} elementos de evidencia enlazados`,
     empty:
-      'TodavÃ­a no hay elementos de evidencia publicados. Esta secciÃ³n se completa desde la instantÃ¡nea pÃºblica en tiempo de compilaciÃ³n, y se muestra una lista vacÃ­a en lugar de afirmaciones inventadas.',
+      'Todavía no hay elementos de evidencia publicados. Esta sección se completa desde la instantánea pública en tiempo de compilación, y se muestra una lista vacía en lugar de afirmaciones inventadas.',
     viewAll: 'Ver toda la evidencia',
     statusLabel: {
       demonstrated: 'Demostrado',
@@ -1852,88 +1852,88 @@ export const es: Copy = {
     },
     statusHint: {
       demonstrated:
-        'Respaldado por al menos un artefacto pÃºblico y verificable que un tercero puede abrir.',
+        'Respaldado por al menos un artefacto público y verificable que un tercero puede abrir.',
       developing:
-        'Parcialmente construido o a nivel de prototipo: sin artefacto pÃºblico todavÃ­a, o el disponible no cubre toda la afirmaciÃ³n.',
-      aspirational: 'DirecciÃ³n o intenciÃ³n declarada. No iniciado, o iniciado pero no verificable.',
-      insufficient: 'Hoy no existe ningÃºn artefacto pÃºblico que pueda respaldar la afirmaciÃ³n.',
+        'Parcialmente construido o a nivel de prototipo: sin artefacto público todavía, o el disponible no cubre toda la afirmación.',
+      aspirational: 'Dirección o intención declarada. No iniciado, o iniciado pero no verificable.',
+      insufficient: 'Hoy no existe ningún artefacto público que pueda respaldar la afirmación.',
     },
     pageHeading: 'Comprobado con',
   },
   activity: {
-    eyebrow: 'CÃ³digo abierto',
-    heading: 'Actividad pÃºblica en GitHub',
-    note: 'Capturada en tiempo de compilaciÃ³n; este sitio no hace llamadas a la API en vivo.',
-    empty: 'InstantÃ¡nea capturada en tiempo de compilaciÃ³n; no hay actividad registrada.',
+    eyebrow: 'Código abierto',
+    heading: 'Actividad pública en GitHub',
+    note: 'Capturada en tiempo de compilación; este sitio no hace llamadas a la API en vivo.',
+    empty: 'Instantánea capturada en tiempo de compilación; no hay actividad registrada.',
     noCommits: 'No hay commits recientes registrados para este repositorio.',
     openPullRequests: (count) =>
       count === 1 ? '1 pull request abierto' : `${count} pull requests abiertos`,
-    latestRelease: (tag) => `Ãšltima versiÃ³n ${tag}`,
+    latestRelease: (tag) => `última versión ${tag}`,
   },
   contact: {
     eyebrow: 'Contacto',
     heading: 'Empieza por la evidencia.',
     summary:
-      'Pregunta por un repositorio, una afirmaciÃ³n o un lÃ­mite. Las respuestas cubren lo que es pÃºblicamente inspeccionable, no lo que estÃ¡ previsto.',
+      'Pregunta por un repositorio, una afirmación o un límite. Las respuestas cubren lo que es públicamente inspeccionable, no lo que está previsto.',
     formHeading: 'Enviar un mensaje',
     name: 'Nombre',
-    email: 'Correo electrÃ³nico',
+    email: 'Correo electrónico',
     message: 'Mensaje',
-    messageHint: 'Incluye el repositorio o la afirmaciÃ³n que quieres inspeccionar.',
+    messageHint: 'Incluye el repositorio o la afirmación que quieres inspeccionar.',
     submit: 'Enviar mensaje',
-    privacy: 'Los mensajes llegan directamente al buzÃ³n por correo. No se guarda nada en este sitio.',
-    honeypot: 'Deja este campo vacÃ­o',
-    fallbackHeading: 'El formulario directo aÃºn estÃ¡ en construcciÃ³n',
+    privacy: 'Los mensajes llegan directamente al buzón por correo. No se guarda nada en este sitio.',
+    honeypot: 'Deja este campo vacío',
+    fallbackHeading: 'El formulario directo aún está en construcción',
     fallbackNote:
-      'Esta publicaciÃ³n no tiene configurado un endpoint de formulario, asÃ­ que la pÃ¡gina todavÃ­a no recoge mensajes. Escribir por correo llega al mismo buzÃ³n.',
+      'Esta publicación no tiene configurado un endpoint de formulario, así que la página todavía no recoge mensajes. Escribir por correo llega al mismo buzón.',
     mailtoCta: 'Escribir por correo',
-    emailLabel: 'DirecciÃ³n de correo',
+    emailLabel: 'Dirección de correo',
     fieldRequired: 'Este campo es obligatorio.',
-    invalidEmail: 'Introduce una direcciÃ³n de correo electrÃ³nico vÃ¡lida.',
+    invalidEmail: 'Introduce una dirección de correo electrónico válida.',
     suggestionLabel: 'Sugerencia',
     suggestionHint:
-      'Describe quÃ© mejorar. Esto abre tu cliente de correo con el asunto y el mensaje ya rellenados.',
+      'Describe qué mejorar. Esto abre tu cliente de correo con el asunto y el mensaje ya rellenados.',
     suggestionSubject: 'Sugerencia para el portafolio',
     suggestionCta: 'Redactar correo',
-    submitPending: 'Enviando tu mensajeâ€¦',
+    submitPending: 'Enviando tu mensaje…',
     submitSuccess: 'Mensaje enviado. Gracias por escribir.',
-    submitError: 'El envÃ­o fallÃ³. IntÃ©ntalo de nuevo o escribe a la direcciÃ³n de abajo.',
+    submitError: 'El envío falló. Inténtalo de nuevo o escribe a la dirección de abajo.',
     submitSubject: 'Nuevo mensaje desde el sitio del portafolio',
     submitFrom: 'Formulario de contacto del portafolio',
     displayRowLocation: 'Remoto primero',
     displayRowHours: 'Horario compatible con EE. UU.',
-    displayRowLanguages: 'InglÃ©s, EspaÃ±ol',
+    displayRowLanguages: 'Inglés, Español',
     greeting: 'Hablamos pronto',
     ctaAriaLabel: 'Reservar una llamada de 30 minutos',
   },
   clipboard: {
-    email: 'Copiar direcciÃ³n de correo',
-    emailCopied: 'DirecciÃ³n de correo copiada.',
-    link: 'Copiar enlace de esta pÃ¡gina',
-    linkCopied: 'Enlace de la pÃ¡gina copiado.',
-    anchor: 'Copiar enlace a esta secciÃ³n',
-    anchorCopied: 'Enlace de la secciÃ³n copiado.',
-    failed: 'No se ha podido copiar automÃ¡ticamente. Selecciona el texto y cÃ³pialo manualmente.',
+    email: 'Copiar dirección de correo',
+    emailCopied: 'Dirección de correo copiada.',
+    link: 'Copiar enlace de esta página',
+    linkCopied: 'Enlace de la página copiado.',
+    anchor: 'Copiar enlace a esta sección',
+    anchorCopied: 'Enlace de la sección copiado.',
+    failed: 'No se ha podido copiar automáticamente. Selecciona el texto y cópialo manualmente.',
   },
   share: {
-    group: 'Comparte esta pÃ¡gina',
+    group: 'Comparte esta página',
     linkedIn: 'Compartir en LinkedIn',
     x: 'Compartir en X',
   },
   suggestions: {
     eyebrow: 'Sugerencias',
-    heading: 'Â¿Falta algo? Dilo en abierto.',
+    heading: '¿Falta algo? Dilo en abierto.',
     summary:
-      'Las sugerencias se registran como incidencias pÃºblicas en el repositorio fuente, para que la peticiÃ³n y la respuesta queden inspeccionables por cualquiera.',
+      'Las sugerencias se registran como incidencias públicas en el repositorio fuente, para que la petición y la respuesta queden inspeccionables por cualquiera.',
     cta: 'Abrir una sugerencia',
-    note: 'Abre GitHub en una pestaÃ±a nueva.',
+    note: 'Abre GitHub en una pestaña nueva.',
   },
   assistant: {
     open: 'Buscar en este portafolio',
     title: 'Asistente del portafolio',
     close: 'Cerrar el asistente',
     banner:
-      'Esto busca solo lo que estÃ¡ publicado en este sitio: no es un modelo de IA y nunca envÃ­a tu pregunta a ningÃºn sitio. Solo puede seÃ±alar lo que ya estÃ¡ publicado aquÃ­, y lo dice cuando no encuentra nada.',
+      'Esto busca solo lo que está publicado en este sitio: no es un modelo de IA y nunca envía tu pregunta a ningún sitio. Solo puede señalar lo que ya está publicado aquí, y lo dice cuando no encuentra nada.',
     devNotice:
       'Solo en desarrollo: los mensajes que env\u00edes se env\u00edan de forma transitoria a Cloudflare AI y consumen la cuota gratuita de producci\u00f3n. No incluyas informaci\u00f3n sensible.',
     chatNotice:
@@ -1950,200 +1950,200 @@ export const es: Copy = {
       'La respuesta se detuvo antes de completarse (provider_stream_failed). El texto mostrado es parcial.',
     chatFailure: 'No se pudo completar la respuesta del chat. No hay una respuesta completa disponible.',
     modeSemantic:
-      'BÃºsqueda activa: semÃ¡ntica. El sitio incrustÃ³ su propio Ã­ndice al compilar y ordena los resultados por similitud en tu navegador. Al buscar sigue sin haber ninguna llamada a un modelo de IA.',
+      'Búsqueda activa: semántica. El sitio incrustó su propio índice al compilar y ordena los resultados por similitud en tu navegador. Al buscar sigue sin haber ninguna llamada a un modelo de IA.',
     modeKeyword:
-      'BÃºsqueda activa: solo palabras clave. Una coincidencia simple sobre el Ã­ndice publicado; la compilaciÃ³n no tenÃ­a token de Cloudflare para incrustarlo, asÃ­ que lo dice en lugar de fingirlo.',
-    placeholder: 'Proyectos, evidencia, hitosâ€¦',
+      'Búsqueda activa: solo palabras clave. Una coincidencia simple sobre el índice publicado; la compilación no tenía token de Cloudflare para incrustarlo, así que lo dice en lugar de fingirlo.',
+    placeholder: 'Proyectos, evidencia, hitos…',
     submit: 'Buscar',
     suggestedHeading: 'Preguntas sugeridas',
     chips: {
-      built: 'Â¿QuÃ© ha construido Cristian?',
-      ai: 'Â¿QuÃ© trabajo de IA estÃ¡ demostrado?',
-      contact: 'Â¿CÃ³mo contacto con Cristian?',
-      contrast: 'Â¿QuÃ© es aspiracional y quÃ© estÃ¡ demostrado?',
+      built: '¿Qué ha construido Cristian?',
+      ai: '¿Qué trabajo de IA está demostrado?',
+      contact: '¿Cómo contacto con Cristian?',
+      contrast: '¿Qué es aspiracional y qué está demostrado?',
     },
     results: 'Entradas publicadas que coinciden',
     fallback:
-      'Ninguna entrada publicada coincide con esas palabras. Las pÃ¡ginas de abajo contienen el mismo contenido, y una pregunta por correo se responde con lo que es pÃºblico.',
+      'Ninguna entrada publicada coincide con esas palabras. Las páginas de abajo contienen el mismo contenido, y una pregunta por correo se responde con lo que es público.',
     askByEmail: 'Preguntar por correo',
     emailSubject: 'Pregunta sobre el portafolio',
-    askPage: 'Pregunta sobre esta pÃ¡gina',
+    askPage: 'Pregunta sobre esta página',
   },
   palette: {
     open: 'Abrir la paleta de comandos',
     title: 'Paleta de comandos',
     close: 'Cerrar la paleta de comandos',
-    placeholder: 'Ir a una pÃ¡gina, proyecto o evidenciaâ€¦',
-    hint: 'â†‘â†“ para moverte Â· Enter para abrir Â· Esc para cerrar',
-    empty: 'NingÃºn destino coincide con eso.',
+    placeholder: 'Ir a una página, proyecto o evidencia…',
+    hint: '↑↓ para moverte · Enter para abrir · Esc para cerrar',
+    empty: 'Ningún destino coincide con eso.',
     home: 'Inicio',
     print: 'Perfil imprimible',
-    kind: { page: 'PÃ¡gina', project: 'Proyecto', evidence: 'Evidencia' },
+    kind: { page: 'Página', project: 'Proyecto', evidence: 'Evidencia' },
   },
   notFound: {
     eyebrow: 'No encontrado',
-    heading: 'PÃ¡gina no encontrada',
+    heading: 'Página no encontrada',
     summary:
-      'La direcciÃ³n que has solicitado no estÃ¡ publicada aquÃ­. Nada se moviÃ³ sin dejar constancia: los enlaces de abajo llevan a las pÃ¡ginas que sÃ­ existen.',
-    home: 'Ir a la pÃ¡gina de inicio',
+      'La dirección que has solicitado no está publicada aquí. Nada se movió sin dejar constancia: los enlaces de abajo llevan a las páginas que sí existen.',
+    home: 'Ir a la página de inicio',
     work: 'Ver el trabajo',
     evidence: 'Inspeccionar la evidencia',
     returnedFrom:
-      'No hemos encontrado la direcciÃ³n que pediste, asÃ­ que te mostramos la pÃ¡gina de no encontrado en tu idioma.',
+      'No hemos encontrado la dirección que pediste, así que te mostramos la página de no encontrado en tu idioma.',
   },
   print: {
     eyebrow: 'Vista generada',
     title: 'Perfil imprimible',
     note: 'Esta es una vista generada a partir de los datos publicados, no un documento de CV aprobado.',
     printButton: 'Imprimir / Guardar como PDF',
-    generatedNote: 'Generado a partir de los datos publicados en tiempo de compilaciÃ³n.',
+    generatedNote: 'Generado a partir de los datos publicados en tiempo de compilación.',
     profileHeading: 'Perfil',
     projectsHeading: 'Proyectos seleccionados',
-    evolutionHeading: 'EvoluciÃ³n',
+    evolutionHeading: 'Evolución',
     shippedHeading: 'Entregado y en curso',
     plannedHeading: 'Planificado',
     evidenceHeading: 'Enlaces de evidencia',
     contactHeading: 'Contacto',
     repoLabel: 'Repositorio',
-    emailLabel: 'Correo electrÃ³nico',
+    emailLabel: 'Correo electrónico',
     githubLabel: 'GitHub',
     linkedinLabel: 'LinkedIn',
   },
   boundaries: {
-    eyebrow: 'El lÃ­mite',
-    heading: 'Lo que este portfolio no fingirÃ¡ saber.',
+    eyebrow: 'El límite',
+    heading: 'Lo que este portfolio no fingirá saber.',
     items: [
-      'No se afirma capacidad RAG en producciÃ³n.',
-      'La trayectoria de empleadores es declarada por la persona (fuente: datos verificados, 2026-10-08) y corroborada en el perfil pÃºblico de LinkedIn; no se publican nombres de clientes, compensaciÃ³n ni detalles contractuales.',
-      'No se usan porcentajes arbitrarios de progreso ni cifras de aÃ±os de experiencia.',
-      'El material histÃ³rico de LinkedIn-sync es contexto, no la fuente de verdad.',
+      'No se afirma capacidad RAG en producción.',
+      'La trayectoria de empleadores es declarada por la persona (fuente: datos verificados, 2026-10-08) y corroborada en el perfil público de LinkedIn; no se publican nombres de clientes, compensación ni detalles contractuales.',
+      'No se usan porcentajes arbitrarios de progreso ni cifras de años de experiencia.',
+      'El material histórico de LinkedIn-sync es contexto, no la fuente de verdad.',
     ],
   },
   footer: {
-    tagline: 'IngenierÃ­a de IA sobre una base full-stack y cloud, remote-first.',
+    tagline: 'Ingeniería de IA sobre una base full-stack y cloud, remote-first.',
     sourceRepository: 'Repositorio fuente',
-    snapshotLabel: 'InstantÃ¡nea',
-    themeNote: 'El tema se guarda en tu propio navegador; ningÃºn servidor lo controla.',
-    buildNote: 'Construido con Astro desde una capa de datos canÃ³nica. Una ejecuciÃ³n de GitHub Actions lo publica en dos hosts. Cada afirmaciÃ³n de esta pÃ¡gina apunta a evidencia que puedes abrir.',
+    snapshotLabel: 'Instantánea',
+    themeNote: 'El tema se guarda en tu propio navegador; ningún servidor lo controla.',
+    buildNote: 'Construido con Astro desde una capa de datos canónica. Una ejecución de GitHub Actions lo publica en dos hosts. Cada afirmación de esta página apunta a evidencia que puedes abrir.',
     printProfile: 'Perfil imprimible',
-    buildPage: 'CÃ³mo estÃ¡ construido este sitio',
+    buildPage: 'Cómo está construido este sitio',
     guestbook: 'Libro de visitas',
-    creditLine: 'ImÃ¡genes encontradas: tÃ­tulo, creador, licencia, fuente â€” se completarÃ¡ en la Tarea 5/6 cuando se elijan las imÃ¡genes de la colecciÃ³n abierta.',
-    bilingualNotice: 'Este sitio tambiÃ©n existe en English:',
+    creditLine: 'Imágenes encontradas: título, creador, licencia, fuente — se completará en la Tarea 5/6 cuando se elijan las imágenes de la colección abierta.',
+    bilingualNotice: 'Este sitio también existe en English:',
   },
   build: {
-    eyebrow: 'CÃ³mo estÃ¡ construido este sitio',
-    title: 'CÃ³mo estÃ¡ construido este sitio',
+    eyebrow: 'Cómo está construido este sitio',
+    title: 'Cómo está construido este sitio',
     summary:
-      'El sitio es un artefacto en sÃ­ mismo: con quÃ© estÃ¡ construido, cÃ³mo se despliega y quÃ© deja fuera deliberadamente.',
-    stackHeading: 'EstÃ¡tico, dirigido por datos y bilingÃ¼e',
+      'El sitio es un artefacto en sí mismo: con qué está construido, cómo se despliega y qué deja fuera deliberadamente.',
+    stackHeading: 'Estático, dirigido por datos y bilingüe',
     stackItems: [
-      'Un sitio estÃ¡tico construido con Astro 5: cada pÃ¡gina se pre-renderiza en tiempo de compilaciÃ³n, sin servidor en tiempo de ejecuciÃ³n.',
-      'Dirigido por datos: las pÃ¡ginas se renderizan desde una capa JSON revisada en data/, asÃ­ que un cambio en los datos es un cambio en el sitio.',
-      'BilingÃ¼e EN/ES: ambos locales renderizan la misma estructura desde una sola fuente compartida.',
+      'Un sitio estático construido con Astro 5: cada página se pre-renderiza en tiempo de compilación, sin servidor en tiempo de ejecución.',
+      'Dirigido por datos: las páginas se renderizan desde una capa JSON revisada en data/, así que un cambio en los datos es un cambio en el sitio.',
+      'Bilingüe EN/ES: ambos locales renderizan la misma estructura desde una sola fuente compartida.',
     ],
     stackItemAnalytics:
-      'AnalÃ­tica respetuosa con la privacidad: un beacon de Cloudflare Web Analytics sin cookies ni seguimiento entre sitios. Es el Ãºnico script de terceros en cada carga de pÃ¡gina (el formulario de comentarios carga el widget de Cloudflare Turnstile solo donde hay comentarios), y la elecciÃ³n de tema se queda en tu navegador.',
+      'Analítica respetuosa con la privacidad: un beacon de Cloudflare Web Analytics sin cookies ni seguimiento entre sitios. Es el único script de terceros en cada carga de página (el formulario de comentarios carga el widget de Cloudflare Turnstile solo donde hay comentarios), y la elección de tema se queda en tu navegador.',
     stackItemNoAnalytics:
-      'Sin analÃ­tica en el cliente; los Ãºnicos scripts de terceros son los que cargan los formularios de comentarios (Cloudflare Turnstile) donde existen, y la elecciÃ³n de tema se queda en tu navegador.',
+      'Sin analítica en el cliente; los únicos scripts de terceros son los que cargan los formularios de comentarios (Cloudflare Turnstile) donde existen, y la elección de tema se queda en tu navegador.',
     deployHeading: 'Despliegue',
     deployNote:
-      'Cada push a main se compila y publica automÃ¡ticamente mediante GitHub Actions. GitHub Pages es el host canÃ³nico; un espejo en Cloudflare Workers sirve la misma compilaciÃ³n estÃ¡tica.',
+      'Cada push a main se compila y publica automáticamente mediante GitHub Actions. GitHub Pages es el host canónico; un espejo en Cloudflare Workers sirve la misma compilación estática.',
     deployHeadersNote:
-      'Desde el 2026-10-12 el espejo en Workers tambiÃ©n sirve cabeceras de seguridad â€” X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, X-Frame-Options: DENY, Permissions-Policy: camera=(), microphone=(), geolocation=() y Strict-Transport-Security â€” y Cache-Control: public, max-age=31536000, immutable para los recursos con hash en /_astro/. El mecanismo es un archivo _headers en la salida de compilaciÃ³n. El host canÃ³nico de GitHub Pages es un sitio de proyecto y no puede establecer cabeceras de respuesta, asÃ­ que sirve las mismas pÃ¡ginas sin ellas.',
-    assistantHeading: 'El asistente es una bÃºsqueda, no una IA',
+      'Desde el 2026-10-12 el espejo en Workers también sirve cabeceras de seguridad — X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, X-Frame-Options: DENY, Permissions-Policy: camera=(), microphone=(), geolocation=() y Strict-Transport-Security — y Cache-Control: public, max-age=31536000, immutable para los recursos con hash en /_astro/. El mecanismo es un archivo _headers en la salida de compilación. El host canónico de GitHub Pages es un sitio de proyecto y no puede establecer cabeceras de respuesta, así que sirve las mismas páginas sin ellas.',
+    assistantHeading: 'El asistente es una búsqueda, no una IA',
     assistantNote:
-      'El asistente flotante busca solo en los datos pÃºblicos publicados en este sitio. No es un modelo de IA y no realiza ninguna llamada a una API: solo puede seÃ±alar lo que ya estÃ¡ publicado aquÃ­, y lo dice cuando no encuentra nada.',
+      'El asistente flotante busca solo en los datos públicos publicados en este sitio. No es un modelo de IA y no realiza ninguna llamada a una API: solo puede señalar lo que ya está publicado aquí, y lo dice cuando no encuentra nada.',
     searchModeSemantic:
-      'Esta compilaciÃ³n incluyÃ³ un Ã­ndice de bÃºsqueda semÃ¡ntica: el Ã­ndice del propio asistente se incrustÃ³ al compilar con el modelo de Workers AI @cf/baai/bge-m3, y una bÃºsqueda ordena las entradas publicadas por similitud en tu navegador. No se llama a ningÃºn modelo de IA al buscar.',
+      'Esta compilación incluyó un índice de búsqueda semántica: el índice del propio asistente se incrustó al compilar con el modelo de Workers AI @cf/baai/bge-m3, y una búsqueda ordena las entradas publicadas por similitud en tu navegador. No se llama a ningún modelo de IA al buscar.',
     searchModeKeyword:
-      'Esta compilaciÃ³n no incluyÃ³ vectores de bÃºsqueda, asÃ­ que el asistente usa solo su bÃºsqueda por palabras clave. Incrustar el Ã­ndice requiere un token de Cloudflare al compilar; esta pÃ¡gina informa del modo que la compilaciÃ³n tiene en realidad en lugar de afirmar el otro.',
+      'Esta compilación no incluyó vectores de búsqueda, así que el asistente usa solo su búsqueda por palabras clave. Incrustar el índice requiere un token de Cloudflare al compilar; esta página informa del modo que la compilación tiene en realidad en lugar de afirmar el otro.',
     agentHeading: 'Legible por agentes de IA',
     agentNote:
-      'Desde el 2026-10-12 el sitio publica un archivo llms.txt y anota dos formularios con WebMCP: su formulario de contacto (contact_message) y el buscador del asistente (site_search), de modo que un agente puede encontrar el sitio e identificar ambas acciones como herramientas. La herramienta de bÃºsqueda es honesta sobre lo que es: una bÃºsqueda en el cliente sobre el Ã­ndice ya incrustado en la pÃ¡gina y, cuando la compilaciÃ³n incluyÃ³ vectores semÃ¡nticos, un archivo JSON estÃ¡tico del mismo origen â€” sin backend y sin modelo de IA ni llamada a una API al buscar. Una ejecuciÃ³n de la categorÃ­a agentic-browsing de Lighthouse 13.5.0 en Chrome 154 registrÃ³ ambas herramientas con esquemas vÃ¡lidos, superÃ³ la auditorÃ­a del Ã¡rbol de accesibilidad, no informÃ³ de ningÃºn formulario sin anotaciones y midiÃ³ un desplazamiento de diseÃ±o acumulado de 0. La auditorÃ­a de llms.txt comprueba la raÃ­z del dominio: pasa en el espejo de Cloudflare, que sirve la compilaciÃ³n en /, y no aplica a la ruta de GitHub Pages, que la sirve en /professional-evolution-portfolio/.',
-    sourceHeading: 'CÃ³digo fuente',
+      'Desde el 2026-10-12 el sitio publica un archivo llms.txt y anota dos formularios con WebMCP: su formulario de contacto (contact_message) y el buscador del asistente (site_search), de modo que un agente puede encontrar el sitio e identificar ambas acciones como herramientas. La herramienta de búsqueda es honesta sobre lo que es: una búsqueda en el cliente sobre el índice ya incrustado en la página y, cuando la compilación incluyó vectores semánticos, un archivo JSON estático del mismo origen — sin backend y sin modelo de IA ni llamada a una API al buscar. Una ejecución de la categoría agentic-browsing de Lighthouse 13.5.0 en Chrome 154 registró ambas herramientas con esquemas válidos, superó la auditoría del árbol de accesibilidad, no informó de ningún formulario sin anotaciones y midió un desplazamiento de diseño acumulado de 0. La auditoría de llms.txt comprueba la raíz del dominio: pasa en el espejo de Cloudflare, que sirve la compilación en /, y no aplica a la ruta de GitHub Pages, que la sirve en /professional-evolution-portfolio/.',
+    sourceHeading: 'Código fuente',
     sourceNote:
-      'El sitio y su capa de datos son pÃºblicos. El repositorio de abajo es el artefacto que puedes inspeccionar; nada se publica desde una fuente privada.',
+      'El sitio y su capa de datos son públicos. El repositorio de abajo es el artefacto que puedes inspeccionar; nada se publica desde una fuente privada.',
     repoLabel: 'Ver el repositorio fuente',
     rssLabel: 'Suscribirse al canal RSS',
-    boundaryHeading: 'QuÃ© no se publica',
+    boundaryHeading: 'Qué no se publica',
     boundaryNote:
-      'Solo se publican hechos profesionales pÃºblicos y declarados por la persona; no se publican nombres de clientes, compensaciÃ³n ni datos operativos privados. No se publica ningÃºn dato privado en este sitio.',
+      'Solo se publican hechos profesionales públicos y declarados por la persona; no se publican nombres de clientes, compensación ni datos operativos privados. No se publica ningún dato privado en este sitio.',
     credits: 'Construido con Astro, alojado en GitHub Pages + Cloudflare Workers.',
   },
   guestbook: {
     eyebrow: 'Libro de visitas',
     title: 'Libro de visitas',
     summary:
-      'Deja una nota breve y honesta sobre lo que has encontrado aquÃ­. Es el mismo sistema de comentarios que usan las demÃ¡s pÃ¡ginas â€” sin cuenta, sin cookies de seguimiento, con un nombre opcional â€” y cada nota se revisa antes de aparecer.',
+      'Deja una nota breve y honesta sobre lo que has encontrado aquí. Es el mismo sistema de comentarios que usan las demás páginas — sin cuenta, sin cookies de seguimiento, con un nombre opcional — y cada nota se revisa antes de aparecer.',
   },
   comments: {
     eyebrow: 'Comentarios',
-    heading: 'Ãšnete a la conversaciÃ³n',
+    heading: 'únete a la conversación',
     summary:
-      'Los comentarios estÃ¡n abiertos en esta pÃ¡gina. Sin cuenta, sin cookies de seguimiento y sin correo electrÃ³nico: el nombre para mostrar es opcional.',
+      'Los comentarios están abiertos en esta página. Sin cuenta, sin cookies de seguimiento y sin correo electrónico: el nombre para mostrar es opcional.',
     notice:
-      'CÃ³mo funciona: un modelo de IA revisa cada comentario antes de que aparezca, y todo lo que no tiene claro pasa a una cola de revisiÃ³n humana, asÃ­ que nada se publica sin revisar. El reto de Cloudflare Turnstile del formulario de comentarios guarda una cookie de verificaciÃ³n estrictamente necesaria; el propio sitio no guarda ninguna otra. Los comentarios son anÃ³nimos: tu direcciÃ³n IP se usa solo para un lÃ­mite temporal de frecuencia y nunca se almacena. Para pedir la eliminaciÃ³n de un comentario, escrÃ­beme por el formulario de contacto (RGPD).',
+      'Cómo funciona: un modelo de IA revisa cada comentario antes de que aparezca, y todo lo que no tiene claro pasa a una cola de revisión humana, así que nada se publica sin revisar. El reto de Cloudflare Turnstile del formulario de comentarios guarda una cookie de verificación estrictamente necesaria; el propio sitio no guarda ninguna otra. Los comentarios son anónimos: tu dirección IP se usa solo para un límite temporal de frecuencia y nunca se almacena. Para pedir la eliminación de un comentario, escríbeme por el formulario de contacto (RGPD).',
     formHeading: 'Deja un comentario',
     nameLabel: 'Nombre (opcional)',
-    nameHint: 'Se muestra junto a tu comentario. DÃ©jalo vacÃ­o para seguir siendo anÃ³nimo.',
+    nameHint: 'Se muestra junto a tu comentario. Déjalo vacío para seguir siendo anónimo.',
     bodyLabel: 'Comentario',
     bodyHint: 'Texto plano, hasta 2000 caracteres.',
     langLabel: 'Idioma del comentario',
-    langHint: 'Se usa en las comprobaciones de moderaciÃ³n y las traducciones opcionales para leer.',
-    langEn: 'InglÃ©s',
-    langEs: 'EspaÃ±ol',
+    langHint: 'Se usa en las comprobaciones de moderación y las traducciones opcionales para leer.',
+    langEn: 'Inglés',
+    langEs: 'Español',
     langOther: 'Otro idioma',
-    honeypot: 'Deja este campo vacÃ­o',
+    honeypot: 'Deja este campo vacío',
     submit: 'Publicar comentario',
-    submitting: 'Publicandoâ€¦',
+    submitting: 'Publicando…',
     privacy:
-      'Sin cuenta, sin cookies de seguimiento y sin recogida de correo. Tu comentario es pÃºblico cuando pasa la revisiÃ³n, y puedes pedir su eliminaciÃ³n en cualquier momento.',
+      'Sin cuenta, sin cookies de seguimiento y sin recogida de correo. Tu comentario es público cuando pasa la revisión, y puedes pedir su eliminación en cualquier momento.',
     listHeading: 'Comentarios',
-    empty: 'TodavÃ­a no hay comentarios. SÃ© el primero.',
-    loading: 'Cargando comentariosâ€¦',
+    empty: 'Todavía no hay comentarios. Sé el primero.',
+    loading: 'Cargando comentarios…',
     retry: 'Reintentar',
-    anonymous: 'AnÃ³nimo',
+    anonymous: 'Anónimo',
     report: 'Denunciar',
-    pendingBadge: 'En revisiÃ³n',
+    pendingBadge: 'En revisión',
     viewOriginal: 'Mostrar original',
     viewTranslation: 'Traducir',
-    translationUnavailable: 'No hay traducciÃ³n disponible para este idioma de origen.',
-    machineTranslated: 'TraducciÃ³n automÃ¡tica',
-    translationLoading: 'Traduciendo comentarioâ€¦',
+    translationUnavailable: 'No hay traducción disponible para este idioma de origen.',
+    machineTranslated: 'Traducción automática',
+    translationLoading: 'Traduciendo comentario…',
     translationError: 'No se ha podido traducir este comentario.',
-    translationFallback: 'Se sigue mostrando el texto original. IntÃ©ntalo mÃ¡s tarde.',
-    translationReady: 'Se muestra la versiÃ³n traducida automÃ¡ticamente.',
+    translationFallback: 'Se sigue mostrando el texto original. Inténtalo más tarde.',
+    translationReady: 'Se muestra la versión traducida automáticamente.',
     originalShown: 'Se muestra el comentario original.',
     translationNoJs: 'Los comentarios se mantienen en su idioma original salvo que elijas Traducir; ese control necesita JavaScript.',
-    unavailableHeading: 'Los comentarios no estÃ¡n disponibles temporalmente.',
+    unavailableHeading: 'Los comentarios no están disponibles temporalmente.',
     unavailableNote:
-      'El servicio de comentarios no estÃ¡ configurado en este despliegue, asÃ­ que el formulario permanece desactivado: nada de lo que escribas aquÃ­ se enviarÃ­a.',
+      'El servicio de comentarios no está configurado en este despliegue, así que el formulario permanece desactivado: nada de lo que escribas aquí se enviaría.',
     turnstileBlocked:
-      'El widget de verificaciÃ³n no se ha podido cargar, asÃ­ que el formulario permanece desactivado. IntÃ©ntalo mÃ¡s tarde o usa el formulario de contacto.',
-    noJsHeading: 'JavaScript estÃ¡ desactivado',
+      'El widget de verificación no se ha podido cargar, así que el formulario permanece desactivado. Inténtalo más tarde o usa el formulario de contacto.',
+    noJsHeading: 'JavaScript está desactivado',
     noJsNote:
-      'El formulario de comentarios necesita JavaScript para la verificaciÃ³n antispam. Aun asÃ­ puedes escribirme directamente:',
+      'El formulario de comentarios necesita JavaScript para la verificación antispam. Aun así puedes escribirme directamente:',
     noJsCta: 'Enviar un correo',
     presenceTemplate: '~{n} viendo ahora',
-    reconnecting: 'Reconectandoâ€¦',
+    reconnecting: 'Reconectando…',
     newComment: 'Ha llegado un comentario nuevo.',
     statusPosted: 'Comentario publicado.',
-    statusQueued: 'Gracias: tu comentario se ha recibido y estÃ¡ pendiente de revisiÃ³n.',
-    statusRateLimited: 'Demasiados comentarios en poco tiempo. IntÃ©ntalo de nuevo en una hora.',
+    statusQueued: 'Gracias: tu comentario se ha recibido y está pendiente de revisión.',
+    statusRateLimited: 'Demasiados comentarios en poco tiempo. Inténtalo de nuevo en una hora.',
     statusInvalidBody: 'Escribe entre 1 y 2000 caracteres.',
-    statusInvalidToken: 'La verificaciÃ³n ha fallado. Recarga la pÃ¡gina e intÃ©ntalo de nuevo.',
-    statusLoadError: 'Algo ha ido mal. IntÃ©ntalo de nuevo.',
+    statusInvalidToken: 'La verificación ha fallado. Recarga la página e inténtalo de nuevo.',
+    statusLoadError: 'Algo ha ido mal. Inténtalo de nuevo.',
     statusReported: 'Denunciado. Gracias.',
-    statusReportError: 'No se ha podido enviar la denuncia. IntÃ©ntalo de nuevo.',
-    statusUnavailable: 'Los comentarios no estÃ¡n disponibles temporalmente.',
+    statusReportError: 'No se ha podido enviar la denuncia. Inténtalo de nuevo.',
+    statusUnavailable: 'Los comentarios no están disponibles temporalmente.',
     reply: 'Responder',
     replyingTo: 'Respondiendo a {name}',
     replyingToEvidence: 'Comentando sobre {anchor}',
     cancelReply: 'Cancelar',
     submitReply: 'Publicar respuesta',
     replyPosted: 'Respuesta publicada.',
-    replyQueued: 'Gracias: tu respuesta estÃ¡ pendiente de revisiÃ³n.',
+    replyQueued: 'Gracias: tu respuesta está pendiente de revisión.',
     removedParent: 'Comentario eliminado',
     replyDepthHint: 'Solo se permite un nivel de respuestas.',
   },
@@ -2189,8 +2189,8 @@ export function getCopy(locale: string | undefined | null): Copy {
 /**
  * Pre-bound locale + copy pairs, one per published locale.
  *
- * A locale route page otherwise repeats the same three lines â€” the `Locale`
- * type import, `getCopy`, and the two consts â€” so the pair is resolved once
+ * A locale route page otherwise repeats the same three lines — the `Locale`
+ * type import, `getCopy`, and the two consts — so the pair is resolved once
  * here and a page binds its whole context in a single destructure:
  * `const { locale, copy } = LOCALE_PAGES.es;`. `getCopy` stays the public
  * entry point for callers that resolve a locale at request time.
