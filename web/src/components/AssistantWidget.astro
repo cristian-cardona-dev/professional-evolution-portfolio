@@ -545,15 +545,26 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
           },
         });
 
-        if (result.content) chatHistory.push({ role: 'assistant', content: result.content });
+        if (result.status === 'complete' && result.content) chatHistory.push({ role: 'assistant', content: result.content });
         if (result.status === 'cancelled') {
           chatStatus.textContent = chatCopy.stopped;
         } else if (result.status === 'error') {
           chatStatus.textContent = '';
-          chatError.textContent = result.errorCode === 'provider_stream_failed'
-            ? chatCopy.providerStreamFailed
-            : chatCopy.failure;
-          chatError.hidden = false;
+          if (result.errorCode === 'rate_limited' || result.errorCode === 'service_unavailable') {
+            // Soft notice, no red banner — fall back to local search.
+            chatError.textContent = chatCopy.failure;
+            chatError.hidden = false;
+            void run(trimmed);
+          } else if (result.errorCode === 'provider_stream_failed') {
+            // Partial text (if any) stays visible; soft notice.
+            chatError.textContent = chatCopy.providerStreamFailed;
+            chatError.hidden = false;
+            if (!result.content) void run(trimmed);
+          } else {
+            chatError.textContent = chatCopy.failure;
+            chatError.hidden = false;
+            void run(trimmed);
+          }
         } else {
           chatStatus.textContent = '';
         }

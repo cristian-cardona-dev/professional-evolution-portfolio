@@ -257,10 +257,14 @@ export default {
 					cancelStream = () => stop('cancel');
 					const abortFromRequest = () => stop('cancel');
 					const emitFailure = (diagnosticCode: 'response_timeout' | 'provider_stream_failed') => {
-						if (hasContent) {
-							controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '', done: true, provider: actualProvider, model: actualModel, error: 'stream_interrupted', diagnosticCode })}\n\n`));
-						} else {
-							controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: 'El chat no está disponible ahora. Usa el formulario de contacto.', done: true, provider: 'fallback', model: null })}\n\n`));
+						try {
+							if (hasContent) {
+								controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '', done: true, provider: actualProvider, model: actualModel, error: 'stream_interrupted', diagnosticCode })}\n\n`));
+							} else {
+								controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: 'El chat no está disponible ahora. Usa el formulario de contacto.', done: true, provider: 'fallback', model: null })}\n\n`));
+							}
+						} catch {
+							// Client already disconnected — nothing to do.
 						}
 					};
 					timer = setTimeout(() => stop('timeout'), Math.max(0, deadlineAt - Date.now()));
@@ -294,37 +298,7 @@ export default {
 							const code = err instanceof Error && 'failureCode' in err ? (err as { failureCode?: string }).failureCode : 'unknown';
 							const diagCode = code === 'sse_error_frame' || code === 'sse_malformed' || code === 'read_rejected' || code === 'ai_run_rejected' ? code : 'provider_stream_failed';
 							console.warn('chat_diag', JSON.stringify({ code: diagCode, hasContent, chunks: chunkCount, ms: Date.now() - (deadlineAt - RESPONSE_DEADLINE_MS) }));
-							if (!stopReason && !hasContent) {
-								// Retry once before emitting failure - Cloudflare AI streams can be flaky
-								try {
-									const retryIterator = providerChain.stream(messages, {
-										stream: true,
-										temperature: 0.3,
-										maxTokens: 256,
-										signal: providerAbortController.signal,
-									})[Symbol.asyncIterator]();
-									let retryDone = false;
-									while (!stopReason && !retryDone) {
-										const retryNext = retryIterator.next().then(v => ({ kind: 'chunk' as const, value: v }));
-										const retryOutcome = await Promise.race([retryNext, stopped.then(r => r === 'timeout' ? { kind: 'timeout' as const } : { kind: 'cancel' as const })]);
-										if (retryOutcome.kind === 'cancel') break;
-										if (retryOutcome.kind === 'timeout') { emitFailure('response_timeout'); break; }
-										if (retryOutcome.value.done) { retryDone = true; break; }
-										const retryChunk = retryOutcome.value.value;
-										if (stopReason === 'cancel') break;
-										if (retryChunk.content.length > 0) {
-											hasContent = true;
-											actualProvider = retryChunk.provider;
-											actualModel = retryChunk.model;
-										}
-										controller.enqueue(encoder.encode('data: ' + JSON.stringify({ content: retryChunk.content, done: retryChunk.done, provider: retryChunk.provider, model: retryChunk.model, diagnosticCode: retryChunk.diagnosticCode }) + '\n\n'));
-										if (retryChunk.done) { retryDone = true; break; }
-									}
-								} catch {
-									if (!stopReason) emitFailure('provider_stream_failed');
-								}
-							} else if (!stopReason) {
-								console.warn('chat_diag', JSON.stringify({ code: 'provider_stream_failed', hasContent: true, chunks: chunkCount, ms: Date.now() - (deadlineAt - RESPONSE_DEADLINE_MS) }));
+							if (!stopReason) {
 								emitFailure('provider_stream_failed');
 							}
 						} finally {

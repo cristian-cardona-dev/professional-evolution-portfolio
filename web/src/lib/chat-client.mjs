@@ -143,5 +143,15 @@ export async function sendChat({
     throw new ChatClientError('chat_request_failed');
   }
 
+  // Rate-limited or temporarily unavailable: return a distinct status so the
+  // widget can show an honest, non-alarming message and fall back to local
+  // search without a red error banner.
+  if (response.status === 429) {
+    return { content: '', status: 'error', errorCode: 'rate_limited' };
+  }
+  if (response.status === 503) {
+    return { content: '', status: 'error', errorCode: 'service_unavailable' };
+  }
+
   return consumeChatStream(response, onContent, { signal });
 }

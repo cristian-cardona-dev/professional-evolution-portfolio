@@ -1325,7 +1325,7 @@ export const en: Copy = {
     chatPending: 'Sending your message to Cloudflare AI…',
     chatStopped: 'Response stopped. Any displayed text may be incomplete.',
     chatProviderStreamFailed:
-      'The reply stopped before completion (provider_stream_failed). Any text shown above is partial.',
+      'The reply stopped before completion. Any text shown above is partial.',
     chatFailure: 'The chat response could not be completed. No complete answer is available.',
     modeSemantic:
       'Live search: semantic. The site embedded its own index at build time and ranks results by similarity in your browser. Searching still makes no AI model call.',
@@ -1947,7 +1947,7 @@ export const es: Copy = {
     chatPending: 'Enviando tu mensaje a Cloudflare AI\u2026',
     chatStopped: 'Respuesta detenida. El texto mostrado puede estar incompleto.',
     chatProviderStreamFailed:
-      'La respuesta se detuvo antes de completarse (provider_stream_failed). El texto mostrado es parcial.',
+      'La respuesta se detuvo antes de completarse. El texto mostrado es parcial.',
     chatFailure: 'No se pudo completar la respuesta del chat. No hay una respuesta completa disponible.',
     modeSemantic:
       'Búsqueda activa: semántica. El sitio incrustó su propio índice al compilar y ordena los resultados por similitud en tu navegador. Al buscar sigue sin haber ninguna llamada a un modelo de IA.',

@@ -21,7 +21,8 @@ no backend and no API key at runtime. Since the Fase F semantic layer
 `semantic-index.json`, to enable build-time-embedded semantic search; when the
 build ran without embeddings (keyword-only mode, recorded in the build
 metadata) that asset carries no vectors and the search stays pure keyword.
-No AI or third-party endpoint is ever called at runtime.
+The v1 local search makes no AI or third-party call. (v2, when enabled, calls
+the Cloudflare Worker — see section below.)
 
 - **Component:** `web/src/components/AssistantWidget.astro`
 - **Page-level deep link:** `web/src/components/AskAboutPage.astro` (dispatches
@@ -142,42 +143,33 @@ the input always reveals the words that actually ran.
 
 ---
 
-## v2 — provider-backed assistant (planned, blocked)
+## v2 — provider-backed assistant (shipped)
 
-The mission requires an AI assistant **only if it is feasible**; it is not
-feasible today because there is **no server function deployed and no model
-credential available**, and the site is a static Astro build that must not
-ship a secret. v1 is the useful, honest capability delivered under that
-constraint.
+v2 is **live in production**. The floating assistant now calls a Cloudflare
+Worker (`POST /api/chat`) backed by Cloudflare Workers AI (free tier, Mistral
+7B). When the Worker is unavailable or rate-limited, the widget falls back to
+the v1 local search automatically.
 
-When the blockers clear, v2 adds a **thin provider abstraction** without
-changing the front end's contract:
+### Architecture
 
-1. **A Cloudflare Worker function** exposing `POST /api/assistant`. The static
-   widget would call it only when a capability flag says a key is configured;
-   otherwise it keeps behaving exactly like v1 (so the site never shows a dead
-   or fake AI).
-2. **Server-side secret.** The model API key lives in Worker **environment
-   secrets**, never in the client bundle or the repo.
+1. **Cloudflare Worker** (`worker/`) exposing `POST /api/chat`. The widget calls
+   it only when `CHAT_WORKER_ORIGIN` is configured (hardcoded fallback +
+   optional `PUBLIC_CHAT_WORKER_URL` env). Otherwise it behaves exactly like v1.
+2. **No API key.** Cloudflare Workers AI uses the `AI` binding — no secret in
+   the client bundle or the repo. Free-tier only.
 3. **Server-side prompt, built only from `data/*.json`.** The Worker assembles
-   its context exclusively from the same canonical public data the site renders
-   (projects, evidence, milestones, profile). The answer is grounded in, and
-   limited to, published content — the assistant gains phrasing/synthesis, not
-   new facts.
-4. **Guardrails.** Per-IP rate limiting, a hard request timeout, and an explicit
-   instruction to refuse anything outside the published data. Errors/timeouts
-   return the same honest fallback the static path already shows, so a degraded
-   v2 behaves like v1.
+   its context from the same canonical public data the site renders.
+4. **Guardrails.** Per-IP rate limiting (5/hour, 100/day), 60s request timeout,
+   and an explicit instruction to refuse anything outside published data.
+   Errors/timeouts return the same honest fallback, so a degraded v2 behaves
+   like v1.
 
-### Blockers (why v2 is not shipped)
+### Privacy contract
 
-- **Worker deploy authorization** for `POST /api/assistant` is not provisioned
-  for this task.
-- **A model API key** is not available and must not be committed into a static,
-  public repository.
-
-Both are infrastructure/credential gates, not code gates. This document records
-them as the mission requires.
+- CORS limited to `https://cristian-cardona-dev.github.io`
+- No persistence/logging of prompts, IPs, keys, or raw errors
+- `/api/lead` stays isolated from the chat Worker
+- Chat Worker deploys only via `wrangler deploy`, never via `main` push
 
 ---
 
