@@ -29,7 +29,7 @@
  *
  * Zero dependencies: only Node built-ins.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { get as httpsGet } from 'node:https';
 
@@ -40,8 +40,39 @@ const API_HOST = 'api.github.com';
 const COMMITS_PER_REPO = 3;
 const REQUEST_TIMEOUT_MS = 20_000;
 const ERROR_MARKER = 'last_refresh_failed';
+const MAX_ATTEMPTS = 3;
+const RETRY_BASE_MS = 1_000;
+// --dry-run: fetch and validate everything, print the summary, write nothing.
+const DRY_RUN = process.argv.includes('--dry-run');
 
 const token = process.env.GITHUB_TOKEN || '';
+
+const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+
+/** Retry transient failures (network, 5xx, 429, 403 rate limit) with backoff. */
+async function withRetry(label, operation) {
+  let lastError;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      const transient = /timed out|ECONN|ETIMEDOUT|EAI_AGAIN|GitHub API (5\d\d|429|403)/.test(message);
+      if (!transient || attempt === MAX_ATTEMPTS) break;
+      await sleep(RETRY_BASE_MS * 2 ** (attempt - 1));
+      console.warn(`activity-refresh: retrying ${label} (attempt ${attempt + 1}/${MAX_ATTEMPTS}) after: ${message}`);
+    }
+  }
+  throw lastError;
+}
+
+/** Write via a temp file and rename, so a crash never leaves a half-written snapshot. */
+function writeAtomic(file, contents) {
+  const tmp = `${file}.tmp`;
+  writeFileSync(tmp, contents, 'utf8');
+  renameSync(tmp, file);
+}
 
 /** Read the current snapshot (the schema source of truth for this run). */
 function readSnapshot() {
@@ -187,9 +218,9 @@ async function main() {
     const previous = previousBySlug.get(slug);
 
     try {
-      const commits = await fetchCommits(owner, repo);
-      const openPullRequests = await fetchOpenPullRequestCount(owner, repo);
-      const release = await fetchLatestRelease(owner, repo);
+      const commits = await withRetry(`${slug} commits`, () => fetchCommits(owner, repo));
+      const openPullRequests = await withRetry(`${slug} pulls`, () => fetchOpenPullRequestCount(owner, repo));
+      const release = await withRetry(`${slug} release`, () => fetchLatestRelease(owner, repo));
       records.push({
         id: slug,
         url,
@@ -226,16 +257,26 @@ async function main() {
     const hasActivity = records.some(
       (record) => record.commits.length > 0 || record.releases.length > 0 || record.open_pull_requests > 0,
     );
+    // Honest status: a partial refresh must say so. The schema ties `stale` to
+    // the 90-day age policy, so partial failure is expressed in the message and
+    // in the per-repo `error` marker, never by claiming a clean full refresh.
+    const partial = failures.length > 0
+      ? ` ${failures.length} of ${allowlist.length} repositories could not be refreshed; their records may be out of date.`
+      : '';
     next.status = {
       availability: hasActivity ? 'available' : 'empty',
       stale: false,
-      message: hasActivity
+      message: (hasActivity
         ? 'Public GitHub activity captured from the GitHub REST API at build time.'
-        : 'The allowlisted public repositories currently record no recent activity.',
+        : 'The allowlisted public repositories currently record no recent activity.') + partial,
     };
   }
 
-  writeFileSync(SNAPSHOT_FILE, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+  if (DRY_RUN) {
+    console.log('activity-refresh: --dry-run, snapshot NOT written');
+  } else {
+    writeAtomic(SNAPSHOT_FILE, `${JSON.stringify(next, null, 2)}\n`);
+  }
 
   if (failures.length > 0) {
     console.warn(
@@ -244,7 +285,7 @@ async function main() {
     for (const failure of failures) console.warn(`  - ${failure.repo}: ${failure.reason}`);
   }
   console.log(
-    `activity-refresh: refreshed ${successes}/${allowlist.length} repositories; snapshot written to github-activity/snapshot.json`,
+    `activity-refresh: refreshed ${successes}/${allowlist.length} repositories${DRY_RUN ? ' (dry run)' : '; snapshot written to github-activity/snapshot.json'}`,
   );
 
   if (successes === 0) {
