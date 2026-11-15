@@ -195,7 +195,14 @@ class SSEByteParser {
 			// 2. If `response` exists, only string is accepted; non-string fails closed
 			if ('response' in parsed) {
 				if (typeof parsed.response === 'string') return parsed.response;
-				console.warn('chat_diag_provider', JSON.stringify({ code: 'sse_malformed', where: 'non_string_response' }));
+				// Tolerate non-string scalar response fields (null, number, boolean)
+				// that Cloudflare Workers AI emits in metadata/terminal frames.
+				// Only fail closed on object/array (potential injection).
+				if (parsed.response === null || typeof parsed.response === 'number' || typeof parsed.response === 'boolean' || typeof parsed.response === 'undefined') {
+					console.warn('chat_diag_provider', JSON.stringify({ code: 'sse_non_string_scalar', where: 'non_string_response', type: typeof parsed.response }));
+					return null;
+				}
+				console.warn('chat_diag_provider', JSON.stringify({ code: 'sse_malformed', where: 'non_string_response', type: typeof parsed.response }));
 				throw new ProviderFailure('sse_malformed');
 			}
 

@@ -932,7 +932,7 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 		}
 	});
 
-	it('fails closed on non-string response value (number)', async () => {
+	it('tolerates non-string scalar response value (number)', async () => {
 		const run = vi.fn().mockResolvedValueOnce(
 			readableStreamFromBytes([
 				toBytes('data: {"response":123}\n\n'),
@@ -945,10 +945,10 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 		expect(chunks.find(c => c.content === '123' || c.content === 123 as any)).toBeUndefined();
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('sse_malformed');
+		expect(fallback!.diagnosticCode).toBe('empty_output');
 	});
 
-	it('fails closed on non-string response value (boolean)', async () => {
+	it('tolerates non-string scalar response value (boolean)', async () => {
 		const run = vi.fn().mockResolvedValueOnce(
 			readableStreamFromBytes([
 				toBytes('data: {"response":true}\n\n'),
@@ -960,7 +960,7 @@ describe('CloudflareAIProvider binary SSE byte-stream parsing', () => {
 		expect(chunks.find(c => c.content === 'true' || c.content === true as any)).toBeUndefined();
 		const fallback = chunks.find(c => c.provider === 'fallback');
 		expect(fallback).toBeDefined();
-		expect(fallback!.diagnosticCode).toBe('sse_malformed');
+		expect(fallback!.diagnosticCode).toBe('empty_output');
 	});
 
 	it('fails closed on usage:null metadata', async () => {
