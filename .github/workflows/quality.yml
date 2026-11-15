@@ -36,6 +36,12 @@ jobs:
       - name: Build web
         run: npm --prefix web run build
 
+      - name: Encoding & stray-character regression
+        # Runs AFTER the build so the dist/ check sees real output. Catches
+        # mojibake (U+FFFD), double-encoded sequences, BOM, and the stray `}`
+        # that once rendered after </head> on every page.
+        run: node --test web/tests/encoding.test.mjs
+
       - name: Link checker
         run: node --test web/tests/links.test.mjs
 
@@ -59,6 +65,12 @@ jobs:
         # targets only the assistant component (the legacy ChatWidget is not
         # part of this contract).
         run: node --test web/tests/assistant-local.test.mjs
+
+      - name: GitHub activity freshness guard
+        # Fails if github-activity/snapshot.json is older than 14 days, so a
+        # stale snapshot can never ship silently. Runs the validator against the
+        # real snapshot with --max-age-days=14.
+        run: node github-activity/validate.mjs --max-age-days=14
 
       - name: Accessibility in a real browser (axe-core WCAG 2.2 AA, dark + light)
         # Runs the DOM-based axe spec against the production build, which the

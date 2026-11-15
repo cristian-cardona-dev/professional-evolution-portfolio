@@ -3,7 +3,17 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
-const file = process.argv[2] ? resolve(process.argv[2]) : resolve(root, "github-activity/snapshot.json");
+// CLI flags: --max-age-days=N (fail if captured_at older than N days)
+let maxAgeDays = null;
+const args = process.argv.slice(2);
+const fileArg = args.find((a) => !a.startsWith("--"));
+const maxAgeArg = args.find((a) => a.startsWith("--max-age-days="));
+if (maxAgeArg) {
+  const n = Number.parseInt(maxAgeArg.split("=")[1], 10);
+  if (!Number.isFinite(n) || n < 1) { console.error("invalid --max-age-days value"); process.exit(2); }
+  maxAgeDays = n;
+}
+const file = fileArg ? resolve(fileArg) : resolve(root, "github-activity/snapshot.json");
 const raw = readFileSync(file, "utf8");
 let doc;
 try { doc = JSON.parse(raw); } catch (error) { console.error(`invalid JSON: ${error.message}`); process.exit(1); }
@@ -23,6 +33,11 @@ required(doc, ["schema_version", "snapshot_id", "captured_at", "status", "source
 if (doc.schema_version !== "1.0.0") fail("unsupported schema_version");
 if (typeof doc.snapshot_id !== "string" || !/^[a-z0-9][a-z0-9-]{2,79}$/.test(doc.snapshot_id)) fail("invalid snapshot_id");
 if (!iso(doc.captured_at)) fail("captured_at must be a valid UTC ISO timestamp");
+if (maxAgeDays !== null) {
+  const ageMs = Date.now() - Date.parse(doc.captured_at);
+  const limitMs = maxAgeDays * 24 * 60 * 60 * 1000;
+  if (ageMs > limitMs) fail(`snapshot is older than ${maxAgeDays} days (captured_at: ${doc.captured_at})`);
+}
 const statusKeys = ["availability", "stale", "message", "stale_reason"];
 hasOnly(doc.status, statusKeys, "status"); required(doc.status, statusKeys.slice(0, 3), "status");
 if (!doc.status || !["available", "empty", "unavailable"].includes(doc.status.availability) || typeof doc.status.stale !== "boolean" || typeof doc.status.message !== "string" || doc.status.message.length < 10) fail("invalid status contract");

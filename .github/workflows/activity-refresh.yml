@@ -11,8 +11,8 @@ name: Refresh public GitHub activity
 
 on:
   schedule:
-    # Weekly, Monday 06:17 UTC.
-    - cron: '17 6 * * 1'
+    # Daily, 06:17 UTC — keeps the feed within 24h of reality.
+    - cron: '17 6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -26,6 +26,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,13 +69,28 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add github-activity/snapshot.json
           git commit -m "ai(portfolio): refresh public github activity"
-          git push
+          # Retry push on conflict (another run may have pushed in between).
+          for attempt in 1 2 3; do
+            git push && break
+            echo "Push attempt $attempt failed; rebasing and retrying..."
+            git pull --rebase origin main
+            sleep 2
+          done
 
       - name: Trigger static deploy (web)
         if: steps.change.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run deploy-static.yml -f pipeline=web
+        run: |
+          gh workflow run deploy-static.yml -f pipeline=web
+          # Verify the dispatch actually queued a run; fail loudly if not.
+          sleep 5
+          RUN_ID=$(gh run list --workflow=deploy-static.yml --limit=1 --json databaseId --jq '.[0].databaseId')
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::Deploy dispatch did not queue a run. Snapshot committed but site not rebuilt."
+            exit 1
+          fi
+          echo "Deploy run queued: $RUN_ID"
 
       - name: No change
         if: steps.change.outputs.changed != 'true'
