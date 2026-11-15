@@ -11,10 +11,14 @@
  * (≤36px), three lines desktop. 120px above and below. No logos, no columns.
  *
  * Every name is a real artefact from the evidence dataset (data/evidence.json).
+ *
+ * Below the sentence, `ActivityFeed` adds the build-time public GitHub activity
+ * section (its own h2 → h3 heading order, so the page runs h1 → h2 → h3).
  */
 import type { Copy, Locale, ClaimStatus } from '../i18n/copy';
 import { evidence } from '../lib/data';
 import EvidenceBadge from '../components/EvidenceBadge.astro';
+import ActivityFeed from '../components/ActivityFeed.astro';
 
 interface Props {
   locale: Locale;
@@ -54,6 +58,10 @@ const evidenceItems = evidence.items.map((item) => ({
     </p>
   </div>
 </section>
+
+{/* Sibling, not child: each section keeps its own padding, and the feed's h2
+    follows the page h1 without nesting a section inside another section. */}
+<ActivityFeed locale={locale} copy={copy} />
 
 <style>
   .evidence-page {
