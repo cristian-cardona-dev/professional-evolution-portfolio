@@ -149,10 +149,7 @@ function slugOf(url: string): string {
         <span>{copy.activity.lastUpdated(formatRelative(capturedAt))}</span>
         <span class="activity__stamp-bucket">({freshnessLabel})</span>
         <time class="activity__stamp-absolute tabular" datetime={capturedAt}>
-          <span class="activity__stamp-absolute-full">
-            {copy.activity.lastUpdatedOn(formatDate(capturedAt))}
-          </span>
-          <span class="visually-hidden">{formatDate(capturedAt)}</span>
+          {copy.activity.lastUpdatedOn(formatDate(capturedAt))}
         </time>
       </p>
 
