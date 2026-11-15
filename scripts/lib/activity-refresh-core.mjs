@@ -172,8 +172,22 @@ export async function requestJson(request, path, options = {}) {
   }
   if (res.status === 304) return { status: 304, data: null, headers: res.headers };
   if (res.status === 404) return { status: 404, data: null, headers: res.headers };
-  if (res.status < 200 || res.status >= 300) throw new Error(`GitHub API ${res.status} for ${path}`);
+  if (res.status < 200 || res.status >= 300) {
+    const err = new Error(`GitHub API ${res.status} for ${path}`);
+    // Carry the HTTP status so callers can tell "gone" (404/410) from a
+    // transient failure — a deleted repository must not be retried forever.
+    err.httpStatus = res.status;
+    throw err;
+  }
   return { status: res.status, data: JSON.parse(res.body || 'null'), headers: res.headers };
+}
+
+/** Statuses that mean the repository no longer exists (deleted, private, renamed). */
+export const GONE_STATUSES = new Set([404, 410]);
+
+/** True when an error means "this repository is gone", not "try again". */
+export function isGone(error) {
+  return Boolean(error && GONE_STATUSES.has(error.httpStatus));
 }
 
 /** Latest commits, newest first, shaped as snapshot objects. */
@@ -182,6 +196,11 @@ export async function fetchCommits(request, owner, repo, options = {}) {
   const etag = options.etag;
   const res = await requestJson(request, `/repos/${owner}/${repo}/commits?per_page=${commitsPerRepo}`, { etag, rateLimitThreshold: options.rateLimitThreshold, rateLimitMaxSleepMs: options.rateLimitMaxSleepMs, sleepFn: options.sleepFn });
   if (res.status === 304) return { unchanged: true };
+  if (res.status === 404) {
+    const err = new Error(`repository not found (404) for ${owner}/${repo}`);
+    err.httpStatus = 404;
+    throw err;
+  }
   if (!Array.isArray(res.data)) throw new Error('unexpected commits payload');
   const commits = res.data.map((entry) => {
     const sha = String(entry.sha);
@@ -275,6 +294,23 @@ export async function fetchRepoActivity(owner, repo, options = {}) {
   } catch (error) {
     if (error && error.rateLimited) throw error;
     const reason = error instanceof Error ? error.message : String(error);
+    // A repository that no longer exists (deleted, private, renamed) must not
+    // keep a stale card alive forever: emit an explicit `unavailable` record
+    // with empty contents instead of the last known data (plan phase 9.6).
+    if (isGone(error)) {
+      const record = {
+        id: slug,
+        url,
+        visibility: 'public',
+        pull_requests: [],
+        commits: [],
+        releases: [],
+        deployments: [],
+        open_pull_requests: 0,
+        unavailable: true,
+      };
+      return { slug, status: 'unavailable', durationMs: Date.now() - startedAt, record, error: reason };
+    }
     const record = previousRecord
       ? { ...previousRecord, id: slug, url, error: DEFAULTS.errorMarker }
       : null;
@@ -288,6 +324,7 @@ export function buildSnapshot({ snapshot, results, capturedAt }) {
   const records = results.map((r) => r.record).filter(Boolean);
   const failures = results.filter((r) => r.status === 'fail');
   const successes = results.filter((r) => r.status === 'success');
+  const gone = results.filter((r) => r.status === 'unavailable');
 
   const next = {
     schema_version: snapshot.schema_version,
@@ -303,6 +340,9 @@ export function buildSnapshot({ snapshot, results, capturedAt }) {
     const hasActivity = records.some(
       (record) => record.commits.length > 0 || record.releases.length > 0 || record.open_pull_requests > 0,
     );
+    // A repository that is gone is not a refresh failure — nothing failed to
+    // refresh; it simply no longer exists. It is reported per record instead of
+    // being folded into `failed_repos`.
     const partial = failures.length > 0
       ? ` ${failures.length} of ${allowlist.length} repositories could not be refreshed; their records may be out of date.`
       : '';
@@ -317,6 +357,14 @@ export function buildSnapshot({ snapshot, results, capturedAt }) {
     if (failures.length > 0) {
       next.status.failed_repos = failures.map((f) => f.slug);
     }
+  } else if (gone.length > 0) {
+    // Every allowlisted repository is gone: say so rather than keep claiming
+    // the previous run's availability.
+    next.status = {
+      availability: 'unavailable',
+      stale: isStale(capturedAt, 90),
+      message: `All ${gone.length} allowlisted repositories are no longer available on GitHub.`,
+    };
   }
 
   return next;

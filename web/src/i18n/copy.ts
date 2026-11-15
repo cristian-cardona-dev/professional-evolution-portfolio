@@ -479,6 +479,8 @@ export interface Copy {
     partialNote: (count: number) => string;
     /** A single repository's last refresh failed; last known data is shown. */
     refreshFailed: string;
+    /** The repository no longer exists on GitHub (deleted, private, renamed). */
+    unavailable: string;
     /** Bot commits excluded from the headline commit. */
     botNote: (count: number) => string;
   };
@@ -1274,6 +1276,7 @@ export const en: Copy = {
         ? '1 repository could not be refreshed; showing its last known data.'
         : `${count} repositories could not be refreshed; showing their last known data.`,
     refreshFailed: 'Refresh failed — showing last known data',
+    unavailable: 'This repository is no longer available on GitHub.',
     botNote: (count) =>
       count === 1 ? 'incl. 1 bot commit' : `incl. ${count} bot commits`,
   },
@@ -1916,6 +1919,7 @@ export const es: Copy = {
         ? '1 repositorio no pudo actualizarse; se muestran sus últimos datos conocidos.'
         : `${count} repositorios no pudieron actualizarse; se muestran sus últimos datos conocidos.`,
     refreshFailed: 'Actualización fallida — mostrando los últimos datos conocidos',
+    unavailable: 'Este repositorio ya no está disponible en GitHub.',
     botNote: (count) =>
       count === 1 ? 'incl. 1 commit de bot' : `incl. ${count} commits de bots`,
   },

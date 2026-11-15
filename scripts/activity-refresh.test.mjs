@@ -196,6 +196,108 @@ test('fetchRepoActivity marks bot commits', async () => {
   assert.equal(result.record.commits[1].bot, true);
 });
 
+// --- Repository lifecycle (plan phase 9.6) --------------------------------
+
+test('fetchRepoActivity marks a deleted repository unavailable (404)', async () => {
+  const previous = {
+    id: 'cristian-cardona-dev/demo',
+    url: 'https://github.com/cristian-cardona-dev/demo',
+    visibility: 'public',
+    pull_requests: [],
+    commits: [makeCommit('old', toIso(NOW), 'stale commit', 'Cristian')],
+    releases: [],
+    deployments: [],
+    open_pull_requests: 5,
+  };
+  const request = makeRequest([
+    (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 404, headers: {}, body: '{}' } : null,
+  ]);
+  const result = await fetchRepoActivity('cristian-cardona-dev', 'demo', {
+    request,
+    previousRecord: previous,
+    now: NOW,
+  });
+  assert.equal(result.status, 'unavailable');
+  assert.equal(result.record.unavailable, true);
+  // The stale card must NOT survive: a gone repository carries no data.
+  assert.equal(result.record.commits.length, 0);
+  assert.equal(result.record.open_pull_requests, 0);
+  assert.equal(result.record.error, undefined);
+});
+
+test('fetchRepoActivity treats 410 Gone as unavailable', async () => {
+  const request = makeRequest([
+    (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 410, headers: {}, body: '{}' } : null,
+  ]);
+  const result = await fetchRepoActivity('cristian-cardona-dev', 'demo', { request, now: NOW });
+  assert.equal(result.status, 'unavailable');
+  assert.equal(result.record.unavailable, true);
+});
+
+test('buildSnapshot reports unavailable when every repository is gone', () => {
+  const results = [
+    {
+      slug: 'cristian-cardona-dev/demo',
+      status: 'unavailable',
+      durationMs: 1,
+      record: {
+        id: 'cristian-cardona-dev/demo',
+        url: 'https://github.com/cristian-cardona-dev/demo',
+        visibility: 'public',
+        pull_requests: [],
+        commits: [],
+        releases: [],
+        deployments: [],
+        open_pull_requests: 0,
+        unavailable: true,
+      },
+    },
+  ];
+  const next = buildSnapshot({ snapshot: makeSnapshot(), results, capturedAt: toIso(NOW) });
+  assert.equal(next.status.availability, 'unavailable');
+  assert.equal(next.status.failed_repos, undefined);
+  assert.equal(next.repositories[0].unavailable, true);
+});
+
+test('buildSnapshot does not count a gone repository as a refresh failure', () => {
+  const results = [
+    {
+      slug: 'cristian-cardona-dev/demo',
+      status: 'unavailable',
+      durationMs: 1,
+      record: {
+        id: 'cristian-cardona-dev/demo',
+        url: 'https://github.com/cristian-cardona-dev/demo',
+        visibility: 'public',
+        pull_requests: [],
+        commits: [],
+        releases: [],
+        deployments: [],
+        open_pull_requests: 0,
+        unavailable: true,
+      },
+    },
+    {
+      slug: 'cristian-cardona-dev/other',
+      status: 'success',
+      durationMs: 1,
+      record: {
+        id: 'cristian-cardona-dev/other',
+        url: 'https://github.com/cristian-cardona-dev/other',
+        visibility: 'public',
+        pull_requests: [],
+        commits: [makeCommit('sha1', toIso(NOW), 'feat: live', 'Cristian')],
+        releases: [],
+        deployments: [],
+        open_pull_requests: 1,
+      },
+    },
+  ];
+  const next = buildSnapshot({ snapshot: makeSnapshot(), results, capturedAt: toIso(NOW) });
+  assert.equal(next.status.availability, 'available');
+  assert.equal(next.status.failed_repos, undefined);
+});
+
 test('buildSnapshot expresses partial failure', () => {
   const results = [
     { slug: 'cristian-cardona-dev/a', status: 'success', durationMs: 10, record: { id: 'cristian-cardona-dev/a', url: 'https://github.com/cristian-cardona-dev/a', visibility: 'public', pull_requests: [], commits: [{ id: 'c1', url: 'https://github.com/cristian-cardona-dev/a/commit/c1', captured_at: toIso(NOW), title: 'x' }], releases: [], deployments: [], open_pull_requests: 0 } },

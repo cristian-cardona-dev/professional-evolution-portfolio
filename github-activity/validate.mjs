@@ -55,8 +55,10 @@ for (const url of doc.allowed_repositories || []) if (!repoUrl(url)) fail(`non-p
 if (!Array.isArray(doc.repositories)) fail("repositories must be an array");
 const allowed = new Set((doc.allowed_repositories || []).map(cleanRepoUrl)); const repositoryIds = new Set(); const objectIds = new Set();
 for (const repository of doc.repositories || []) {
-  hasOnly(repository, ["id", "url", "visibility", "open_pull_requests", "error", "etag", ...Object.keys(objectKinds)], "repository"); required(repository, ["id", "url", "visibility", ...Object.keys(objectKinds)], "repository");
+  hasOnly(repository, ["id", "url", "visibility", "open_pull_requests", "error", "etag", "unavailable", ...Object.keys(objectKinds)], "repository"); required(repository, ["id", "url", "visibility", ...Object.keys(objectKinds)], "repository");
   if (repository && "etag" in repository && (typeof repository.etag !== "string" || repository.etag.length < 1)) fail("repository etag must be a non-empty string");
+  if (repository && "unavailable" in repository && repository.unavailable !== true) fail("repository unavailable must be true when present");
+  if (repository && repository.unavailable === true && (repository.commits?.length || repository.releases?.length || repository.open_pull_requests)) fail("an unavailable repository must not carry activity data");
   if (!repository || typeof repository.id !== "string" || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository.id) || !repoUrl(repository.url) || repository.visibility !== "public" || !allowed.has(cleanRepoUrl(repository.url))) fail("repository is not public, valid, and allowlisted");
   if (repository && "open_pull_requests" in repository && (!Number.isInteger(repository.open_pull_requests) || repository.open_pull_requests < 0)) fail("repository open_pull_requests must be a non-negative integer");
   if (repository && "error" in repository && (typeof repository.error !== "string" || repository.error.length < 1)) fail("repository error marker must be a non-empty string");

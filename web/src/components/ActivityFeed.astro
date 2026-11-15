@@ -40,6 +40,8 @@ interface Repository {
   open_pull_requests?: number;
   /** Marker set by the refresh script when the last fetch failed. */
   error?: string;
+  /** The repository no longer exists on GitHub; its data is deliberately empty. */
+  unavailable?: boolean;
 }
 
 /** The snapshot's own freshness contract (mirrors github-activity/validate.mjs). */
@@ -190,47 +192,53 @@ function slugOf(url: string): string {
                   </a>
                 </h3>
 
-                {repo.error && (
-                  <p class="activity__error" role="status">
-                    <span class="activity__error-glyph" aria-hidden="true">▲</span>
-                    {copy.activity.refreshFailed}
-                  </p>
-                )}
-
-                {latestCommit ? (
-                  <p class="activity__commit">
-                    <a
-                      class="activity__commit-link"
-                      href={latestCommit.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {latestCommit.title}
-                      <span class="visually-hidden"> ({copy.a11y.opensInNewTab})</span>
-                    </a>
-                    <time
-                      class="activity__date tabular"
-                      datetime={latestCommit.captured_at}
-                      title={formatDate(latestCommit.captured_at)}
-                    >
-                      {formatRelative(latestCommit.captured_at)}
-                    </time>
-                    {botsFiltered > 0 && (
-                      <span class="activity__bot-note">{copy.activity.botNote(botsFiltered)}</span>
-                    )}
-                  </p>
+                {repo.unavailable ? (
+                  <p class="activity__muted" role="status">{copy.activity.unavailable}</p>
                 ) : (
-                  <p class="activity__muted">{copy.activity.noCommits}</p>
-                )}
+                  <>
+                    {repo.error && (
+                      <p class="activity__error" role="status">
+                        <span class="activity__error-glyph" aria-hidden="true">▲</span>
+                        {copy.activity.refreshFailed}
+                      </p>
+                    )}
 
-                <p class="activity__meta">
-                  <span class="chip chip--neutral">
-                    {copy.activity.openPullRequests(openPullRequests)}
-                  </span>
-                  {release && (
-                    <span class="chip chip--accent">{copy.activity.latestRelease(release.title)}</span>
-                  )}
-                </p>
+                    {latestCommit ? (
+                      <p class="activity__commit">
+                        <a
+                          class="activity__commit-link"
+                          href={latestCommit.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {latestCommit.title}
+                          <span class="visually-hidden"> ({copy.a11y.opensInNewTab})</span>
+                        </a>
+                        <time
+                          class="activity__date tabular"
+                          datetime={latestCommit.captured_at}
+                          title={formatDate(latestCommit.captured_at)}
+                        >
+                          {formatRelative(latestCommit.captured_at)}
+                        </time>
+                        {botsFiltered > 0 && (
+                          <span class="activity__bot-note">{copy.activity.botNote(botsFiltered)}</span>
+                        )}
+                      </p>
+                    ) : (
+                      <p class="activity__muted">{copy.activity.noCommits}</p>
+                    )}
+
+                    <p class="activity__meta">
+                      <span class="chip chip--neutral">
+                        {copy.activity.openPullRequests(openPullRequests)}
+                      </span>
+                      {release && (
+                        <span class="chip chip--accent">{copy.activity.latestRelease(release.title)}</span>
+                      )}
+                    </p>
+                  </>
+                )}
               </li>
             );
           })}
