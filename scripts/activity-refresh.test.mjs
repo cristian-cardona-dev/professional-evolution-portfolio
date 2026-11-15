@@ -17,6 +17,8 @@ import {
   loadHealth,
   saveHealth,
   updateHealth,
+  consecutiveFailures,
+  chronicFailures,
   formatLogLine,
   formatStepSummary,
   runRefresh,
@@ -332,6 +334,75 @@ test('updateHealth keeps a rolling 30-day window', () => {
   const pruned = updateHealth(withOld, results, NOW);
   assert.equal(pruned.repositories['cristian-cardona-dev/a'].length, 1);
   assert.equal(pruned.repositories['cristian-cardona-dev/a'][0].date, TODAY);
+});
+
+test('updateHealth does not build a failure streak for an unavailable repository', () => {
+  const health = { repositories: {} };
+  const results = [{ slug: 'cristian-cardona-dev/gone', status: 'unavailable' }];
+  const updated = updateHealth(health, results, NOW);
+  assert.equal(updated.repositories['cristian-cardona-dev/gone'][0].success, true);
+});
+
+test('consecutiveFailures counts only the trailing run', () => {
+  assert.equal(consecutiveFailures([]), 0);
+  assert.equal(consecutiveFailures([{ date: '2026-11-15', success: true }]), 0);
+  assert.equal(
+    consecutiveFailures([
+      { date: '2026-11-15', success: false },
+      { date: '2026-11-14', success: false },
+      { date: '2026-11-13', success: true },
+    ]),
+    2,
+  );
+  // Order in the file is chronological; the streak must be read backwards.
+  assert.equal(
+    consecutiveFailures([
+      { date: '2026-11-13', success: true },
+      { date: '2026-11-14', success: false },
+      { date: '2026-11-15', success: false },
+    ]),
+    2,
+  );
+  // One healthy day resets it.
+  assert.equal(
+    consecutiveFailures([
+      { date: '2026-11-15', success: true },
+      { date: '2026-11-14', success: false },
+      { date: '2026-11-13', success: false },
+    ]),
+    0,
+  );
+});
+
+test('chronicFailures reports repos at the threshold and sorts by streak', () => {
+  const health = {
+    repositories: {
+      'cristian-cardona-dev/two': [
+        { date: '2026-11-14', success: false },
+        { date: '2026-11-15', success: false },
+      ],
+      'cristian-cardona-dev/three': [
+        { date: '2026-11-13', success: false },
+        { date: '2026-11-14', success: false },
+        { date: '2026-11-15', success: false },
+      ],
+      'cristian-cardona-dev/four': [
+        { date: '2026-11-12', success: false },
+        { date: '2026-11-13', success: false },
+        { date: '2026-11-14', success: false },
+        { date: '2026-11-15', success: false },
+      ],
+      'cristian-cardona-dev/healthy': [{ date: '2026-11-15', success: true }],
+    },
+  };
+  const chronic = chronicFailures(health, 3);
+  assert.deepEqual(
+    chronic.map((c) => c.slug),
+    ['cristian-cardona-dev/four', 'cristian-cardona-dev/three'],
+  );
+  assert.equal(chronic[0].streak, 4);
+  assert.equal(chronic[1].streak, 3);
+  assert.equal(chronicFailures(health, 99).length, 0);
 });
 
 test('formatLogLine returns a single structured JSON object', () => {

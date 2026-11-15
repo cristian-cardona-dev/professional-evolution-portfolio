@@ -397,14 +397,44 @@ export function updateHealth(health, results, now = Date.now()) {
     const history = out.repositories[result.slug] || [];
     const filtered = history.filter((entry) => entry.date >= cutoffStr);
     const existing = filtered.find((entry) => entry.date === today);
+    // Only a genuine fetch failure is a health failure. A repository reported
+    // `unavailable` means the refresh correctly determined it is gone — that is
+    // the refresh working, not breaking, so it must not build a failure streak.
+    const healthy = result.status !== 'fail';
     if (existing) {
-      existing.success = result.status === 'success';
+      existing.success = healthy;
     } else {
-      filtered.push({ date: today, success: result.status === 'success' });
+      filtered.push({ date: today, success: healthy });
     }
     out.repositories[result.slug] = filtered;
   }
   return out;
+}
+
+/**
+ * Trailing run of consecutive failures in a repo's health history (plan phase
+ * 7.3). Days are counted backwards from the most recent entry; a single healthy
+ * day resets the streak to zero.
+ */
+export function consecutiveFailures(history) {
+  if (!Array.isArray(history) || history.length === 0) return 0;
+  const sorted = [...history].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  let streak = 0;
+  for (const entry of sorted) {
+    if (entry.success) break;
+    streak += 1;
+  }
+  return streak;
+}
+
+/** Repositories whose refresh has failed `threshold` runs in a row. */
+export function chronicFailures(health, threshold = 3) {
+  const out = [];
+  for (const [slug, history] of Object.entries(health?.repositories || {})) {
+    const streak = consecutiveFailures(history);
+    if (streak >= threshold) out.push({ slug, streak });
+  }
+  return out.sort((a, b) => b.streak - a.streak || a.slug.localeCompare(b.slug));
 }
 
 /** Read the current snapshot. */

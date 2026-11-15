@@ -18,6 +18,7 @@ on:
 permissions:
   contents: write
   actions: write
+  issues: write
 
 concurrency:
   group: activity-refresh
@@ -49,25 +50,44 @@ jobs:
         run: |
           node --input-type=module -e '
             import { execSync } from "node:child_process";
-            import { appendFileSync, readFileSync } from "node:fs";
+            import { appendFileSync, readFileSync, existsSync } from "node:fs";
             const strip = (text) => {
               const doc = JSON.parse(text);
               delete doc.captured_at;
               return JSON.stringify(doc);
             };
-            const head = execSync("git show HEAD:github-activity/snapshot.json", { encoding: "utf8" });
-            const work = readFileSync("github-activity/snapshot.json", "utf8");
-            const changed = strip(head) !== strip(work);
+            // `changed` drives the DEPLOY: only snapshot content matters.
+            let changed = false;
+            try {
+              const head = execSync("git show HEAD:github-activity/snapshot.json", { encoding: "utf8" });
+              const work = readFileSync("github-activity/snapshot.json", "utf8");
+              changed = strip(head) !== strip(work);
+            } catch {
+              changed = true;
+            }
+            // `health_changed` drives the COMMIT of health.json, which must be
+            // persisted every run or the 30-day failure history (phase 7.3)
+            // could never accumulate across runs.
+            let healthChanged = false;
+            if (existsSync("github-activity/health.json")) {
+              try {
+                const head = execSync("git show HEAD:github-activity/health.json", { encoding: "utf8" });
+                healthChanged = head !== readFileSync("github-activity/health.json", "utf8");
+              } catch {
+                healthChanged = true;
+              }
+            }
             console.log(changed ? "Snapshot content changed." : "Snapshot content unchanged (timestamp only).");
             appendFileSync(process.env.GITHUB_OUTPUT, `changed=${changed}\n`);
+            appendFileSync(process.env.GITHUB_OUTPUT, `health_changed=${healthChanged}\n`);
           '
 
       - name: Commit and push refreshed snapshot
-        if: steps.change.outputs.changed == 'true'
+        if: steps.change.outputs.changed == 'true' || steps.change.outputs.health_changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add github-activity/snapshot.json
+          git add github-activity/snapshot.json github-activity/health.json
           git commit -m "ai(portfolio): refresh public github activity"
           # Retry push on conflict (another run may have pushed in between).
           for attempt in 1 2 3; do
@@ -95,3 +115,73 @@ jobs:
       - name: No change
         if: steps.change.outputs.changed != 'true'
         run: echo "No upstream activity change; skipping commit and deploy."
+
+      - name: Chronic failure tracking (plan phase 7.3)
+        # Reads the health.json this run just updated, surfaces it in the step
+        # summary, and keeps AT MOST one open issue per chronically failing
+        # repository — matched by exact title so a persistent failure updates
+        # the existing issue rather than opening a new one every day. Issues
+        # for repositories that recovered are closed automatically.
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          node scripts/health-report.mjs --json > health-report.json
+
+          node -e '
+            const fs = require("fs");
+            const r = JSON.parse(fs.readFileSync("health-report.json", "utf8"));
+            const lines = [
+              "## Activity refresh health",
+              "",
+              `repositories with history: **${r.total_repositories}**, streak threshold: **${r.threshold}**`,
+              "",
+            ];
+            if (r.chronic.length === 0) lines.push("- no repository is on a failure streak");
+            else for (const c of r.chronic) lines.push(`- \`${c.slug}\`: **${c.streak}** consecutive failures`);
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+          '
+
+          node -e '
+            const r = JSON.parse(require("fs").readFileSync("health-report.json", "utf8"));
+            for (const c of r.chronic) console.log(c.slug + "\t" + c.streak);
+          ' > chronic.tsv
+
+          PREFIX="Activity refresh: chronic failure"
+
+          if [ -s chronic.tsv ]; then
+            while IFS=$'\t' read -r slug streak; do
+              title="$PREFIX — $slug"
+              existing=$(gh issue list --state open --limit 200 --json number,title \
+                --jq "[.[] | select(.title == \"$title\") | .number][0] // empty")
+              body="## \`$slug\` has failed $streak consecutive refresh runs
+
+          The refresh could not reach this repository on its last $streak run(s). \`github-activity/health.json\` holds the 30-day history.
+
+          Opened automatically by the activity refresh workflow; it closes itself once the repository refreshes successfully again."
+              if [ -n "$existing" ]; then
+                gh issue comment "$existing" --body "$body"
+                echo "Updated issue #$existing for $slug."
+              else
+                gh issue create --title "$title" --body "$body"
+                echo "Opened issue for $slug."
+              fi
+            done < chronic.tsv
+          else
+            echo "No chronic failures."
+          fi
+
+          # Close anything we opened earlier for a repository that recovered.
+          gh issue list --state open --limit 200 --json number,title \
+            --jq ".[] | select(.title | startswith(\"$PREFIX\")) | \"\(.number)\t\(.title)\"" \
+            > open-issues.tsv || true
+          if [ -s open-issues.tsv ]; then
+            while IFS=$'\t' read -r number title; do
+              slug="${title#*— }"
+              if ! grep -Fq "$slug" chronic.tsv; then
+                gh issue close "$number" --comment "\`$slug\` refreshed successfully again. Closed automatically."
+                echo "Closed recovered issue #$number for $slug."
+              fi
+            done < open-issues.tsv
+          fi
