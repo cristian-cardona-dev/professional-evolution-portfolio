@@ -16,6 +16,8 @@
 import type { Copy, Locale } from '../i18n/copy';
 import { profile } from '../lib/data';
 import { localeRoot } from '../lib/urls';
+import { formatRelativeTime, freshnessBucket } from '../lib/relative-time';
+import snapshot from '../../../github-activity/snapshot.json';
 
 interface Props {
   copy: Copy;
@@ -25,6 +27,24 @@ interface Props {
 const { copy, locale } = Astro.props;
 
 const year = new Date().getUTCFullYear();
+
+/* The checked-in activity snapshot's own timestamp — rendered site-wide so the
+   data's age is visible outside the activity section (plan phase 9.5). The
+   browser never calls GitHub; this is a build-time constant. */
+const activityDoc = snapshot as unknown as { captured_at: string };
+const activityCapturedAt = activityDoc.captured_at;
+const activityFreshness = freshnessBucket(activityCapturedAt);
+const activityRelative = formatRelativeTime(activityCapturedAt, locale);
+
+const activityDate = new Date(activityCapturedAt);
+const activityAbsolute = Number.isNaN(activityDate.getTime())
+  ? activityCapturedAt
+  : new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    }).format(activityDate);
 
 // The other locale's root, base-aware: `/base/` ↔ `/base/es/`.
 const otherLocale = locale === 'es' ? 'en' : 'es';
@@ -50,6 +70,19 @@ const otherLocaleLabel = `/${otherLocale}`;
 
     <p class="site-footer__bilingual">
       {copy.footer.bilingualNotice} <a href={otherLocaleHref}>{otherLocaleLabel}</a>.
+    </p>
+
+    {/* Snapshot age, stated site-wide. The bucket word carries the meaning and
+        the absolute date sits in the title, so colour is never the only signal. */}
+    <p
+      class={`site-footer__snapshot site-footer__snapshot--${activityFreshness} tabular`}
+      title={activityCapturedAt}
+    >
+      <span class="site-footer__snapshot-mark" aria-hidden="true">
+        {activityFreshness === 'fresh' ? '●' : activityFreshness === 'aging' ? '▲' : '■'}
+      </span>
+      {copy.footer.snapshotLabel}: {activityRelative}
+      <span class="visually-hidden">({activityAbsolute})</span>
     </p>
 
     <p class="site-footer__copyright tabular">© {year} {profile.name}</p>
@@ -130,6 +163,33 @@ const otherLocaleLabel = `/${otherLocale}`;
     font-size: var(--text-xs);
     line-height: var(--leading-xs);
     color: var(--color-text-muted);
+  }
+
+  /* --- Snapshot age (plan phase 9.5) -------------------------------------- */
+  .site-footer__snapshot {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: var(--text-xs);
+    line-height: var(--leading-xs);
+    color: var(--color-text-muted);
+  }
+
+  .site-footer__snapshot-mark {
+    font-size: 0.7em;
+    line-height: 1;
+  }
+
+  .site-footer__snapshot--fresh .site-footer__snapshot-mark {
+    color: var(--color-success);
+  }
+
+  .site-footer__snapshot--aging .site-footer__snapshot-mark {
+    color: var(--color-warn);
+  }
+
+  .site-footer__snapshot--stale .site-footer__snapshot-mark {
+    color: var(--color-danger);
   }
 
   /* --- Print -------------------------------------------------------------- */

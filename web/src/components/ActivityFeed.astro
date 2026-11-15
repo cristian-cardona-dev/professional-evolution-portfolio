@@ -15,6 +15,7 @@
  * order h1 → h2 → h3.
  */
 import type { Copy, Locale } from '../i18n/copy';
+import { formatRelativeTime, freshnessBucket, type Freshness } from '../lib/relative-time';
 import snapshot from '../../../github-activity/snapshot.json';
 
 /** One commit, pull request or release as the snapshot stores it. */
@@ -65,36 +66,20 @@ const { copy, locale } = Astro.props;
 const doc = snapshot as unknown as SnapshotDoc;
 const repositories = (snapshot.repositories ?? []) as unknown as Repository[];
 
-const bcp47 = locale === 'es' ? 'es' : 'en';
 const dateFormat = new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
   year: 'numeric',
   month: 'short',
   day: 'numeric',
   timeZone: 'UTC',
 });
-const relativeFormat = new Intl.RelativeTimeFormat(bcp47, { numeric: 'auto' });
-
-const SECOND = 1000;
-const MINUTE = 60 * SECOND;
-const HOUR = 60 * MINUTE;
-const DAY = 24 * HOUR;
 
 function formatDate(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : dateFormat.format(date);
 }
 
-/** "2 days ago" / "hace 2 días"; falls back to the raw value when unparseable. */
-function formatRelative(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  const diff = date.getTime() - Date.now();
-  const abs = Math.abs(diff);
-  if (abs >= DAY) return relativeFormat.format(Math.round(diff / DAY), 'day');
-  if (abs >= HOUR) return relativeFormat.format(Math.round(diff / HOUR), 'hour');
-  if (abs >= MINUTE) return relativeFormat.format(Math.round(diff / MINUTE), 'minute');
-  return relativeFormat.format(0, 'minute');
-}
+/** Shared relative-time helpers (also used by /build/ and the footer). */
+const formatRelative = (value: string): string => formatRelativeTime(value, locale);
 
 /** `owner/repo` → `repo`; the owner is the same across the allowlist. */
 function repoName(id: string): string {
@@ -104,19 +89,7 @@ function repoName(id: string): string {
 
 // --- Freshness -------------------------------------------------------------
 const capturedAt = doc.captured_at;
-const capturedDate = new Date(capturedAt);
-const ageMs = Number.isNaN(capturedDate.getTime())
-  ? Number.NaN
-  : Date.now() - capturedDate.getTime();
-
-/** Buckets: <24h fresh, 1–7d aging, >7d stale. Colour is never the only signal. */
-const freshness: 'fresh' | 'aging' | 'stale' = !Number.isFinite(ageMs)
-  ? 'stale'
-  : ageMs < DAY
-    ? 'fresh'
-    : ageMs <= 7 * DAY
-      ? 'aging'
-      : 'stale';
+const freshness: Freshness = freshnessBucket(capturedAt);
 
 const freshnessLabel =
   freshness === 'fresh'

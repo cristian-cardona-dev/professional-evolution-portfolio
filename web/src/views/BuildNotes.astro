@@ -26,6 +26,8 @@
 import type { Copy, Locale } from '../i18n/copy';
 import { profile } from '../lib/data';
 import { readBuildMetadata } from '../lib/build-metadata';
+import { formatRelativeTime, freshnessBucket, type Freshness } from '../lib/relative-time';
+import snapshot from '../../../github-activity/snapshot.json';
 import Comments from '../components/Comments.astro';
 
 interface Props {
@@ -34,6 +36,29 @@ interface Props {
 }
 
 const { locale, copy } = Astro.props;
+
+/* GitHub activity freshness, stated on the build page so the data's age is
+   visible outside the activity section (plan phase 9.5). The browser still
+   never calls GitHub: this is the checked-in snapshot's own captured_at. */
+const activityDoc = snapshot as unknown as { captured_at: string };
+const activityCapturedAt = activityDoc.captured_at;
+const activityFreshness: Freshness = freshnessBucket(activityCapturedAt);
+const activityLabel =
+  activityFreshness === 'fresh'
+    ? copy.activity.freshnessFresh
+    : activityFreshness === 'aging'
+      ? copy.activity.freshnessAging
+      : copy.activity.freshnessStale;
+
+const activityDate = new Date(activityCapturedAt);
+const activityAbsolute = Number.isNaN(activityDate.getTime())
+  ? activityCapturedAt
+  : new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    }).format(activityDate);
 
 /* Which search this build actually ships — read from the generated build
    metadata (`scripts/build-semantic-index.mjs`), so the page can never claim
@@ -70,6 +95,19 @@ const rssHref = `${import.meta.env.BASE_URL}rss.xml`;
       <h1 id="build-heading">{copy.build.title}</h1>
       <p class="lead">{copy.build.summary}</p>
     </header>
+
+    {/* How old the checked-in activity data is — a fact about this build. The
+        bucket word carries the meaning; colour only reinforces it. */}
+    <p class="build-note build-freshness">
+      <span class={`build-freshness__mark build-freshness__mark--${activityFreshness}`} aria-hidden="true">
+        {activityFreshness === 'fresh' ? '●' : activityFreshness === 'aging' ? '▲' : '■'}
+      </span>
+      {copy.activity.lastUpdated(formatRelativeTime(activityCapturedAt, locale))}
+      <span class="build-freshness__bucket">({activityLabel})</span>
+      <time class="build-freshness__absolute tabular" datetime={activityCapturedAt}>
+        {activityAbsolute}
+      </time>
+    </p>
 
     <section class="build-block reveal" aria-labelledby="build-stack-heading">
       <h2 id="build-stack-heading">{copy.build.stackHeading}</h2>
@@ -271,5 +309,39 @@ const rssHref = `${import.meta.env.BASE_URL}rss.xml`;
     min-height: 44px;
     color: var(--color-accent);
     font-family: var(--font-mono);
+  }
+
+  /* --- Activity freshness (phase 9.5) ------------------------------------- */
+  .build-freshness {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+
+  .build-freshness__mark {
+    font-size: 0.7em;
+    line-height: 1;
+  }
+
+  .build-freshness__mark--fresh {
+    color: var(--color-success);
+  }
+
+  .build-freshness__mark--aging {
+    color: var(--color-warn);
+  }
+
+  .build-freshness__mark--stale {
+    color: var(--color-danger);
+  }
+
+  .build-freshness__bucket {
+    font-weight: 600;
+  }
+
+  .build-freshness__absolute {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
   }
 </style>
