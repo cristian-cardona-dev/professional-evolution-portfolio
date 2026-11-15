@@ -1,0 +1,98 @@
+name: Site health
+
+# Scheduled checks against the DEPLOYED origin (plan phases 9.2 and 9.4).
+#
+# `quality.yml` already runs Lighthouse on push, but against a local
+# `astro preview` on 127.0.0.1. That cannot see the real path a visitor takes:
+# GitHub Pages + Fastly cache behaviour, real network latency, third-party
+# origins. This workflow measures the site where people actually get it, and
+# probes the response headers the origin really sends.
+#
+# Both jobs are build-free — they only talk to the live site — so they are
+# cheap enough to run on a schedule without competing with the CI pipeline.
+
+on:
+  schedule:
+    # Weekly, Thursday 04:11 UTC (different day from the link-rot monitor).
+    - cron: '11 4 * * 4'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-health
+  cancel-in-progress: false
+
+jobs:
+  origin-probe:
+    # Blocking assertions about the live response: status, charset, document
+    # completeness and version leaks. The six headers GitHub Pages cannot set
+    # are reported informationally — demanding them here would be permanently
+    # red and train everyone to ignore the check.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Probe the canonical origin
+        run: node scripts/security-headers.mjs
+
+  lighthouse-deployed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Audit the deployed pages
+        # Same thresholds as the push gate in quality.yml, so the two gates
+        # cannot disagree about what "good" means. A failure here means the
+        # DEPLOYED experience regressed (CDN, cache, third party, or code),
+        # which is precisely what the local gate cannot observe.
+        run: |
+          set -u
+          base="https://cristian-cardona-dev.github.io/professional-evolution-portfolio"
+          urls=("$base/" "$base/work/" "$base/career/" "$base/evolution/" "$base/es/")
+          for i in "${!urls[@]}"; do
+            echo "Auditing ${urls[$i]}"
+            npx --yes lighthouse@12 "${urls[$i]}" \
+              --output=json \
+              --output-path="$RUNNER_TEMP/lighthouse-$i.json" \
+              --chrome-flags="--headless --no-sandbox --disable-gpu" \
+              --only-categories=performance,accessibility,best-practices,seo \
+              --quiet || true
+          done
+          node -e "
+            const fs=require('fs');
+            const os=require('os');
+            const dir=process.env.RUNNER_TEMP||os.tmpdir();
+            const urls=['/','/work/','/career/','/evolution/','/es/'];
+            const thresholds={performance:0.90,accessibility:0.95,'best-practices':0.9,seo:0.95};
+            let fail=false;
+            urls.forEach((url,i)=>{
+              const path=dir+'/lighthouse-'+i+'.json';
+              let report;
+              try { report=JSON.parse(fs.readFileSync(path,'utf8')); }
+              catch(e) { console.log(url+': NO REPORT ('+e.message+')'); fail=true; return; }
+              const cats=report.categories||{};
+              for(const[k,v] of Object.entries(thresholds)){
+                const score=cats[k]?.score||0;
+                console.log(url+' '+k+': '+Math.round(score*100)+'% (min '+Math.round(v*100)+'%)');
+                if(score<v){fail=true;}
+              }
+            });
+            if(fail){process.exit(1);}
+            console.log('Deployed Lighthouse thresholds passed for all 5 URLs.');
+          "

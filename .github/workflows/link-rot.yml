@@ -1,0 +1,140 @@
+name: Link rot monitor
+
+# Weekly live check of every external URL the built site ships (plan phase 9.1).
+#
+# `web/tests/links.test.mjs` validates internal links and only the FORMAT of
+# external ones — it makes no network calls. This workflow closes that gap by
+# building the site and actually requesting each external URL.
+#
+# The result is surfaced as at most ONE tracking issue: a new dead link updates
+# it, and a clean run closes it, so repeated failures never spam the tracker.
+
+on:
+  schedule:
+    # Weekly, Tuesday 05:23 UTC (off the hour to avoid the scheduler herd).
+    - cron: '23 5 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: link-rot
+  cancel-in-progress: false
+
+jobs:
+  link-rot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install web dependencies
+        run: npm --prefix web ci
+
+      - name: Install Playwright Chromium
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Build web
+        run: npm --prefix web run build
+
+      - name: Probe external links
+        id: probe
+        # Never `continue-on-error`: a dead link must fail the run so it is
+        # visible in the Actions history as well as in the tracking issue.
+        run: |
+          set +e
+          node scripts/link-rot.mjs --json=link-rot-report.json
+          code=$?
+          echo "exit=$code" >> "$GITHUB_OUTPUT"
+          if [ -f link-rot-report.json ]; then
+            broken=$(node -e "console.log(JSON.parse(require('fs').readFileSync('link-rot-report.json','utf8')).broken)")
+            total=$(node -e "console.log(JSON.parse(require('fs').readFileSync('link-rot-report.json','utf8')).total)")
+            echo "broken=$broken" >> "$GITHUB_OUTPUT"
+            echo "total=$total" >> "$GITHUB_OUTPUT"
+          else
+            echo "broken=0" >> "$GITHUB_OUTPUT"
+            echo "total=0" >> "$GITHUB_OUTPUT"
+          fi
+          exit $code
+
+      - name: Publish report to the step summary
+        if: always()
+        run: |
+          if [ -f link-rot-report.json ]; then
+            node -e '
+              const fs = require("fs");
+              const r = JSON.parse(fs.readFileSync("link-rot-report.json", "utf8"));
+              const rows = r.results
+                .filter((x) => x.kind !== "ok")
+                .map((x) => `| ${x.status || "err"} | ${x.url} | ${x.source} | ${x.kind} |`);
+              const lines = [
+                "## Link rot",
+                "",
+                `- scanned: **${r.total}** external URLs at ${r.scanned_at}`,
+                `- ok: **${r.ok}**, broken: **${r.broken}**, unverifiable: **${r.unverifiable}**`,
+                "",
+              ];
+              if (rows.length) {
+                lines.push("| status | url | found in | verdict |", "| --- | --- | --- | --- |", ...rows);
+              }
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+            '
+          fi
+
+      - name: Update the single tracking issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          TITLE="Link rot: dead external links"
+          BROKEN="${{ steps.probe.outputs.broken }}"
+          TOTAL="${{ steps.probe.outputs.total }}"
+
+          # Exact-title match: deterministic, and unaffected by search ranking.
+          EXISTING=$(gh issue list --state open --limit 50 --json number,title \
+            --jq "[.[] | select(.title == \"$TITLE\") | .number][0] // empty")
+
+          PROBE_EXIT="${{ steps.probe.outputs.exit }}"
+
+          # Only declare "healthy" when the probe actually completed: a crash
+          # before the report was written must not close a real finding.
+          if [ "$PROBE_EXIT" = "0" ] && { [ -z "$BROKEN" ] || [ "$BROKEN" = "0" ]; }; then
+            if [ -n "$EXISTING" ]; then
+              gh issue close "$EXISTING" --comment "All external links verified healthy again (0 dead of $TOTAL). Closed automatically by the weekly link-rot monitor."
+              echo "Closed stale tracking issue #$EXISTING."
+            else
+              echo "No dead links; nothing to report."
+            fi
+            exit 0
+          fi
+
+          {
+            echo "## $BROKEN dead link(s) of $TOTAL external URLs"
+            echo ""
+            echo "Detected by the weekly link-rot monitor. The full scan (including unverifiable hosts) is in the run's step summary."
+            echo ""
+            echo "| status | url |"
+            echo "| --- | --- |"
+            if [ -f link-rot-report.json ]; then
+              node -e 'const r=JSON.parse(require("fs").readFileSync("link-rot-report.json","utf8"));for(const x of r.results.filter(y=>y.kind==="broken"))console.log(`| ${x.status} | ${x.url} |`);'
+            fi
+          } > issue-body.md
+
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body-file issue-body.md
+            echo "Updated existing issue #$EXISTING."
+          else
+            gh issue create --title "$TITLE" --body-file issue-body.md
+            echo "Opened tracking issue."
+          fi
+          exit 1
