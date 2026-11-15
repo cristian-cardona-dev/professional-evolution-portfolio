@@ -52,6 +52,7 @@
 import type { Copy, Locale } from '../i18n/copy';
 import { assistantIndex, profile } from '../lib/data';
 import { readBuildMetadata } from '../lib/build-metadata';
+import { CHAT_IS_DEV, resolveChatWorkerUrl } from '../lib/chat-config.mjs';
 import { route } from '../lib/urls';
 
 interface Props {
@@ -60,20 +61,17 @@ interface Props {
 }
 
 const { copy, locale } = Astro.props;
-const CHAT_WORKER_ORIGIN = 'https://portfolio-ai-chat-worker.crisss198.workers.dev';
-const CHAT_API_PATH = ['api', 'chat'].join('/');
-const chatWorkerUrl =
-  import.meta.env.PUBLIC_CHAT_WORKER_URL
-    ? `${String(import.meta.env.PUBLIC_CHAT_WORKER_URL).replace(/\/+$/, '')}/${CHAT_API_PATH}`
-    : import.meta.env.DEV
-      ? `${import.meta.env.BASE_URL}${CHAT_API_PATH}`
-      : `${CHAT_WORKER_ORIGIN}/${CHAT_API_PATH}`;
+// Endpoint allowlist lives in lib/chat-config.mjs — one origin, one path,
+// resolved identically here (server-rendered gating) and in the client script.
+const chatWorkerUrl = resolveChatWorkerUrl();
 
 /** Which search this build ships; stated in the panel, never implied. */
 const buildMetadata = readBuildMetadata();
 const modeNote =
   chatWorkerUrl
-    ? copy.assistant.devMode
+    ? CHAT_IS_DEV
+      ? copy.assistant.devMode
+      : copy.assistant.chatMode
     : buildMetadata.semantic_index === 'semantic'
       ? copy.assistant.modeSemantic
       : copy.assistant.modeKeyword;
@@ -171,9 +169,9 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
 
         <p class="assistant__banner" id="pep-assistant-banner">
           {chatWorkerUrl
-            ? (import.meta.env.PUBLIC_CHAT_WORKER_URL
-                ? copy.assistant.chatNotice
-                : copy.assistant.devNotice)
+            ? (CHAT_IS_DEV
+                ? copy.assistant.devNotice
+                : copy.assistant.chatNotice)
             : copy.assistant.banner}
         </p>
 
@@ -195,7 +193,9 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
           toolname={chatWorkerUrl ? 'portfolio_ai_chat' : 'site_search'}
           tooldescription={
             chatWorkerUrl
-              ? copy.assistant.devToolDescription
+              ? (CHAT_IS_DEV
+                  ? copy.assistant.devToolDescription
+                  : copy.assistant.chatToolDescription)
               : "Searches this site's own published index and returns links to the pages that match. It runs entirely in the visitor's browser against an index embedded in the page and, when the build shipped semantic vectors, a same-origin static JSON file: no backend and no AI model or API call at query time. A query that matches nothing returns an honest fallback with the site's own listings instead of an invented answer."
           }
         >
@@ -211,7 +211,9 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
             aria-describedby="pep-assistant-banner"
             toolparamdescription={
               chatWorkerUrl
-                ? copy.assistant.devToolDescription
+                ? (CHAT_IS_DEV
+                    ? copy.assistant.devToolDescription
+                    : copy.assistant.chatToolDescription)
                 : "Keywords matched against the titles, summaries and status text of the site's own published pages."
             }
           />
@@ -301,16 +303,12 @@ const indexJson = JSON.stringify(entries).replace(/</g, '\\u003c');
   // visit that never opens the panel never downloads it — the code-split
   // equivalent of an Astro island for a vanilla-script widget.
   import type { SemanticIndex } from '../lib/semantic-search';
+  import { resolveChatWorkerUrl } from '../lib/chat-config.mjs';
 
   (() => {
-    const CHAT_WORKER_ORIGIN = 'https://portfolio-ai-chat-worker.crisss198.workers.dev';
-    const CHAT_API_PATH = ['api', 'chat'].join('/');
-    const chatWorkerUrl =
-      import.meta.env.PUBLIC_CHAT_WORKER_URL
-        ? `${String(import.meta.env.PUBLIC_CHAT_WORKER_URL).replace(/\/+$/, '')}/${CHAT_API_PATH}`
-        : import.meta.env.DEV
-          ? `${import.meta.env.BASE_URL}${CHAT_API_PATH}`
-          : `${CHAT_WORKER_ORIGIN}/${CHAT_API_PATH}`;
+    // Endpoint allowlist resolved from lib/chat-config.mjs — same single
+    // source as the frontmatter above, so origin and path cannot drift.
+    const chatWorkerUrl = resolveChatWorkerUrl();
     const root = document.querySelector<HTMLElement>('[data-assistant]');
     const index = document.querySelector<HTMLScriptElement>('[data-assistant-index]');
     if (!root || !index) return;

@@ -579,6 +579,10 @@ export interface Copy {
     devToolDescription: string;
     /** Mode label shown instead of local search while developing. */
     devMode: string;
+    /** Production mode label: Worker-backed chat is live. */
+    chatMode: string;
+    /** Agent-facing description of the production Cloudflare AI tool. */
+    chatToolDescription: string;
     chatPlaceholder: string;
     chatSubmit: string;
     chatStop: string;
@@ -1319,6 +1323,9 @@ export const en: Copy = {
     devToolDescription:
       'Development only: sends your message and recent chat history transiently to Cloudflare AI through the local development proxy. This uses the production free quota; do not submit sensitive information.',
     devMode: 'Development chat mode — responses are streamed from Cloudflare AI.',
+    chatMode: 'Live chat — responses are streamed from Cloudflare AI, grounded in this site’s published data.',
+    chatToolDescription:
+      'Sends your message and recent chat history transiently to Cloudflare AI, which answers grounded in this site’s published data. Messages are not stored; do not submit sensitive information.',
     chatPlaceholder: 'Ask a question about this portfolio…',
     chatSubmit: 'Send',
     chatStop: 'Stop response',
@@ -1941,6 +1948,9 @@ export const es: Copy = {
     devToolDescription:
       'Solo en desarrollo: env\u00eda tu mensaje y el historial reciente del chat de forma transitoria a Cloudflare AI mediante el proxy local de desarrollo. Consume la cuota gratuita de producci\u00f3n; no env\u00edes informaci\u00f3n sensible.',
     devMode: 'Chat de desarrollo \u2014 las respuestas se transmiten desde Cloudflare AI.',
+    chatMode: 'Chat en vivo \u2014 las respuestas se transmiten desde Cloudflare AI, fundamentadas en los datos publicados en este sitio.',
+    chatToolDescription:
+      'Env\u00eda tu mensaje y el historial reciente del chat de forma transitoria a Cloudflare AI, que responde fundament\u00e1ndose en los datos publicados en este sitio. Los mensajes no se almacenan; no env\u00edes informaci\u00f3n sensible.',
     chatPlaceholder: 'Haz una pregunta sobre este portafolio\u2026',
     chatSubmit: 'Enviar',
     chatStop: 'Detener respuesta',
