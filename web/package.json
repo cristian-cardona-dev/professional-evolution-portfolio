@@ -8,7 +8,7 @@
     "dev": "astro dev",
     "prebuild": "node ../scripts/build-semantic-index.mjs",
     "build": "astro build && node ../scripts/sitemap-generate.mjs && node ../scripts/generate-resume-pdf.mjs && node ../scripts/generate-og-images.mjs",
-    "postbuild": "node ../scripts/check-dist-encoding.mjs",
+    "postbuild": "node ../scripts/check-dist-encoding.mjs && node ../scripts/bundle-budget.mjs",
     "pdf": "node ../scripts/generate-resume-pdf.mjs",
     "og": "node ../scripts/generate-og-images.mjs",
     "preview": "astro preview",
