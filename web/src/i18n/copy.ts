@@ -1307,8 +1307,8 @@ export const en: Copy = {
     note: 'Opens GitHub in a new tab.',
   },
   about: {
-    heading: 'Sobre m�',
-    summary: 'Ingeniero full-stack de 7+ a�os, ahora construyendo sistemas de IA. Trabajo en la intersecci�n de infraestructura cloud y aplicaciones LLM. Mi foco es IA de grado de producci�n: evals, l�mites de coste y claims honestos.',
+    heading: 'Sobre mí',
+    summary: 'Ingeniero full-stack de 7+ años, ahora construyendo sistemas de IA. Trabajo en la intersección de infraestructura cloud y aplicaciones LLM. Mi foco es IA de grado de producción: evals, límites de coste y claims honestos.',
   },
   assistant: {
     open: 'Search this portfolio',
@@ -1585,9 +1585,9 @@ export const es: Copy = {
     switchToEs: 'Leer esta página en español',
   },
   hero: {
-    sentence: 'Ingeniero de IA que entrega sistemas LLM en producci��n. Antes, full-stack y cloud.',
+    sentence: 'Ingeniero de IA que entrega sistemas LLM en producción. Antes, full-stack y cloud.',
     cta: 'Reservar una llamada de 30 minutos',
-    ctaSubject: 'Llamada de presentaci��n del portafolio',
+    ctaSubject: 'Llamada de presentación del portafolio',
     viewProjects: 'Ver proyectos',
   },
   metrics: {
@@ -2174,8 +2174,8 @@ export const es: Copy = {
   },
 
   about: {
-    heading: 'Sobre m�',
-    summary: 'Ingeniero full-stack de 7+ a�os, ahora construyendo sistemas de IA. Trabajo en la intersecci�n de infraestructura cloud y aplicaciones LLM. Mi foco es IA de grado de producci�n: evals, l�mites de coste y claims honestos.',
+    heading: 'Sobre mí',
+    summary: 'Ingeniero full-stack de 7+ años, ahora construyendo sistemas de IA. Trabajo en la intersección de infraestructura cloud y aplicaciones LLM. Mi foco es IA de grado de producción: evals, límites de coste y claims honestos.',
   },
 };
 
