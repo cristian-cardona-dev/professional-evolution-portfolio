@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Free-only provider chain.
  *
  * Binding policy (2026-11 free-worker tranche): Cloudflare Workers AI is the

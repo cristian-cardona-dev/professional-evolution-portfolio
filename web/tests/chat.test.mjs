@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Chat grounding tests — verify chat responses are grounded in canonical data
  * and never fabricate content
  */

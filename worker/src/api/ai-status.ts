@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AI Status Endpoint - /api/ai-status
  *
  * Passive configuration report for the free-only provider chain. Cloudflare

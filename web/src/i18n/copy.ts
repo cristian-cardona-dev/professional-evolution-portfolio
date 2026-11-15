@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Typed bilingual copy catalog — the only place UI strings live.
  *
  * `en` is the reference implementation. `es` is typed as `Copy` as well, so a
@@ -465,6 +465,22 @@ export interface Copy {
     noCommits: string;
     openPullRequests: (count: number) => string;
     latestRelease: (tag: string) => string;
+    /** Freshness stamp, e.g. "Last updated 2 days ago". */
+    lastUpdated: (relative: string) => string;
+    /** Absolute date for the stamp's `title` attribute. */
+    lastUpdatedOn: (date: string) => string;
+    /** Freshness bucket labels: colour is never the only signal. */
+    freshnessFresh: string;
+    freshnessAging: string;
+    freshnessStale: string;
+    /** Snapshot is stale or not fully available. */
+    staleNote: string;
+    /** Some repositories could not be refreshed on the last run. */
+    partialNote: (count: number) => string;
+    /** A single repository's last refresh failed; last known data is shown. */
+    refreshFailed: string;
+    /** Bot commits excluded from the headline commit. */
+    botNote: (count: number) => string;
   };
   contact: {
     eyebrow: string;
@@ -1247,6 +1263,19 @@ export const en: Copy = {
     openPullRequests: (count) =>
       count === 1 ? '1 open pull request' : `${count} open pull requests`,
     latestRelease: (tag) => `Latest release ${tag}`,
+    lastUpdated: (relative) => `Last updated ${relative}`,
+    lastUpdatedOn: (date) => `Last updated on ${date}`,
+    freshnessFresh: 'Fresh',
+    freshnessAging: 'Aging',
+    freshnessStale: 'Stale',
+    staleNote: 'Activity may be out of date.',
+    partialNote: (count) =>
+      count === 1
+        ? '1 repository could not be refreshed; showing its last known data.'
+        : `${count} repositories could not be refreshed; showing their last known data.`,
+    refreshFailed: 'Refresh failed — showing last known data',
+    botNote: (count) =>
+      count === 1 ? 'incl. 1 bot commit' : `incl. ${count} bot commits`,
   },
   contact: {
     eyebrow: 'Contact',
@@ -1876,6 +1905,19 @@ export const es: Copy = {
     openPullRequests: (count) =>
       count === 1 ? '1 pull request abierto' : `${count} pull requests abiertos`,
     latestRelease: (tag) => `última versión ${tag}`,
+    lastUpdated: (relative) => `Actualizado ${relative}`,
+    lastUpdatedOn: (date) => `Actualizado el ${date}`,
+    freshnessFresh: 'Fresco',
+    freshnessAging: 'Envejeciendo',
+    freshnessStale: 'Obsoleto',
+    staleNote: 'La actividad puede estar desactualizada.',
+    partialNote: (count) =>
+      count === 1
+        ? '1 repositorio no pudo actualizarse; se muestran sus últimos datos conocidos.'
+        : `${count} repositorios no pudieron actualizarse; se muestran sus últimos datos conocidos.`,
+    refreshFailed: 'Actualización fallida — mostrando los últimos datos conocidos',
+    botNote: (count) =>
+      count === 1 ? 'incl. 1 commit de bot' : `incl. ${count} commits de bots`,
   },
   contact: {
     eyebrow: 'Contacto',

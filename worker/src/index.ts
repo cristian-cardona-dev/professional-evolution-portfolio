@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Worker Entry Point - routes to API endpoints
  */
 

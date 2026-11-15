@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Lead Capture API - /api/lead
  * Stores leads in Cloudflare D1 + sends email notification
  *

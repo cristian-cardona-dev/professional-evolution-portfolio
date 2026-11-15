@@ -23,6 +23,8 @@ interface ActivityObject {
   url: string;
   captured_at: string;
   title: string;
+  /** Present only for bot-authored commits (dependabot, renovate, actions). */
+  bot?: boolean;
 }
 
 interface Repository {
@@ -39,6 +41,19 @@ interface Repository {
   error?: string;
 }
 
+/** The snapshot's own freshness contract (mirrors github-activity/validate.mjs). */
+interface SnapshotStatus {
+  availability: 'available' | 'empty' | 'partial' | 'unavailable';
+  stale: boolean;
+  message: string;
+  failed_repos?: string[];
+}
+
+interface SnapshotDoc {
+  captured_at: string;
+  status: SnapshotStatus;
+}
+
 interface Props {
   copy: Copy;
   locale: Locale;
@@ -46,25 +61,100 @@ interface Props {
 
 const { copy, locale } = Astro.props;
 
-/** JSON imports widen array literals; the shape is enforced by the validator. */
+/** JSON imports widen literals; the shape is enforced by the validator. */
+const doc = snapshot as unknown as SnapshotDoc;
 const repositories = (snapshot.repositories ?? []) as unknown as Repository[];
 
+const bcp47 = locale === 'es' ? 'es' : 'en';
 const dateFormat = new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
   year: 'numeric',
   month: 'short',
   day: 'numeric',
   timeZone: 'UTC',
 });
+const relativeFormat = new Intl.RelativeTimeFormat(bcp47, { numeric: 'auto' });
+
+const SECOND = 1000;
+const MINUTE = 60 * SECOND;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
 
 function formatDate(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : dateFormat.format(date);
 }
 
+/** "2 days ago" / "hace 2 días"; falls back to the raw value when unparseable. */
+function formatRelative(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const diff = date.getTime() - Date.now();
+  const abs = Math.abs(diff);
+  if (abs >= DAY) return relativeFormat.format(Math.round(diff / DAY), 'day');
+  if (abs >= HOUR) return relativeFormat.format(Math.round(diff / HOUR), 'hour');
+  if (abs >= MINUTE) return relativeFormat.format(Math.round(diff / MINUTE), 'minute');
+  return relativeFormat.format(0, 'minute');
+}
+
 /** `owner/repo` → `repo`; the owner is the same across the allowlist. */
 function repoName(id: string): string {
   const parts = id.split('/');
   return parts[parts.length - 1] || id;
+}
+
+// --- Freshness -------------------------------------------------------------
+const capturedAt = doc.captured_at;
+const capturedDate = new Date(capturedAt);
+const ageMs = Number.isNaN(capturedDate.getTime())
+  ? Number.NaN
+  : Date.now() - capturedDate.getTime();
+
+/** Buckets: <24h fresh, 1–7d aging, >7d stale. Colour is never the only signal. */
+const freshness: 'fresh' | 'aging' | 'stale' = !Number.isFinite(ageMs)
+  ? 'stale'
+  : ageMs < DAY
+    ? 'fresh'
+    : ageMs <= 7 * DAY
+      ? 'aging'
+      : 'stale';
+
+const freshnessLabel =
+  freshness === 'fresh'
+    ? copy.activity.freshnessFresh
+    : freshness === 'aging'
+      ? copy.activity.freshnessAging
+      : copy.activity.freshnessStale;
+
+const status = doc.status;
+const failedCount = status?.failed_repos?.length ?? 0;
+/**
+ * `empty` is an honest "no activity" state, not a freshness defect, so it does
+ * not raise the stale badge — it already has its own messaging below.
+ */
+const showStaleBadge =
+  Boolean(status?.stale) || status?.availability === 'partial' || status?.availability === 'unavailable';
+const staleBadgeText = status?.stale
+  ? copy.activity.staleNote
+  : failedCount > 0
+    ? copy.activity.partialNote(failedCount)
+    : copy.activity.staleNote;
+
+// --- Headline commit (bot-aware) -------------------------------------------
+function headlineCommit(repo: Repository): { commit?: ActivityObject; botsFiltered: number } {
+  const commits = repo.commits ?? [];
+  const firstHuman = commits.find((c) => !c.bot);
+  const botsFiltered = commits.filter((c) => c.bot).length;
+  return { commit: firstHuman ?? (botsFiltered > 0 ? undefined : commits[0]), botsFiltered };
+}
+
+// --- Honest empty state link -----------------------------------------------
+const allowed = ((snapshot as unknown as { allowed_repositories?: string[] })
+  .allowed_repositories ?? []) as string[];
+const allowedFirst = allowed[0];
+
+/** `https://github.com/owner/repo` → `owner/repo`. */
+function slugOf(url: string): string {
+  return url.replace(/\/+$/, '').replace(/^https:\/\/github\.com\//, '');
 }
 ---
 
@@ -73,15 +163,49 @@ function repoName(id: string): string {
     <header class="section__head reveal">
       <h2 id="activity-heading">{copy.activity.heading}</h2>
       <p class="activity__note">{copy.activity.note}</p>
+
+      {/* Freshness stamp: relative time, bucket label and absolute date.
+          aria-live announces updates without stealing focus; the glyph is
+          decorative because the bucket word carries the same meaning. */}
+      <p class={`activity__stamp activity__stamp--${freshness}`} aria-live="polite">
+        <span class="activity__stamp-glyph" aria-hidden="true">
+          {freshness === 'fresh' ? '●' : freshness === 'aging' ? '▲' : '■'}
+        </span>
+        <span>{copy.activity.lastUpdated(formatRelative(capturedAt))}</span>
+        <span class="activity__stamp-bucket">({freshnessLabel})</span>
+        <time class="activity__stamp-absolute tabular" datetime={capturedAt}>
+          <span class="activity__stamp-absolute-full">
+            {copy.activity.lastUpdatedOn(formatDate(capturedAt))}
+          </span>
+          <span class="visually-hidden">{formatDate(capturedAt)}</span>
+        </time>
+      </p>
+
+      {showStaleBadge && (
+        <p class="activity__stale" role="status">
+          <span class="activity__stale-glyph" aria-hidden="true">■</span>
+          {staleBadgeText}
+        </p>
+      )}
     </header>
 
     {
       repositories.length === 0 ? (
-        <p class="state-panel activity__empty">{copy.activity.empty}</p>
+        <div class="state-panel activity__empty">
+          <p>{copy.activity.empty}</p>
+          {allowedFirst && (
+            <p>
+              <a href={allowedFirst} target="_blank" rel="noopener noreferrer">
+                {repoName(slugOf(allowedFirst))}
+                <span class="visually-hidden"> ({copy.a11y.opensInNewTab})</span>
+              </a>
+            </p>
+          )}
+        </div>
       ) : (
         <ul class="activity__repos">
           {repositories.map((repo) => {
-            const latestCommit = repo.commits?.[0];
+            const { commit: latestCommit, botsFiltered } = headlineCommit(repo);
             const release = repo.releases?.[0];
             const openPullRequests = repo.open_pull_requests ?? repo.pull_requests?.length ?? 0;
             return (
@@ -92,6 +216,13 @@ function repoName(id: string): string {
                     <span class="visually-hidden"> ({copy.a11y.opensInNewTab})</span>
                   </a>
                 </h3>
+
+                {repo.error && (
+                  <p class="activity__error" role="status">
+                    <span class="activity__error-glyph" aria-hidden="true">▲</span>
+                    {copy.activity.refreshFailed}
+                  </p>
+                )}
 
                 {latestCommit ? (
                   <p class="activity__commit">
@@ -104,9 +235,16 @@ function repoName(id: string): string {
                       {latestCommit.title}
                       <span class="visually-hidden"> ({copy.a11y.opensInNewTab})</span>
                     </a>
-                    <time class="activity__date tabular" datetime={latestCommit.captured_at}>
-                      {formatDate(latestCommit.captured_at)}
+                    <time
+                      class="activity__date tabular"
+                      datetime={latestCommit.captured_at}
+                      title={formatDate(latestCommit.captured_at)}
+                    >
+                      {formatRelative(latestCommit.captured_at)}
                     </time>
+                    {botsFiltered > 0 && (
+                      <span class="activity__bot-note">{copy.activity.botNote(botsFiltered)}</span>
+                    )}
                   </p>
                 ) : (
                   <p class="activity__muted">{copy.activity.noCommits}</p>
@@ -215,5 +353,96 @@ function repoName(id: string): string {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
+  }
+
+  /* Freshness stamp ------------------------------------------------------ */
+  .activity__stamp {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+    color: var(--color-text-muted);
+  }
+
+  .activity__stamp-glyph {
+    font-size: 0.7em;
+    line-height: 1;
+  }
+
+  /* Colour is never the only signal: the bucket word is always rendered. */
+  .activity__stamp--fresh {
+    color: var(--color-success);
+  }
+
+  .activity__stamp--aging {
+    color: var(--color-warn);
+  }
+
+  .activity__stamp--stale {
+    color: var(--color-danger);
+  }
+
+  .activity__stamp-bucket {
+    font-weight: 600;
+  }
+
+  .activity__stamp-absolute {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+  }
+
+  /* Stale / partial badge ------------------------------------------------ */
+  .activity__stale {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-warn);
+    border-radius: var(--radius-lg);
+    color: var(--color-warn);
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+  }
+
+  .activity__stale-glyph {
+    font-size: 0.7em;
+    line-height: 1;
+  }
+
+  /* Per-repo refresh failure --------------------------------------------- */
+  .activity__error {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-danger);
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+  }
+
+  .activity__error-glyph {
+    font-size: 0.7em;
+    line-height: 1;
+  }
+
+  .activity__bot-note {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    line-height: var(--leading-xs);
+  }
+
+  .activity__empty a {
+    color: var(--color-accent);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .activity__stamp-glyph,
+    .activity__stale-glyph,
+    .activity__error-glyph {
+      transition: opacity var(--duration-fast, 150ms) ease;
+    }
   }
 </style>
