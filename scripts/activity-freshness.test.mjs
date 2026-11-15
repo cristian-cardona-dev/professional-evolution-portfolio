@@ -11,8 +11,13 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const VALIDATOR = new URL('../github-activity/validate.mjs', import.meta.url).pathname.replace(/^\//, '');
+// fileURLToPath, not `new URL(...).pathname`: on POSIX the pathname starts
+// with "/" and stripping it (as a Windows-oriented version did) turns an
+// absolute path into a relative one that does not exist, which failed every
+// subprocess spawn in CI while still passing on Windows.
+const VALIDATOR = fileURLToPath(new URL('../github-activity/validate.mjs', import.meta.url));
 
 /** Build a minimal valid snapshot with the given captured_at. */
 function makeSnapshot(capturedAt) {
