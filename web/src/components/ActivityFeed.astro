@@ -353,16 +353,19 @@ function slugOf(url: string): string {
     line-height: 1;
   }
 
-  /* Colour is never the only signal: the bucket word is always rendered. */
-  .activity__stamp--fresh {
+  /* Colour only the decorative glyph, never the text: on the light theme none
+     of the three status colours reaches AA as body text (warn is ~3.2:1 on
+     #f2efe6), and the bold bucket word already carries the meaning. This
+     matches how /build/ and the footer render the same stamp. */
+  .activity__stamp--fresh .activity__stamp-glyph {
     color: var(--color-success);
   }
 
-  .activity__stamp--aging {
+  .activity__stamp--aging .activity__stamp-glyph {
     color: var(--color-warn);
   }
 
-  .activity__stamp--stale {
+  .activity__stamp--stale .activity__stamp-glyph {
     color: var(--color-danger);
   }
 
@@ -384,12 +387,12 @@ function slugOf(url: string): string {
     padding: var(--space-2) var(--space-3);
     border: 1px solid var(--color-warn);
     border-radius: var(--radius-lg);
-    color: var(--color-warn);
     font-size: var(--text-sm);
     line-height: var(--leading-sm);
   }
 
   .activity__stale-glyph {
+    color: var(--color-warn);
     font-size: 0.7em;
     line-height: 1;
   }
@@ -399,12 +402,12 @@ function slugOf(url: string): string {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    color: var(--color-danger);
     font-size: var(--text-sm);
     line-height: var(--leading-sm);
   }
 
   .activity__error-glyph {
+    color: var(--color-danger);
     font-size: 0.7em;
     line-height: 1;
   }
