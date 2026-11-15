@@ -1,0 +1,432 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import {
+  cleanUrl,
+  slugFromUrl,
+  canonicalUrl,
+  toIso,
+  firstLine,
+  isBotAuthor,
+  isStale,
+  retry,
+  fetchRepoActivity,
+  buildSnapshot,
+  loadHealth,
+  saveHealth,
+  updateHealth,
+  formatLogLine,
+  formatStepSummary,
+  runRefresh,
+} from './lib/activity-refresh-core.mjs';
+
+const NOW = new Date('2026-11-15T12:00:00.000Z').getTime();
+const TODAY = '2026-11-15';
+
+function withTempDir(cb) {
+  const dir = mkdtempSync(join(tmpdir(), 'activity-refresh-'));
+  try {
+    return cb(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+async function withTempDirAsync(cb) {
+  const dir = mkdtempSync(join(tmpdir(), 'activity-refresh-'));
+  try {
+    return await cb(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function makeSnapshot(allowed_repositories = ['https://github.com/cristian-cardona-dev/demo']) {
+  return {
+    schema_version: '1.0.0',
+    snapshot_id: 'test-snapshot',
+    captured_at: '2026-11-14T12:00:00Z',
+    status: { availability: 'available', stale: false, message: 'Public GitHub activity captured from the GitHub REST API at build time.' },
+    source: { provider: 'github', mode: 'build_snapshot', url: 'https://github.com/' },
+    allowed_repositories,
+    repositories: [],
+  };
+}
+
+function writeSnapshot(dir, snapshot) {
+  const file = join(dir, 'snapshot.json');
+  writeFileSync(file, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+  return file;
+}
+
+function makeCommit(sha, date, message, authorName) {
+  return {
+    sha,
+    html_url: `https://github.com/cristian-cardona-dev/demo/commit/${sha}`,
+    commit: {
+      author: { name: authorName, date },
+      message,
+    },
+    author: { login: authorName },
+  };
+}
+
+function commitsPath(owner, repo) {
+  return `/repos/${owner}/${repo}/commits?per_page=3`;
+}
+
+function pullsPath(owner, repo) {
+  return `/repos/${owner}/${repo}/pulls?state=open&per_page=1`;
+}
+
+function releasePath(owner, repo) {
+  return `/repos/${owner}/${repo}/releases/latest`;
+}
+
+function makeRequest(handlers) {
+  return async (path, { etag } = {}) => {
+    for (const handler of handlers) {
+      const res = await handler(path, etag);
+      if (res) return res;
+    }
+    return { status: 404, headers: {}, body: 'null' };
+  };
+}
+
+test('cleanUrl removes trailing slashes', () => {
+  assert.equal(cleanUrl('https://github.com/a/b/'), 'https://github.com/a/b');
+});
+
+test('slugFromUrl extracts owner/repo', () => {
+  assert.equal(slugFromUrl('https://github.com/cristian-cardona-dev/demo'), 'cristian-cardona-dev/demo');
+});
+
+test('canonicalUrl forces canonical owner', () => {
+  assert.equal(canonicalUrl('https://github.com/old-owner/demo'), 'https://github.com/cristian-cardona-dev/demo');
+});
+
+test('toIso truncates to whole seconds', () => {
+  assert.equal(toIso('2026-11-15T12:00:00.123Z'), '2026-11-15T12:00:00Z');
+});
+
+test('firstLine returns first non-empty line', () => {
+  assert.equal(firstLine('hello\nworld', 'fallback'), 'hello');
+  assert.equal(firstLine('', 'fallback'), 'fallback');
+});
+
+test('isBotAuthor recognizes known bots', () => {
+  assert.ok(isBotAuthor('dependabot[bot]'));
+  assert.ok(isBotAuthor('renovate[bot]'));
+  assert.ok(isBotAuthor('github-actions[bot]'));
+  assert.ok(!isBotAuthor('Cristian Cardona'));
+});
+
+test('isStale flags old timestamps', () => {
+  assert.ok(isStale('2026-01-01T00:00:00Z', 90));
+  assert.ok(!isStale(toIso(NOW), 90));
+});
+
+test('retry succeeds after transient failures', async () => {
+  let attempts = 0;
+  const result = await retry('test', async () => {
+    attempts += 1;
+    if (attempts < 3) throw new Error('GitHub API 500 for /test');
+    return 'ok';
+  }, { maxRetries: 3, retryBaseMs: 0, sleepFn: async () => {} });
+  assert.equal(result, 'ok');
+  assert.equal(attempts, 3);
+});
+
+test('retry does not retry non-transient failures', async () => {
+  let attempts = 0;
+  await assert.rejects(retry('test', async () => {
+    attempts += 1;
+    throw new Error('permanent failure');
+  }, { maxRetries: 3, retryBaseMs: 0, sleepFn: async () => {} }));
+  assert.equal(attempts, 1);
+});
+
+test('fetchRepoActivity succeeds with commits, PRs and release', async () => {
+  const request = makeRequest([
+    (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: { etag: '"abc123"' }, body: JSON.stringify([makeCommit('sha1', toIso(NOW), 'feat: first', 'Cristian')]) } : null,
+    (path) => path === pullsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: { 'x-total-count': '2' }, body: '[]' } : null,
+    (path) => path === releasePath('cristian-cardona-dev', 'demo') ? { status: 200, headers: {}, body: JSON.stringify({ id: 1, html_url: 'https://github.com/cristian-cardona-dev/demo/releases/tag/v1', published_at: toIso(NOW), tag_name: 'v1' }) } : null,
+  ]);
+  const result = await fetchRepoActivity('cristian-cardona-dev', 'demo', { request, now: NOW });
+  assert.equal(result.status, 'success');
+  assert.equal(result.record.commits.length, 1);
+  assert.equal(result.record.open_pull_requests, 2);
+  assert.equal(result.record.releases.length, 1);
+  assert.equal(result.record.etag, '"abc123"');
+});
+
+test('fetchRepoActivity reuses previous record on 304', async () => {
+  const previous = {
+    id: 'cristian-cardona-dev/demo',
+    url: 'https://github.com/cristian-cardona-dev/demo',
+    visibility: 'public',
+    pull_requests: [],
+    commits: [{ id: 'old', url: 'https://github.com/cristian-cardona-dev/demo/commit/old', captured_at: toIso(NOW), title: 'old' }],
+    releases: [],
+    deployments: [],
+    open_pull_requests: 5,
+    etag: '"cached"',
+  };
+  const request = makeRequest([
+    (path, etag) => path === commitsPath('cristian-cardona-dev', 'demo') && etag === '"cached"' ? { status: 304, headers: {}, body: '' } : null,
+  ]);
+  const result = await fetchRepoActivity('cristian-cardona-dev', 'demo', { request, previousRecord: previous, now: NOW });
+  assert.equal(result.status, 'success');
+  assert.equal(result.record, previous);
+});
+
+test('fetchRepoActivity marks bot commits', async () => {
+  const request = makeRequest([
+    (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: {}, body: JSON.stringify([
+      makeCommit('sha1', toIso(NOW), 'feat: first', 'Cristian'),
+      makeCommit('sha2', toIso(NOW), 'chore: bump', 'dependabot[bot]'),
+    ]) } : null,
+    (path) => path === pullsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: { 'x-total-count': '0' }, body: '[]' } : null,
+    (path) => path === releasePath('cristian-cardona-dev', 'demo') ? { status: 404, headers: {}, body: '{}' } : null,
+  ]);
+  const result = await fetchRepoActivity('cristian-cardona-dev', 'demo', { request, now: NOW });
+  assert.equal(result.record.commits[0].bot, undefined);
+  assert.equal(result.record.commits[1].bot, true);
+});
+
+test('buildSnapshot expresses partial failure', () => {
+  const results = [
+    { slug: 'cristian-cardona-dev/a', status: 'success', durationMs: 10, record: { id: 'cristian-cardona-dev/a', url: 'https://github.com/cristian-cardona-dev/a', visibility: 'public', pull_requests: [], commits: [{ id: 'c1', url: 'https://github.com/cristian-cardona-dev/a/commit/c1', captured_at: toIso(NOW), title: 'x' }], releases: [], deployments: [], open_pull_requests: 0 } },
+    { slug: 'cristian-cardona-dev/b', status: 'fail', durationMs: 5, error: 'boom', record: { id: 'cristian-cardona-dev/b', url: 'https://github.com/cristian-cardona-dev/b', visibility: 'public', pull_requests: [], commits: [], releases: [], deployments: [], error: 'last_refresh_failed' } },
+  ];
+  const snapshot = makeSnapshot(['https://github.com/cristian-cardona-dev/a', 'https://github.com/cristian-cardona-dev/b']);
+  const next = buildSnapshot({ snapshot, results, capturedAt: toIso(NOW) });
+  assert.equal(next.status.availability, 'partial');
+  assert.deepEqual(next.status.failed_repos, ['cristian-cardona-dev/b']);
+  assert.ok(next.status.message.includes('could not be refreshed'));
+});
+
+test('buildSnapshot expresses empty when no activity', () => {
+  const results = [
+    { slug: 'cristian-cardona-dev/a', status: 'success', durationMs: 10, record: { id: 'cristian-cardona-dev/a', url: 'https://github.com/cristian-cardona-dev/a', visibility: 'public', pull_requests: [], commits: [], releases: [], deployments: [], open_pull_requests: 0 } },
+  ];
+  const snapshot = makeSnapshot(['https://github.com/cristian-cardona-dev/a']);
+  const next = buildSnapshot({ snapshot, results, capturedAt: toIso(NOW) });
+  assert.equal(next.status.availability, 'empty');
+});
+
+test('updateHealth keeps a rolling 30-day window', () => {
+  const health = { repositories: {} };
+  const results = [{ slug: 'cristian-cardona-dev/a', status: 'success' }];
+  const updated = updateHealth(health, results, NOW);
+  assert.equal(updated.repositories['cristian-cardona-dev/a'].length, 1);
+  assert.equal(updated.repositories['cristian-cardona-dev/a'][0].date, TODAY);
+  assert.equal(updated.repositories['cristian-cardona-dev/a'][0].success, true);
+
+  const oldEntry = { date: '2026-09-01', success: true };
+  const withOld = { repositories: { 'cristian-cardona-dev/a': [oldEntry] } };
+  const pruned = updateHealth(withOld, results, NOW);
+  assert.equal(pruned.repositories['cristian-cardona-dev/a'].length, 1);
+  assert.equal(pruned.repositories['cristian-cardona-dev/a'][0].date, TODAY);
+});
+
+test('formatLogLine returns a single structured JSON object', () => {
+  const line = formatLogLine({
+    runId: 'r1',
+    startedAt: toIso(NOW),
+    finishedAt: toIso(NOW),
+    repos: [{ slug: 'a/b', status: 'success', duration_ms: 10, commits: 1, error: undefined }],
+    totalSuccess: 1,
+    totalFail: 0,
+  });
+  const parsed = JSON.parse(line);
+  assert.equal(parsed.run_id, 'r1');
+  assert.equal(parsed.total_success, 1);
+});
+
+test('formatStepSummary renders a markdown table', () => {
+  const summary = formatStepSummary({
+    repos: [{ slug: 'cristian-cardona-dev/a', status: 'success', durationMs: 12, record: { commits: [{ captured_at: toIso(NOW) }], open_pull_requests: 1 } }],
+    health: { repositories: { 'cristian-cardona-dev/a': [{ date: TODAY, success: true }] } },
+    startedAt: toIso(NOW),
+    finishedAt: toIso(NOW),
+  });
+  assert.match(summary, /## GitHub Activity Refresh/);
+  assert.match(summary, /\| Repository \|/);
+  assert.match(summary, /cristian-cardona-dev\/a/);
+});
+
+test('runRefresh dry-run writes nothing', async () => {
+  await withTempDirAsync(async (dir) => {
+    const snapshotFile = writeSnapshot(dir, makeSnapshot());
+    const healthFile = join(dir, 'health.json');
+    const request = makeRequest([
+      (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: {}, body: JSON.stringify([makeCommit('sha1', toIso(NOW), 'feat: first', 'Cristian')]) } : null,
+      (path) => path === pullsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: { 'x-total-count': '0' }, body: '[]' } : null,
+      (path) => path === releasePath('cristian-cardona-dev', 'demo') ? { status: 404, headers: {}, body: '{}' } : null,
+    ]);
+    const logs = [];
+    await runRefresh({
+      dryRun: true,
+      snapshotFile,
+      healthFile,
+      request,
+      now: NOW,
+      runId: 'dry-run-test',
+      log: (msg) => logs.push(msg),
+      warn: () => {},
+    });
+    const after = JSON.parse(readFileSync(snapshotFile, 'utf8'));
+    assert.equal(after.captured_at, '2026-11-14T12:00:00Z');
+    assert.ok(!existsSync(healthFile));
+    assert.ok(logs.some((msg) => msg === 'activity-refresh: --dry-run, snapshot NOT written'));
+  });
+});
+
+test('runRefresh full success writes snapshot and health', async () => {
+  await withTempDirAsync(async (dir) => {
+    const snapshotFile = writeSnapshot(dir, makeSnapshot());
+    const healthFile = join(dir, 'health.json');
+    const request = makeRequest([
+      (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: { etag: '"etag1"' }, body: JSON.stringify([makeCommit('sha1', toIso(NOW), 'feat: first', 'Cristian')]) } : null,
+      (path) => path === pullsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: { 'x-total-count': '2' }, body: '[]' } : null,
+      (path) => path === releasePath('cristian-cardona-dev', 'demo') ? { status: 404, headers: {}, body: '{}' } : null,
+    ]);
+    const { snapshot } = await runRefresh({
+      dryRun: false,
+      snapshotFile,
+      healthFile,
+      request,
+      now: NOW,
+      runId: 'success-test',
+      log: () => {},
+      warn: () => {},
+    });
+    assert.equal(snapshot.status.availability, 'available');
+    assert.equal(snapshot.repositories[0].open_pull_requests, 2);
+    assert.equal(snapshot.repositories[0].etag, '"etag1"');
+    const health = JSON.parse(readFileSync(healthFile, 'utf8'));
+    assert.equal(health.repositories['cristian-cardona-dev/demo'][0].success, true);
+    assert.ok(existsSync(`${snapshotFile}.bak`));
+  });
+});
+
+test('runRefresh partial failure keeps previous record with error marker', async () => {
+  await withTempDirAsync(async (dir) => {
+    const previousRepo = {
+      id: 'cristian-cardona-dev/failing',
+      url: 'https://github.com/cristian-cardona-dev/failing',
+      visibility: 'public',
+      pull_requests: [],
+      commits: [{ id: 'old', url: 'https://github.com/cristian-cardona-dev/failing/commit/old', captured_at: toIso(NOW), title: 'old' }],
+      releases: [],
+      deployments: [],
+      open_pull_requests: 1,
+    };
+    const snapshot = makeSnapshot(['https://github.com/cristian-cardona-dev/ok', 'https://github.com/cristian-cardona-dev/failing']);
+    snapshot.repositories = [previousRepo];
+    const snapshotFile = writeSnapshot(dir, snapshot);
+    const healthFile = join(dir, 'health.json');
+    const request = makeRequest([
+      (path) => path === commitsPath('cristian-cardona-dev', 'ok') ? { status: 200, headers: {}, body: JSON.stringify([makeCommit('ok1', toIso(NOW), 'feat: ok', 'Cristian')]) } : null,
+      (path) => path === pullsPath('cristian-cardona-dev', 'ok') ? { status: 200, headers: { 'x-total-count': '0' }, body: '[]' } : null,
+      (path) => path === releasePath('cristian-cardona-dev', 'ok') ? { status: 404, headers: {}, body: '{}' } : null,
+      (path) => path === commitsPath('cristian-cardona-dev', 'failing') ? { status: 500, headers: {}, body: '{}' } : null,
+    ]);
+    const { snapshot: next } = await runRefresh({
+      dryRun: false,
+      snapshotFile,
+      healthFile,
+      request,
+      now: NOW,
+      maxRetries: 1,
+      retryBaseMs: 0,
+      sleepFn: async () => {},
+      log: () => {},
+      warn: () => {},
+    });
+    assert.equal(next.status.availability, 'partial');
+    assert.deepEqual(next.status.failed_repos, ['cristian-cardona-dev/failing']);
+    const failingRecord = next.repositories.find((r) => r.id === 'cristian-cardona-dev/failing');
+    assert.equal(failingRecord.error, 'last_refresh_failed');
+    const okRecord = next.repositories.find((r) => r.id === 'cristian-cardona-dev/ok');
+    assert.equal(okRecord.commits.length, 1);
+    const health = JSON.parse(readFileSync(healthFile, 'utf8'));
+    assert.equal(health.repositories['cristian-cardona-dev/failing'][0].success, false);
+    assert.equal(health.repositories['cristian-cardona-dev/ok'][0].success, true);
+  });
+});
+
+test('runRefresh total failure exits non-zero', async () => {
+  await withTempDirAsync(async (dir) => {
+    const snapshotFile = writeSnapshot(dir, makeSnapshot());
+    const healthFile = join(dir, 'health.json');
+    const request = makeRequest([
+      (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 500, headers: {}, body: '{}' } : null,
+    ]);
+    await assert.rejects(runRefresh({
+      dryRun: false,
+      snapshotFile,
+      healthFile,
+      request,
+      now: NOW,
+      maxRetries: 1,
+      retryBaseMs: 0,
+      sleepFn: async () => {},
+      log: () => {},
+      warn: () => {},
+    }), (err) => err.exitCode === 1);
+  });
+});
+
+test('runRefresh rate limit exits gracefully with rateLimited result', async () => {
+  await withTempDirAsync(async (dir) => {
+    const snapshotFile = writeSnapshot(dir, makeSnapshot());
+    const healthFile = join(dir, 'health.json');
+    const reset = Math.floor(Date.now() / 1000) + 3600;
+    const request = makeRequest([
+      (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: { 'x-ratelimit-remaining': '2', 'x-ratelimit-reset': String(reset) }, body: JSON.stringify([makeCommit('sha1', toIso(NOW), 'feat: first', 'Cristian')]) } : null,
+    ]);
+    let slept = 0;
+    const result = await runRefresh({
+      dryRun: false,
+      snapshotFile,
+      healthFile,
+      request,
+      now: NOW,
+      sleepFn: async (ms) => { slept += ms; },
+      log: () => {},
+      warn: () => {},
+    });
+    assert.ok(result.rateLimited);
+    assert.ok(slept > 0);
+  });
+});
+
+test('runRefresh appends step summary when path is provided', async () => {
+  await withTempDirAsync(async (dir) => {
+    const snapshotFile = writeSnapshot(dir, makeSnapshot());
+    const healthFile = join(dir, 'health.json');
+    const summaryFile = join(dir, 'summary.md');
+    const request = makeRequest([
+      (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: {}, body: JSON.stringify([makeCommit('sha1', toIso(NOW), 'feat: first', 'Cristian')]) } : null,
+      (path) => path === pullsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: { 'x-total-count': '0' }, body: '[]' } : null,
+      (path) => path === releasePath('cristian-cardona-dev', 'demo') ? { status: 404, headers: {}, body: '{}' } : null,
+    ]);
+    await runRefresh({
+      dryRun: false,
+      snapshotFile,
+      healthFile,
+      request,
+      now: NOW,
+      stepSummaryPath: summaryFile,
+      log: () => {},
+      warn: () => {},
+    });
+    const summary = readFileSync(summaryFile, 'utf8');
+    assert.match(summary, /## GitHub Activity Refresh/);
+    assert.match(summary, /30-day health/);
+  });
+});

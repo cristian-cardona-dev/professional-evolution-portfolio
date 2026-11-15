@@ -106,3 +106,13 @@ test('without --max-age-days, 90-day stale consistency check applies', () => {
   const r = runValidator(snap, []);
   assert.notEqual(r.code, 0, 'expected failure for 90-day stale consistency');
 });
+
+test('partial availability with failed_repos is accepted', () => {
+  const snap = makeSnapshot(toIso(Date.now()));
+  snap.status.availability = 'partial';
+  snap.status.failed_repos = ['cristian-cardona-dev/professional-evolution-portfolio'];
+  snap.status.message = 'Public GitHub activity captured from the GitHub REST API at build time. 1 of 1 repositories could not be refreshed; their records may be out of date.';
+  snap.repositories[0].error = 'last_refresh_failed';
+  const r = runValidator(snap, ['--max-age-days=14']);
+  assert.equal(r.code, 0, `expected pass, got: ${r.stderr}`);
+});
