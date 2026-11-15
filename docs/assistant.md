@@ -152,9 +152,13 @@ the v1 local search automatically.
 
 ### Architecture
 
-1. **Cloudflare Worker** (`worker/`) exposing `POST /api/chat`. The widget calls
-   it only when `CHAT_WORKER_ORIGIN` is configured (hardcoded fallback +
-   optional `PUBLIC_CHAT_WORKER_URL` env). Otherwise it behaves exactly like v1.
+1. **Cloudflare Worker** (`worker/`) exposing `POST /api/chat`. The widget
+   resolves that endpoint through a single allowlist module,
+   `web/src/lib/chat-config.mjs` (one `CHAT_WORKER_ORIGIN`, literal
+   `/api/chat` path, optional `PUBLIC_CHAT_WORKER_URL` override, dev via the
+   same-origin Astro proxy) — the widget source itself contains neither the
+   origin nor the path, a contract enforced by
+   `web/tests/assistant-local.test.mjs`. Otherwise it behaves exactly like v1.
 2. **No API key.** Cloudflare Workers AI uses the `AI` binding — no secret in
    the client bundle or the repo. Free-tier only.
 3. **Server-side prompt, built only from `data/*.json`.** The Worker assembles
