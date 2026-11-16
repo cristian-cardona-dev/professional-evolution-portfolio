@@ -63,6 +63,10 @@ export const AXE_PAGES = [
   ['es-guestbook', 'es/guestbook/'],
   ['resume-en', 'resume-en.html'],
   ['resume-es', 'resume-es.html'],
+  // Milestone detail pages: the only Comments-bearing routes not covered above.
+  // One representative milestone (the first in data/evolution.json), both locales.
+  ['milestone-initial', 'evolution/2026-10-03-initial-portfolio-build/'],
+  ['es-milestone-initial', 'es/evolution/2026-10-03-initial-portfolio-build/'],
 ];
 
 export async function gotoPage(page, path) {

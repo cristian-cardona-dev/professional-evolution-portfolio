@@ -41,6 +41,12 @@ jobs:
         with:
           node-version: 22
 
+      - name: Activity freshness guard (weekly canary)
+        # quality.yml only runs the freshness guard on push/PR; a dead refresh
+        # cron with no pushes would stay green for weeks. This scheduled run is
+        # the canary that always fires.
+        run: node github-activity/validate.mjs --max-age-days=14
+
       - name: Probe the canonical origin
         run: node scripts/security-headers.mjs
 

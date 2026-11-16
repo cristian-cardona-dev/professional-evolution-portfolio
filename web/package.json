@@ -14,7 +14,8 @@
     "preview": "astro preview",
     "test:quality": "node --test \"tests/**/*.test.mjs\"",
     "test:visual": "playwright test tests/visual/visual.spec.mjs tests/visual/reactions.spec.mjs tests/visual/milestone-navigation.spec.mjs tests/visual/evolution-responsive.spec.mjs",
-    "test:ui": "playwright test"
+    "test:ui": "playwright test",
+    "test:a11y": "playwright test tests/visual/axe.spec.mjs"
   },
   "dependencies": {
     "astro": "^5"

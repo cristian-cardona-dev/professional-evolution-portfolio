@@ -17,15 +17,15 @@
   --color-bg: #0a0a0a;
   --color-surface: #1a1a1a;
   --color-surface-raised: #222222;
-  --color-text: #f2efe6; /* warm paper, ~17.75:1 on bg */
-  --color-text-muted: #98938a; /* ~7.02:1 on bg, AA */
+  --color-text: #f2efe6; /* warm paper, ~17.22:1 on bg */
+  --color-text-muted: #98938a; /* ~6.48:1 on bg, AA */
   --color-border: #2a2a2a; /* decorative only — interactive borders use accent */
-  --color-accent: #f53fd6; /* magenta, buttons only, ~6.2:1 on bg */
+  --color-accent: #f53fd6; /* magenta, buttons only, ~6.19:1 on bg */
   --color-accent-ink: #0a0a0a; /* text on accent-filled surfaces */
   --color-accent-light: rgba(245, 63, 214, 0.15); /* highlight tint on dark bg */
-  --color-success: #48bb78; /* ~7.25:1 on bg */
-  --color-warn: #f6c177; /* ~10.74:1 on bg */
-  --color-danger: #e03e3e; /* ~6.1:1 on bg, error/destructive actions */
+  --color-success: #48bb78; /* ~8.16:1 on bg */
+  --color-warn: #f6c177; /* ~12.08:1 on bg */
+  --color-danger: #e03e3e; /* ~4.65:1 on bg, error/destructive actions */
 
   /* --- Typography --------------------------------------------------------- */
   --font-display: 'Newsreader', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
@@ -109,14 +109,15 @@
   --color-bg: #f2efe6; /* warm paper */
   --color-surface: #ffffff;
   --color-surface-raised: #e8e5dc;
-  --color-text: #0a0a0a; /* ~17.75:1 on bg */
-  --color-text-muted: #5a5650; /* ~7.18:1 on bg */
+  --color-text: #0a0a0a; /* ~17.22:1 on bg */
+  --color-text-muted: #5a5650; /* ~6.34:1 on bg */
   --color-border: #d0cdc4; /* decorative */
-  --color-accent: #c4009e; /* darker magenta for light bg, ~6.5:1 on bg */
+  --color-accent: #c4009e; /* darker magenta for light bg, ~4.76:1 on bg */
   --color-accent-ink: #ffffff; /* text on accent-filled surfaces */
   --color-accent-light: rgba(196, 0, 158, 0.12); /* highlight tint on light bg */
-  --color-success: #2f855a; /* ~6.42:1 on bg */
-  --color-warn: #b7791f; /* ~6.25:1 on bg */
+  --color-success: #28724d; /* 5.07:1 on bg; ≥4.63:1 worst case (surface-raised) — AA body text */
+  --color-warn: #8a5b17; /* 5.09:1 on bg; ≥4.64:1 worst case (surface-raised) — AA body text */
+  --color-danger: #ba3333; /* 5.06:1 on bg; ≥4.62:1 worst case (surface-raised) — AA body text */
 
   --shadow-sm: 0 1px 2px rgba(10, 10, 10, 0.08);
   --shadow-md: 0 4px 12px rgba(10, 10, 10, 0.12);
