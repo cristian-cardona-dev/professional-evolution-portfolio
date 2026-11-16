@@ -64,6 +64,11 @@ node github-activity/validate.mjs --max-age-days=14
 Run the same command locally before opening a PR if the snapshot has not been
 refreshed recently.
 
+The same guard also runs weekly as a canary in `site-health.yml`
+(`Activity freshness guard (weekly canary)`, Thursdays 04:11 UTC), because
+`quality.yml` only runs on push/PR — a dead refresh cron with no pushes would
+otherwise stay green for weeks.
+
 ## "Refresh now" dispatch
 
 Trigger a refresh manually from the command line:
@@ -77,7 +82,10 @@ This works from any branch and uses the workflow defined in
 
 ## Automation
 
-- **Daily cron:** the workflow runs at `06:17 UTC` every day (`17 6 * * *`).
+- **Cron every 6 hours:** the workflow runs at `00:17, 06:17, 12:17, 18:17 UTC`
+  (`17 */6 * * *`). Ideal staleness ≤6h; note that GitHub has historically
+  delayed this repo's scheduled runs by 7–10h, so plan for ≤~16h in practice.
+  A missing run within ~1h of cron time is normal; investigate after ~10h.
 - **Deploy dispatch:** when the refreshed snapshot actually changes (ignoring the
   `captured_at` timestamp), the workflow commits the update and dispatches
   `.github/workflows/deploy-static.yml` with `pipeline=web` so the site is
@@ -86,6 +94,45 @@ This works from any branch and uses the workflow defined in
 A timestamp-only refresh is a no-op: the workflow strips `captured_at` before
 comparing old and new snapshots, so it does not commit or redeploy when nothing
 else changed.
+
+## Runbook — is the automation alive?
+
+Everything below is read-only and takes under two minutes.
+
+```bash
+# 1. Recent refresh runs (expect: a `schedule` run roughly every 6h,
+#    possibly delayed 7-10h by GitHub).
+gh run list --workflow=activity-refresh.yml --limit 4
+
+# 2. The health history must have dated entries, one per run day.
+#    {"repositories": {}} older than a day means the refresh is not running.
+cat github-activity/health.json
+
+# 3. Chronic-failure issues (one per failing repository, opened at streak ≥3,
+#    closed automatically on recovery).
+gh issue list --search "Activity refresh: chronic failure"
+
+# 4. Manual refresh — then confirm in the run log the lines
+#    "Deploy run queued: <id>" (dispatch verification) and, on a second run,
+#    "Snapshot content unchanged (timestamp only)" (no churn).
+gh workflow run activity-refresh.yml
+```
+
+Expected signals of a healthy pipeline:
+
+- a `schedule` run about every 6 hours, green;
+- `github-activity/health.json` gaining a dated entry per repository per day
+  (committed as `ai(portfolio): record activity refresh health`);
+- a snapshot commit `ai(portfolio): refresh public github activity` only when
+  repository content actually changed, followed by a queued deploy;
+- `npm run test:a11y` (from `web/`) green — the deterministic axe gate.
+
+Known-by-design notes:
+
+- The 6 pre-commit guards run locally only; CI never installs `core.hooksPath`,
+  so bot commits rely on `github-activity/validate.mjs` as their gate.
+- A total refresh failure still persists `health.json` first and only then turns
+  the run red (the final `Fail the run if the refresh errored` step).
 
 ## Schema reference
 
