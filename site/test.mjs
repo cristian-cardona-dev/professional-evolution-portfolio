@@ -168,7 +168,22 @@ function makeRefreshedActivitySnapshot() {
 test("GitHub activity contract is public, allowlisted, and schema-consistent", () => {
   assertActivitySnapshotConsistency(activity);
   assert.match(app, /github-activity\/snapshot\.json/);
-  assert.doesNotMatch(JSON.stringify(activity), /private|token|localhost|Users[\\/]/i);
+  // Commit/PR/release titles are arbitrary public text, so the guard must match
+  // secret *shapes* and environment artifacts, never bare vocabulary words.
+  const leakPatterns = [
+    /gh[pousr]_[A-Za-z0-9]{16,}/,                       // GitHub token value prefixes
+    /github_pat_[A-Za-z0-9_]{16,}/,                      // fine-grained PAT value
+    /AKIA[0-9A-Z]{16}/,                                 // AWS access key id
+    /-----BEGIN [A-Z ]*PRIVATE KEY-----/,               // private key material
+    /\b(?:token|secret|password|api[_-]?key)\s*["']?\s*[:=]\s*["']?\S{8,}/i, // assignment-shaped secret ("token=...", "api_key: ...")
+    /(?:localhost|127\.0\.0\.1):\d+/,                    // local origin URL with port
+    /[A-Za-z]:[\\/]Users[\\/]|\/(?:home|Users)\/[A-Za-z]/, // machine absolute paths
+  ];
+  for (const re of leakPatterns) {
+    assert.doesNotMatch(JSON.stringify(activity), re, `snapshot must not contain ${re}`);
+  }
+  const syntheticLeak = JSON.stringify({ title: `rotated token=${"x".repeat(24)}` });
+  assert.ok(leakPatterns.some((re) => re.test(syntheticLeak)), "detector must still catch a planted secret");
 });
 test("GitHub activity contract tolerates a refreshed non-empty snapshot", async () => {
   const refreshed = makeRefreshedActivitySnapshot();
