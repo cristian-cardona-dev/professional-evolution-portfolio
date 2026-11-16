@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-11-16T14:28:26Z",
+  "captured_at": "2026-11-16T22:03:47Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -224,6 +224,12 @@
       "pull_requests": [],
       "commits": [
         {
+          "id": "2628a039a72e956269d6c7548b1337d1e6d63280",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/2628a039a72e956269d6c7548b1337d1e6d63280",
+          "captured_at": "2026-11-16T14:52:07Z",
+          "title": "ai(portfolio): dynamic public-repo inventory - discover, sync, drop on private/deleted"
+        },
+        {
           "id": "966a935e322da6761c1225d0c80d5a515894f019",
           "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/966a935e322da6761c1225d0c80d5a515894f019",
           "captured_at": "2026-11-16T14:16:55Z",
@@ -234,18 +240,12 @@
           "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/1b604c74907ebcfc6bb70fbbc1977ef58a6ce46c",
           "captured_at": "2026-11-16T10:03:52Z",
           "title": "merge bot activity refresh commits (phase-V runs V.1/V.2 snapshot+health)"
-        },
-        {
-          "id": "2ff1ec35ca887ed111ffd20fe167480b07896e7f",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/2ff1ec35ca887ed111ffd20fe167480b07896e7f",
-          "captured_at": "2026-11-16T09:50:43Z",
-          "title": "ai(portfolio): break the activity refresh self-churn loop (own commits + etag)"
         }
       ],
       "releases": [],
       "deployments": [],
       "open_pull_requests": 0,
-      "etag": "\"ec1a31c277031a3b2bcde5be83ec63ca1955a1060e366dd5a6752a129e6d2081\""
+      "etag": "\"b6dcc68d85350c3d5d511d60ec4ae4a0d601490ad8202ca1d8aca918d09cfefb\""
     },
     {
       "id": "cristian-cardona-dev/S.I-MaternitySpa",
