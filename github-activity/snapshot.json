@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-11-16T09:28:25Z",
+  "captured_at": "2026-11-16T10:05:34Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -26,29 +26,28 @@
       "pull_requests": [],
       "commits": [
         {
-          "id": "899290f0a30fd7ecd9b7ecfa2aad43b3051bb419",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/899290f0a30fd7ecd9b7ecfa2aad43b3051bb419",
-          "captured_at": "2026-11-16T09:18:03Z",
-          "title": "ai(portfolio): refresh public github activity",
-          "bot": true
+          "id": "1b604c74907ebcfc6bb70fbbc1977ef58a6ce46c",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/1b604c74907ebcfc6bb70fbbc1977ef58a6ce46c",
+          "captured_at": "2026-11-16T10:03:52Z",
+          "title": "merge bot activity refresh commits (phase-V runs V.1/V.2 snapshot+health)"
         },
         {
-          "id": "5655790f31b12ee1caba700ac9e87337f32fd25b",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/5655790f31b12ee1caba700ac9e87337f32fd25b",
-          "captured_at": "2026-11-16T09:02:30Z",
-          "title": "ai(docs): tell the truth about 6h cadence and add the activity automation runbook"
+          "id": "2ff1ec35ca887ed111ffd20fe167480b07896e7f",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/2ff1ec35ca887ed111ffd20fe167480b07896e7f",
+          "captured_at": "2026-11-16T09:50:43Z",
+          "title": "ai(portfolio): break the activity refresh self-churn loop (own commits + etag)"
         },
         {
-          "id": "943060a67cebe903743f2afa319112a89890ea67",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/943060a67cebe903743f2afa319112a89890ea67",
-          "captured_at": "2026-11-16T08:24:35Z",
-          "title": "ai(a11y): deterministic axe gate, milestone coverage, true light tokens, weekly freshness canary"
+          "id": "fe96c78491f64a36ab004203428a7887f49d60b8",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/fe96c78491f64a36ab004203428a7887f49d60b8",
+          "captured_at": "2026-11-16T09:35:22Z",
+          "title": "ai(test): make the public-snapshot secret guard match secret shapes, not vocabulary"
         }
       ],
       "releases": [],
       "deployments": [],
       "open_pull_requests": 0,
-      "etag": "\"c8bf6c0d023416d2f717ad46b13c05126ce1df5811686cda9041b46b6635a1e2\""
+      "etag": "\"3477a33be96a1670aa57340e21b1226bfd556cd32c76532ea17c57b2ad0b81ca\""
     },
     {
       "id": "cristian-cardona-dev/cloud-dashboard",
