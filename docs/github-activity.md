@@ -6,25 +6,16 @@ snapshot is refreshed at build time by `scripts/activity-refresh.mjs`.
 
 ## Allowlist
 
-Only repositories listed in `github-activity/snapshot.json` under
-`allowed_repositories` can appear in the snapshot. The refresh script reads the
-allowlist from the file itself, so adding a repository is a deliberate,
-reviewed change.
-
-To allow a new repository:
-
-1. Open `github-activity/snapshot.json`.
-2. Add the public GitHub URL to `allowed_repositories`.
-3. Run the validator:
-   ```powershell
-   node github-activity/validate.mjs
-   ```
-4. Commit both files in the same PR.
+The repository inventory is discovered automatically on every refresh from
+`GET /users/cristian-cardona-dev/repos` (public, owner, paginated). There is
+no manual list to edit: public repositories appear on their next refresh,
+and repositories that are deleted or become private leave on the next
+successful refresh. `DEFAULTS.canonicalOwner` remains the owner guard.
 
 ### Canonical owner rule
 
 Every URL is canonicalized to the public owner `cristian-cardona-dev` at refresh
-time. The snapshot stores the canonical URL even if the source allowlist entry
+time. The snapshot stores the canonical URL even if a discovered repository entry
 used a different owner. This prevents a stale or alternate owner from leaking
 into the published site.
 
@@ -38,7 +29,7 @@ Fetch every allowlisted repository and print a summary without writing the file:
 node scripts/activity-refresh.mjs --dry-run
 ```
 
-A dry run is useful before adding a repository or after rotating tokens.
+A dry run is useful for verifying the discovered inventory before a live write, or after rotating tokens.
 
 ### Live refresh
 
@@ -130,8 +121,10 @@ Expected signals of a healthy pipeline:
 Known-by-design notes:
 
 - This repository has no pre-commit hooks at all; the gate for every snapshot (bot or human) is `github-activity/validate.mjs`, run by the refresh workflow, `quality.yml` and `check:all`.
-- A total refresh failure still persists `health.json` first and only then turns
-  the run red (the final `Fail the run if the refresh errored` step).
+- A total per-repository refresh failure still persists `health.json` first and
+  only then turns the run red (the final `Fail the run if the refresh errored`
+  step). A discovery failure aborts before any write, so neither
+  `snapshot.json` nor `health.json` is persisted.
 
 ## Schema reference
 

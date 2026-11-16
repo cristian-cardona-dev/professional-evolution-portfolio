@@ -342,10 +342,110 @@ export async function fetchRepoActivity(owner, repo, options = {}) {
   }
 }
 
+/** Extract the `rel="next"` URL from a GitHub `Link` header, or null. */
+export function getNextLink(linkHeader) {
+  const raw = Array.isArray(linkHeader) ? linkHeader.join(', ') : linkHeader;
+  if (typeof raw !== 'string' || raw === '') return null;
+  for (const part of raw.split(',')) {
+    if (/rel="next"/.test(part)) {
+      const match = part.match(/<([^>]+)>/);
+      if (match) return match[1];
+    }
+  }
+  return null;
+}
+
+/** Convert an absolute or relative next-link into a request path. */
+export function toRequestPath(url) {
+  if (typeof url !== 'string' || url === '') return null;
+  try {
+    if (/^https?:\/\//i.test(url)) {
+      const parsed = new URL(url);
+      return parsed.pathname + parsed.search;
+    }
+  } catch {
+    // Fall through and treat the value as a path.
+  }
+  return url;
+}
+
+/**
+ * Discover every public repository owned by `owner`.
+ *
+ * GET /users/{owner}/repos?type=owner&per_page=100, following the `Link`
+ * header's rel="next" pages until exhausted. Only items with `private === false`
+ * and an owner login matching `owner` (case-insensitive) are kept. Returns
+ * entries shaped as `{ url, private: false }`, sorted by `full_name`.
+ *
+ * Any failure (404 on the user, 5xx, rate-limit exhausted) is thrown — never
+ * a partial list.
+ */
+export async function discoverPublicRepos(request, owner, options = {}) {
+  const maxRetries = Number.isFinite(options.maxRetries) ? options.maxRetries : DEFAULTS.maxRetries;
+  const retryBaseMs = options.retryBaseMs ?? DEFAULTS.retryBaseMs;
+  const sleepFn = options.sleepFn ?? sleep;
+  const log = options.log ?? console.warn;
+  const rateLimitOptions = {
+    rateLimitThreshold: options.rateLimitThreshold,
+    rateLimitMaxSleepMs: options.rateLimitMaxSleepMs,
+    sleepFn,
+  };
+
+  const entries = [];
+  const seenPaths = new Set();
+  let path = `/users/${owner}/repos?type=owner&per_page=100`;
+
+  while (path) {
+    if (seenPaths.has(path)) break; // Guard against a malformed next link looping.
+    seenPaths.add(path);
+
+    const result = await retry(`discover repos for ${owner}`, async () => {
+      const res = await requestJson(request, path, {
+        rateLimitThreshold: rateLimitOptions.rateLimitThreshold,
+        rateLimitMaxSleepMs: rateLimitOptions.rateLimitMaxSleepMs,
+        sleepFn: rateLimitOptions.sleepFn,
+      });
+      if (res.status !== 200 || !Array.isArray(res.data)) {
+        const err = new Error(`GitHub API ${res.status} for ${path}`);
+        err.httpStatus = res.status;
+        throw err;
+      }
+      return res;
+    }, { maxRetries, retryBaseMs, sleepFn, log });
+
+    for (const item of result.data) {
+      if (item && item.private === false && String(item.owner?.login ?? '').toLowerCase() === String(owner).toLowerCase()) {
+        entries.push({ url: `https://github.com/${item.full_name}`, private: false, _full_name: item.full_name });
+      }
+    }
+
+    const next = toRequestPath(getNextLink(result.headers?.link ?? result.headers?.Link));
+    if (!next) {
+      path = null;
+      continue;
+    }
+    if (seenPaths.has(next)) {
+      throw new Error(`pagination loop detected at ${next}`);
+    }
+    path = next;
+  }
+
+  entries.sort((a, b) => String(a._full_name).localeCompare(String(b._full_name)));
+  return entries.map(({ _full_name, ...rest }) => rest);
+}
+
 /** Build the next snapshot from the previous snapshot and per-repo results. */
-export function buildSnapshot({ snapshot, results, capturedAt }) {
-  const allowlist = snapshot.allowed_repositories || [];
-  const records = results.map((r) => r.record).filter(Boolean);
+export function buildSnapshot({ snapshot, results, capturedAt, allowedRepositories, allowed_repositories, allowlist: allowlistOption }) {
+  const discoveredInput = allowedRepositories ?? allowed_repositories ?? allowlistOption;
+  const hasDiscovered = Array.isArray(discoveredInput) && discoveredInput.length > 0;
+  const rawAllowed = hasDiscovered
+    ? discoveredInput
+    : (snapshot.allowed_repositories || []);
+  const toUrl = (entry) => (typeof entry === 'string' ? entry : (entry && entry.url) || '');
+  const normalizedAllowed = [...new Set(rawAllowed.map((entry) => canonicalUrl(toUrl(entry), DEFAULTS.canonicalOwner)))].sort((a, b) => slugFromUrl(a).localeCompare(slugFromUrl(b)));
+  const allowlist = normalizedAllowed;
+  const allowedSlugs = new Set(allowlist.map((url) => slugFromUrl(url)));
+  const records = results.map((r) => r.record).filter(Boolean).filter((record) => !hasDiscovered || allowedSlugs.size === 0 || allowedSlugs.has(record.id));
   const failures = results.filter((r) => r.status === 'fail');
   const successes = results.filter((r) => r.status === 'success');
   const gone = results.filter((r) => r.status === 'unavailable');
@@ -569,13 +669,35 @@ export async function runRefresh(options = {}) {
   const previousBySlug = new Map();
   for (const record of snapshot.repositories || []) previousBySlug.set(record.id, record);
 
-  const allowlist = [...new Set((snapshot.allowed_repositories || []).map((url) => canonicalUrl(url, canonicalOwner)))];
-
   const request = injectedRequest || createRequest({
     apiHost,
     token,
     timeoutMs: requestTimeoutMs,
   });
+
+  // Discover the full public inventory before any per-repo work. A failed
+  // discovery is fatal: never publish a partial inventory.
+  let discovered;
+  try {
+    discovered = await discoverPublicRepos(request, canonicalOwner, {
+      maxRetries,
+      retryBaseMs,
+      sleepFn,
+      log: warn,
+      rateLimitThreshold,
+      rateLimitMaxSleepMs,
+    });
+  } catch (err) {
+    if (err && err.rateLimited) {
+      if (dryRun) log('activity-refresh: --dry-run, snapshot NOT written');
+      log('rate limited, will retry next cycle');
+      return { rateLimited: true, results: [] };
+    }
+    throw err;
+  }
+
+  const discoveredUrls = discovered.map((entry) => entry.url);
+  const allowlist = [...new Set(discoveredUrls.map((url) => canonicalUrl(url, canonicalOwner)))];
 
   const results = [];
   for (const url of allowlist) {
@@ -608,7 +730,14 @@ export async function runRefresh(options = {}) {
   }
 
   const capturedAt = toIso(now);
-  const next = buildSnapshot({ snapshot, results, capturedAt });
+  // A per-repo 404/410 for a repo that discovery returned (raced deletion or
+  // privatization mid-run) must not be rendered as an `unavailable` card: the
+  // human requirement is that such a repo is not visible at all. Discovery is
+  // authoritative for existence. Keep the unavailable plumbing for other callers.
+  const snapshotResults = results.filter((r) => r.status !== 'unavailable');
+  // Persist the discovered inventory into the snapshot (sorted, deduped).
+  snapshot.allowed_repositories = allowlist;
+  const next = buildSnapshot({ snapshot, results: snapshotResults, capturedAt, allowedRepositories: allowlist });
   const health = updateHealth(loadHealth(healthFile), results, now);
 
   const totalSuccess = results.filter((r) => r.status === 'success').length;
@@ -654,7 +783,7 @@ export async function runRefresh(options = {}) {
     }
   }
 
-  if (totalSuccess === 0) {
+  if (totalSuccess === 0 && totalFail > 0) {
     error('activity-refresh: every allowlisted repository failed; exiting non-zero.');
     const err = new Error('every allowlisted repository failed');
     err.exitCode = 1;

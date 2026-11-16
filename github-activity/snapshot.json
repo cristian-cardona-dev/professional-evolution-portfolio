@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-11-16T10:05:34Z",
+  "captured_at": "2026-11-16T14:28:26Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -13,71 +13,47 @@
     "url": "https://github.com/"
   },
   "allowed_repositories": [
-    "https://github.com/cristian-cardona-dev/professional-evolution-portfolio",
-    "https://github.com/cristian-cardona-dev/cloud-dashboard",
+    "https://github.com/cristian-cardona-dev/ai-automation-workflow-lab",
     "https://github.com/cristian-cardona-dev/ai-chat-app",
-    "https://github.com/cristian-cardona-dev/ai-automation-workflow-lab"
+    "https://github.com/cristian-cardona-dev/cloud-dashboard",
+    "https://github.com/cristian-cardona-dev/HunterX",
+    "https://github.com/cristian-cardona-dev/iniciativa-digital",
+    "https://github.com/cristian-cardona-dev/marea-bistro-demo",
+    "https://github.com/cristian-cardona-dev/portfolio",
+    "https://github.com/cristian-cardona-dev/professional-evolution-portfolio",
+    "https://github.com/cristian-cardona-dev/S.I-MaternitySpa",
+    "https://github.com/cristian-cardona-dev/saas-mvp"
   ],
   "repositories": [
     {
-      "id": "cristian-cardona-dev/professional-evolution-portfolio",
-      "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio",
+      "id": "cristian-cardona-dev/ai-automation-workflow-lab",
+      "url": "https://github.com/cristian-cardona-dev/ai-automation-workflow-lab",
       "visibility": "public",
       "pull_requests": [],
       "commits": [
         {
-          "id": "1b604c74907ebcfc6bb70fbbc1977ef58a6ce46c",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/1b604c74907ebcfc6bb70fbbc1977ef58a6ce46c",
-          "captured_at": "2026-11-16T10:03:52Z",
-          "title": "merge bot activity refresh commits (phase-V runs V.1/V.2 snapshot+health)"
+          "id": "57ec0ef4cd28b138b708308e8b9cfd0edbbe913e",
+          "url": "https://github.com/cristian-cardona-dev/ai-automation-workflow-lab/commit/57ec0ef4cd28b138b708308e8b9cfd0edbbe913e",
+          "captured_at": "2026-10-03T15:31:17Z",
+          "title": "Merge pull request #1 from HunterProX/ai/bounded-workflow-v1"
         },
         {
-          "id": "2ff1ec35ca887ed111ffd20fe167480b07896e7f",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/2ff1ec35ca887ed111ffd20fe167480b07896e7f",
-          "captured_at": "2026-11-16T09:50:43Z",
-          "title": "ai(portfolio): break the activity refresh self-churn loop (own commits + etag)"
+          "id": "e622b1c1972969875a6c22b441d39eb5ce1bfae0",
+          "url": "https://github.com/cristian-cardona-dev/ai-automation-workflow-lab/commit/e622b1c1972969875a6c22b441d39eb5ce1bfae0",
+          "captured_at": "2026-10-03T15:29:30Z",
+          "title": "ai(automation): add bounded approval workflow lab"
         },
         {
-          "id": "fe96c78491f64a36ab004203428a7887f49d60b8",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/fe96c78491f64a36ab004203428a7887f49d60b8",
-          "captured_at": "2026-11-16T09:35:22Z",
-          "title": "ai(test): make the public-snapshot secret guard match secret shapes, not vocabulary"
+          "id": "522770f76cf681b77092c911d1b2b7812cad2b65",
+          "url": "https://github.com/cristian-cardona-dev/ai-automation-workflow-lab/commit/522770f76cf681b77092c911d1b2b7812cad2b65",
+          "captured_at": "2026-10-03T15:29:29Z",
+          "title": "ai(automation): add bounded approval workflow lab"
         }
       ],
       "releases": [],
       "deployments": [],
       "open_pull_requests": 0,
-      "etag": "\"3477a33be96a1670aa57340e21b1226bfd556cd32c76532ea17c57b2ad0b81ca\""
-    },
-    {
-      "id": "cristian-cardona-dev/cloud-dashboard",
-      "url": "https://github.com/cristian-cardona-dev/cloud-dashboard",
-      "visibility": "public",
-      "pull_requests": [],
-      "commits": [
-        {
-          "id": "82b1d54ddf759ed1ed183680d334abad4cb47959",
-          "url": "https://github.com/cristian-cardona-dev/cloud-dashboard/commit/82b1d54ddf759ed1ed183680d334abad4cb47959",
-          "captured_at": "2026-10-09T15:20:51Z",
-          "title": "ai(portfolio): migrate README clone URL to cristian-cardona-dev"
-        },
-        {
-          "id": "549e880f8b42ed7cb94d325af94e5722295fd7a2",
-          "url": "https://github.com/cristian-cardona-dev/cloud-dashboard/commit/549e880f8b42ed7cb94d325af94e5722295fd7a2",
-          "captured_at": "2026-10-03T14:56:34Z",
-          "title": "Merge pull request #2 from HunterProX/ai/quickstart-cloud-dashboard"
-        },
-        {
-          "id": "cbb7bc076342178d25a9bf61d4025b943b530db3",
-          "url": "https://github.com/cristian-cardona-dev/cloud-dashboard/commit/cbb7bc076342178d25a9bf61d4025b943b530db3",
-          "captured_at": "2026-10-03T14:53:28Z",
-          "title": "docs(quickstart): document cloud dashboard setup and boundaries"
-        }
-      ],
-      "releases": [],
-      "deployments": [],
-      "open_pull_requests": 0,
-      "etag": "\"045b6e476b6e6424973ce7fa4e7862ea13c80c918d5a7f8f802311bb41cca305\""
+      "etag": "\"48607d720be6b0341847c1b8cec3a7e958255fb206f6a14079e77d219d859eb0\""
     },
     {
       "id": "cristian-cardona-dev/ai-chat-app",
@@ -110,34 +86,214 @@
       "etag": "\"7b3e3417a8ffb0c23af3dfbeda8050e9cfcd3885599bdfca87226e874fea6a74\""
     },
     {
-      "id": "cristian-cardona-dev/ai-automation-workflow-lab",
-      "url": "https://github.com/cristian-cardona-dev/ai-automation-workflow-lab",
+      "id": "cristian-cardona-dev/cloud-dashboard",
+      "url": "https://github.com/cristian-cardona-dev/cloud-dashboard",
       "visibility": "public",
       "pull_requests": [],
       "commits": [
         {
-          "id": "57ec0ef4cd28b138b708308e8b9cfd0edbbe913e",
-          "url": "https://github.com/cristian-cardona-dev/ai-automation-workflow-lab/commit/57ec0ef4cd28b138b708308e8b9cfd0edbbe913e",
-          "captured_at": "2026-10-03T15:31:17Z",
-          "title": "Merge pull request #1 from HunterProX/ai/bounded-workflow-v1"
+          "id": "82b1d54ddf759ed1ed183680d334abad4cb47959",
+          "url": "https://github.com/cristian-cardona-dev/cloud-dashboard/commit/82b1d54ddf759ed1ed183680d334abad4cb47959",
+          "captured_at": "2026-10-09T15:20:51Z",
+          "title": "ai(portfolio): migrate README clone URL to cristian-cardona-dev"
         },
         {
-          "id": "e622b1c1972969875a6c22b441d39eb5ce1bfae0",
-          "url": "https://github.com/cristian-cardona-dev/ai-automation-workflow-lab/commit/e622b1c1972969875a6c22b441d39eb5ce1bfae0",
-          "captured_at": "2026-10-03T15:29:30Z",
-          "title": "ai(automation): add bounded approval workflow lab"
+          "id": "549e880f8b42ed7cb94d325af94e5722295fd7a2",
+          "url": "https://github.com/cristian-cardona-dev/cloud-dashboard/commit/549e880f8b42ed7cb94d325af94e5722295fd7a2",
+          "captured_at": "2026-10-03T14:56:34Z",
+          "title": "Merge pull request #2 from HunterProX/ai/quickstart-cloud-dashboard"
         },
         {
-          "id": "522770f76cf681b77092c911d1b2b7812cad2b65",
-          "url": "https://github.com/cristian-cardona-dev/ai-automation-workflow-lab/commit/522770f76cf681b77092c911d1b2b7812cad2b65",
-          "captured_at": "2026-10-03T15:29:29Z",
-          "title": "ai(automation): add bounded approval workflow lab"
+          "id": "cbb7bc076342178d25a9bf61d4025b943b530db3",
+          "url": "https://github.com/cristian-cardona-dev/cloud-dashboard/commit/cbb7bc076342178d25a9bf61d4025b943b530db3",
+          "captured_at": "2026-10-03T14:53:28Z",
+          "title": "docs(quickstart): document cloud dashboard setup and boundaries"
         }
       ],
       "releases": [],
       "deployments": [],
       "open_pull_requests": 0,
-      "etag": "\"48607d720be6b0341847c1b8cec3a7e958255fb206f6a14079e77d219d859eb0\""
+      "etag": "\"045b6e476b6e6424973ce7fa4e7862ea13c80c918d5a7f8f802311bb41cca305\""
+    },
+    {
+      "id": "cristian-cardona-dev/HunterX",
+      "url": "https://github.com/cristian-cardona-dev/HunterX",
+      "visibility": "public",
+      "pull_requests": [],
+      "commits": [
+        {
+          "id": "01560390150633d03a68a81470f65dc35ffa3d26",
+          "url": "https://github.com/cristian-cardona-dev/HunterX/commit/01560390150633d03a68a81470f65dc35ffa3d26",
+          "captured_at": "2026-10-01T16:44:49Z",
+          "title": "Add optimized README with stats and pinned projects"
+        }
+      ],
+      "releases": [],
+      "deployments": [],
+      "open_pull_requests": 0,
+      "etag": "\"93d85c54d2dc0357f8e8071279643fd26861ba5c12c2a97adc24c21af84c5dae\""
+    },
+    {
+      "id": "cristian-cardona-dev/iniciativa-digital",
+      "url": "https://github.com/cristian-cardona-dev/iniciativa-digital",
+      "visibility": "public",
+      "pull_requests": [],
+      "commits": [
+        {
+          "id": "dc8029e674c7e8a55ff1b1563699763708b68c07",
+          "url": "https://github.com/cristian-cardona-dev/iniciativa-digital/commit/dc8029e674c7e8a55ff1b1563699763708b68c07",
+          "captured_at": "2026-11-11T09:47:55Z",
+          "title": "Add GitHub Pages deployment workflow"
+        },
+        {
+          "id": "1e3aea9267378630d2a84d21e883e18a41412d28",
+          "url": "https://github.com/cristian-cardona-dev/iniciativa-digital/commit/1e3aea9267378630d2a84d21e883e18a41412d28",
+          "captured_at": "2026-11-11T09:41:21Z",
+          "title": "Create initiative digital portfolio site"
+        }
+      ],
+      "releases": [],
+      "deployments": [],
+      "open_pull_requests": 0,
+      "etag": "\"43301706fe83246136b8c98355132f6bef8d7fc08f99ef4e550709957d582e7a\""
+    },
+    {
+      "id": "cristian-cardona-dev/marea-bistro-demo",
+      "url": "https://github.com/cristian-cardona-dev/marea-bistro-demo",
+      "visibility": "public",
+      "pull_requests": [],
+      "commits": [
+        {
+          "id": "7c87c58a0efa31c7ab322db06affe1343d2faa13",
+          "url": "https://github.com/cristian-cardona-dev/marea-bistro-demo/commit/7c87c58a0efa31c7ab322db06affe1343d2faa13",
+          "captured_at": "2026-11-10T14:10:51Z",
+          "title": "ai(release): add changelog and bump 0.0.3 (risk-low)"
+        },
+        {
+          "id": "ee9eb0fc3fbed89b57b94cdfa629268b7f9b5f5d",
+          "url": "https://github.com/cristian-cardona-dev/marea-bistro-demo/commit/ee9eb0fc3fbed89b57b94cdfa629268b7f9b5f5d",
+          "captured_at": "2026-11-10T13:56:40Z",
+          "title": "ai(marea-motion): fix js fallback parallax progress and drop cross-dish image fallbacks"
+        },
+        {
+          "id": "8467188dc30ce2d78e8d79d41f7b1cc8a2906f40",
+          "url": "https://github.com/cristian-cardona-dev/marea-bistro-demo/commit/8467188dc30ce2d78e8d79d41f7b1cc8a2906f40",
+          "captured_at": "2026-11-10T13:27:13Z",
+          "title": "ai(marea-motion): complete footer reveal range so it reaches full opacity"
+        }
+      ],
+      "releases": [],
+      "deployments": [],
+      "open_pull_requests": 0,
+      "etag": "\"bb74d15bbb2f40b341f746e2051a2e6a0da2852c3657bc622163929dc0323bff\""
+    },
+    {
+      "id": "cristian-cardona-dev/portfolio",
+      "url": "https://github.com/cristian-cardona-dev/portfolio",
+      "visibility": "public",
+      "pull_requests": [],
+      "commits": [
+        {
+          "id": "dcd724be76d0d947c886ad8cc304e18272bdec95",
+          "url": "https://github.com/cristian-cardona-dev/portfolio/commit/dcd724be76d0d947c886ad8cc304e18272bdec95",
+          "captured_at": "2026-10-09T15:23:29Z",
+          "title": "ai(portfolio): migrate project READMEs and sync submodule pointers"
+        },
+        {
+          "id": "c9bebbc12201309c382b694eb156175e42c1aae9",
+          "url": "https://github.com/cristian-cardona-dev/portfolio/commit/c9bebbc12201309c382b694eb156175e42c1aae9",
+          "captured_at": "2026-10-09T15:18:26Z",
+          "title": "ai(portfolio): merge GitHub username migration"
+        },
+        {
+          "id": "5c09437cd96ab6e0b53727efb03d55c37ddac30f",
+          "url": "https://github.com/cristian-cardona-dev/portfolio/commit/5c09437cd96ab6e0b53727efb03d55c37ddac30f",
+          "captured_at": "2026-10-09T15:16:45Z",
+          "title": "ai(portfolio): checkpoint local sync work before username merge"
+        }
+      ],
+      "releases": [],
+      "deployments": [],
+      "open_pull_requests": 0,
+      "etag": "\"342d83946ed2cb0eaaee948200652a56a2278819316a6a02cd29cfdd1c4bb835\""
+    },
+    {
+      "id": "cristian-cardona-dev/professional-evolution-portfolio",
+      "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio",
+      "visibility": "public",
+      "pull_requests": [],
+      "commits": [
+        {
+          "id": "966a935e322da6761c1225d0c80d5a515894f019",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/966a935e322da6761c1225d0c80d5a515894f019",
+          "captured_at": "2026-11-16T14:16:55Z",
+          "title": "ai(ci): validator shape-based secrets, runbook/token truth, deployed-freshness guard"
+        },
+        {
+          "id": "1b604c74907ebcfc6bb70fbbc1977ef58a6ce46c",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/1b604c74907ebcfc6bb70fbbc1977ef58a6ce46c",
+          "captured_at": "2026-11-16T10:03:52Z",
+          "title": "merge bot activity refresh commits (phase-V runs V.1/V.2 snapshot+health)"
+        },
+        {
+          "id": "2ff1ec35ca887ed111ffd20fe167480b07896e7f",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/2ff1ec35ca887ed111ffd20fe167480b07896e7f",
+          "captured_at": "2026-11-16T09:50:43Z",
+          "title": "ai(portfolio): break the activity refresh self-churn loop (own commits + etag)"
+        }
+      ],
+      "releases": [],
+      "deployments": [],
+      "open_pull_requests": 0,
+      "etag": "\"ec1a31c277031a3b2bcde5be83ec63ca1955a1060e366dd5a6752a129e6d2081\""
+    },
+    {
+      "id": "cristian-cardona-dev/S.I-MaternitySpa",
+      "url": "https://github.com/cristian-cardona-dev/S.I-MaternitySpa",
+      "visibility": "public",
+      "pull_requests": [],
+      "commits": [
+        {
+          "id": "e6f85299a4772f4e52c555f4fce01d62e79063af",
+          "url": "https://github.com/cristian-cardona-dev/S.I-MaternitySpa/commit/e6f85299a4772f4e52c555f4fce01d62e79063af",
+          "captured_at": "2016-11-01T02:57:37Z",
+          "title": "Revert \":octocat: Added .gitattributes & .gitignore files\""
+        },
+        {
+          "id": "b047bef1617830532e5e80e7639a5cfe7a112b96",
+          "url": "https://github.com/cristian-cardona-dev/S.I-MaternitySpa/commit/b047bef1617830532e5e80e7639a5cfe7a112b96",
+          "captured_at": "2016-11-01T02:55:29Z",
+          "title": ":octocat: Added .gitattributes & .gitignore files"
+        }
+      ],
+      "releases": [],
+      "deployments": [],
+      "open_pull_requests": 0,
+      "etag": "\"611d74948d4ea3ef8d4695bdcaea4f5f39c5004941a22d1cbad25e598beb3c13\""
+    },
+    {
+      "id": "cristian-cardona-dev/saas-mvp",
+      "url": "https://github.com/cristian-cardona-dev/saas-mvp",
+      "visibility": "public",
+      "pull_requests": [],
+      "commits": [
+        {
+          "id": "6a9070c223eff7a218adf520222be40232f38ed0",
+          "url": "https://github.com/cristian-cardona-dev/saas-mvp/commit/6a9070c223eff7a218adf520222be40232f38ed0",
+          "captured_at": "2026-10-09T15:20:52Z",
+          "title": "ai(portfolio): migrate README clone URL to cristian-cardona-dev"
+        },
+        {
+          "id": "483fc99726129096652c9fc61d2685f242459117",
+          "url": "https://github.com/cristian-cardona-dev/saas-mvp/commit/483fc99726129096652c9fc61d2685f242459117",
+          "captured_at": "2026-10-01T16:46:23Z",
+          "title": "Initial commit: SaaS MVP with Stripe, PostgreSQL, Auth"
+        }
+      ],
+      "releases": [],
+      "deployments": [],
+      "open_pull_requests": 0,
+      "etag": "\"d521bb0ea24703b0aacec64b2698b80676920bbc235a24f125abf465ab7b7692\""
     }
   ]
 }

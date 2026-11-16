@@ -24,6 +24,7 @@ import {
   formatLogLine,
   formatStepSummary,
   runRefresh,
+  discoverPublicRepos,
 } from './lib/activity-refresh-core.mjs';
 
 const NOW = new Date('2026-11-15T12:00:00.000Z').getTime();
@@ -438,6 +439,7 @@ test('runRefresh dry-run writes nothing', async () => {
     const snapshotFile = writeSnapshot(dir, makeSnapshot());
     const healthFile = join(dir, 'health.json');
     const request = makeRequest([
+      (path) => path.startsWith('/users/') && path.includes('/repos') ? { status: 200, headers: {}, body: JSON.stringify([{ full_name: 'cristian-cardona-dev/demo', private: false, owner: { login: 'cristian-cardona-dev' } }]) } : null,
       (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: {}, body: JSON.stringify([makeCommit('sha1', toIso(NOW), 'feat: first', 'Cristian')]) } : null,
       (path) => path === pullsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: { 'x-total-count': '0' }, body: '[]' } : null,
       (path) => path === releasePath('cristian-cardona-dev', 'demo') ? { status: 404, headers: {}, body: '{}' } : null,
@@ -465,6 +467,7 @@ test('runRefresh full success writes snapshot and health', async () => {
     const snapshotFile = writeSnapshot(dir, makeSnapshot());
     const healthFile = join(dir, 'health.json');
     const request = makeRequest([
+      (path) => path.startsWith('/users/') && path.includes('/repos') ? { status: 200, headers: {}, body: JSON.stringify([{ full_name: 'cristian-cardona-dev/demo', private: false, owner: { login: 'cristian-cardona-dev' } }]) } : null,
       (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: { etag: '"etag1"' }, body: JSON.stringify([makeCommit('sha1', toIso(NOW), 'feat: first', 'Cristian')]) } : null,
       (path) => path === pullsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: { 'x-total-count': '2' }, body: '[]' } : null,
       (path) => path === releasePath('cristian-cardona-dev', 'demo') ? { status: 404, headers: {}, body: '{}' } : null,
@@ -505,6 +508,10 @@ test('runRefresh partial failure keeps previous record with error marker', async
     const snapshotFile = writeSnapshot(dir, snapshot);
     const healthFile = join(dir, 'health.json');
     const request = makeRequest([
+      (path) => path.startsWith('/users/') && path.includes('/repos') ? { status: 200, headers: {}, body: JSON.stringify([
+        { full_name: 'cristian-cardona-dev/ok', private: false, owner: { login: 'cristian-cardona-dev' } },
+        { full_name: 'cristian-cardona-dev/failing', private: false, owner: { login: 'cristian-cardona-dev' } },
+      ]) } : null,
       (path) => path === commitsPath('cristian-cardona-dev', 'ok') ? { status: 200, headers: {}, body: JSON.stringify([makeCommit('ok1', toIso(NOW), 'feat: ok', 'Cristian')]) } : null,
       (path) => path === pullsPath('cristian-cardona-dev', 'ok') ? { status: 200, headers: { 'x-total-count': '0' }, body: '[]' } : null,
       (path) => path === releasePath('cristian-cardona-dev', 'ok') ? { status: 404, headers: {}, body: '{}' } : null,
@@ -539,6 +546,7 @@ test('runRefresh total failure exits non-zero', async () => {
     const snapshotFile = writeSnapshot(dir, makeSnapshot());
     const healthFile = join(dir, 'health.json');
     const request = makeRequest([
+      (path) => path.startsWith('/users/') && path.includes('/repos') ? { status: 200, headers: {}, body: JSON.stringify([{ full_name: 'cristian-cardona-dev/demo', private: false, owner: { login: 'cristian-cardona-dev' } }]) } : null,
       (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 500, headers: {}, body: '{}' } : null,
     ]);
     await assert.rejects(runRefresh({
@@ -562,6 +570,7 @@ test('runRefresh rate limit exits gracefully with rateLimited result', async () 
     const healthFile = join(dir, 'health.json');
     const reset = Math.floor(Date.now() / 1000) + 3600;
     const request = makeRequest([
+      (path) => path.startsWith('/users/') && path.includes('/repos') ? { status: 200, headers: {}, body: JSON.stringify([{ full_name: 'cristian-cardona-dev/demo', private: false, owner: { login: 'cristian-cardona-dev' } }]) } : null,
       (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: { 'x-ratelimit-remaining': '2', 'x-ratelimit-reset': String(reset) }, body: JSON.stringify([makeCommit('sha1', toIso(NOW), 'feat: first', 'Cristian')]) } : null,
     ]);
     let slept = 0;
@@ -586,6 +595,7 @@ test('runRefresh appends step summary when path is provided', async () => {
     const healthFile = join(dir, 'health.json');
     const summaryFile = join(dir, 'summary.md');
     const request = makeRequest([
+      (path) => path.startsWith('/users/') && path.includes('/repos') ? { status: 200, headers: {}, body: JSON.stringify([{ full_name: 'cristian-cardona-dev/demo', private: false, owner: { login: 'cristian-cardona-dev' } }]) } : null,
       (path) => path === commitsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: {}, body: JSON.stringify([makeCommit('sha1', toIso(NOW), 'feat: first', 'Cristian')]) } : null,
       (path) => path === pullsPath('cristian-cardona-dev', 'demo') ? { status: 200, headers: { 'x-total-count': '0' }, body: '[]' } : null,
       (path) => path === releasePath('cristian-cardona-dev', 'demo') ? { status: 404, headers: {}, body: '{}' } : null,
@@ -695,4 +705,201 @@ test('fetchRepoActivity loop-closure: own-commit-only run yields byte-identical 
   for (const c of recordN.commits) {
     assert.ok(c.id && c.title && c.captured_at && c.url);
   }
+});
+
+// --- Task R: dynamic public-repository inventory ---------------------------
+
+test('discoverPublicRepos paginates via Link rel=next', async () => {
+  const request = async (path) => {
+    if (path === '/users/cristian-cardona-dev/repos?type=owner&per_page=100') {
+      return {
+        status: 200,
+        headers: { link: '<https://api.github.com/users/cristian-cardona-dev/repos?type=owner&per_page=100&page=2>; rel="next"' },
+        body: JSON.stringify([
+          { full_name: 'cristian-cardona-dev/beta', private: false, owner: { login: 'cristian-cardona-dev' } },
+          { full_name: 'cristian-cardona-dev/alpha', private: false, owner: { login: 'cristian-cardona-dev' } },
+        ]),
+      };
+    }
+    if (String(path).includes('page=2')) {
+      return { status: 200, headers: {}, body: JSON.stringify([
+        { full_name: 'cristian-cardona-dev/gamma', private: false, owner: { login: 'cristian-cardona-dev' } },
+      ]) };
+    }
+    return { status: 404, headers: {}, body: '{}' };
+  };
+  const entries = await discoverPublicRepos(request, 'cristian-cardona-dev', { maxRetries: 1, retryBaseMs: 0, sleepFn: async () => {} });
+  assert.equal(entries.length, 3);
+  assert.deepEqual(entries.map((e) => e.url), [
+    'https://github.com/cristian-cardona-dev/alpha',
+    'https://github.com/cristian-cardona-dev/beta',
+    'https://github.com/cristian-cardona-dev/gamma',
+  ]);
+  for (const e of entries) assert.equal(e.private, false);
+});
+
+test('discoverPublicRepos rejects when Link header loops back', async () => {
+  const request = async (path) => {
+    if (path === '/users/cristian-cardona-dev/repos?type=owner&per_page=100') {
+      return {
+        status: 200,
+        headers: { link: '</users/cristian-cardona-dev/repos?type=owner&per_page=100>; rel="next"' },
+        body: JSON.stringify([
+          { full_name: 'cristian-cardona-dev/alpha', private: false, owner: { login: 'cristian-cardona-dev' } },
+        ]),
+      };
+    }
+    return { status: 404, headers: {}, body: '{}' };
+  };
+  await assert.rejects(
+    discoverPublicRepos(request, 'cristian-cardona-dev', { maxRetries: 1, retryBaseMs: 0, sleepFn: async () => {} }),
+    /pagination loop detected/,
+  );
+});
+
+test('discoverPublicRepos excludes private and foreign-owned repos', async () => {
+  const request = async () => ({
+    status: 200,
+    headers: {},
+    body: JSON.stringify([
+      { full_name: 'cristian-cardona-dev/public-one', private: false, owner: { login: 'cristian-cardona-dev' } },
+      { full_name: 'cristian-cardona-dev/secret', private: true, owner: { login: 'cristian-cardona-dev' } },
+      { full_name: 'other-owner/repo', private: false, owner: { login: 'other-owner' } },
+    ]),
+  });
+  const entries = await discoverPublicRepos(request, 'cristian-cardona-dev', { maxRetries: 1, retryBaseMs: 0, sleepFn: async () => {} });
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].url, 'https://github.com/cristian-cardona-dev/public-one');
+});
+
+test('runRefresh reconcile adds a newly discovered repository', async () => {
+  await withTempDirAsync(async (dir) => {
+    const snapshot = makeSnapshot(['https://github.com/cristian-cardona-dev/old1', 'https://github.com/cristian-cardona-dev/old2']);
+    const snapshotFile = writeSnapshot(dir, snapshot);
+    const healthFile = join(dir, 'health.json');
+    const request = async (path) => {
+      if (path.startsWith('/users/') && path.includes('/repos')) {
+        return { status: 200, headers: {}, body: JSON.stringify([
+          { full_name: 'cristian-cardona-dev/old1', private: false, owner: { login: 'cristian-cardona-dev' } },
+          { full_name: 'cristian-cardona-dev/old2', private: false, owner: { login: 'cristian-cardona-dev' } },
+          { full_name: 'cristian-cardona-dev/new3', private: false, owner: { login: 'cristian-cardona-dev' } },
+        ]) };
+      }
+      if (String(path).includes('/commits?')) return { status: 200, headers: {}, body: '[]' };
+      if (String(path).includes('/pulls?')) return { status: 200, headers: { 'x-total-count': '0' }, body: '[]' };
+      if (String(path).includes('/releases/latest')) return { status: 404, headers: {}, body: '{}' };
+      return { status: 404, headers: {}, body: '{}' };
+    };
+    const { snapshot: next } = await runRefresh({
+      dryRun: false,
+      snapshotFile,
+      healthFile,
+      request,
+      now: NOW,
+      maxRetries: 1,
+      retryBaseMs: 0,
+      sleepFn: async () => {},
+      log: () => {},
+      warn: () => {},
+    });
+    assert.equal(next.allowed_repositories.length, 3);
+    assert.ok(next.allowed_repositories.includes('https://github.com/cristian-cardona-dev/new3'));
+    assert.ok(next.repositories.some((r) => r.id === 'cristian-cardona-dev/new3'));
+  });
+});
+
+test('runRefresh drops a repository that discovery no longer returns', async () => {
+  await withTempDirAsync(async (dir) => {
+    const snapshot = makeSnapshot(['https://github.com/cristian-cardona-dev/keep', 'https://github.com/cristian-cardona-dev/old-repo']);
+    snapshot.repositories = [
+      { id: 'cristian-cardona-dev/old-repo', url: 'https://github.com/cristian-cardona-dev/old-repo', visibility: 'public', pull_requests: [], commits: [], releases: [], deployments: [], open_pull_requests: 0 },
+    ];
+    const snapshotFile = writeSnapshot(dir, snapshot);
+    const healthFile = join(dir, 'health.json');
+    const request = async (path) => {
+      if (path.startsWith('/users/') && path.includes('/repos')) {
+        return { status: 200, headers: {}, body: JSON.stringify([
+          { full_name: 'cristian-cardona-dev/keep', private: false, owner: { login: 'cristian-cardona-dev' } },
+        ]) };
+      }
+      if (String(path).includes('/commits?')) return { status: 200, headers: {}, body: '[]' };
+      if (String(path).includes('/pulls?')) return { status: 200, headers: { 'x-total-count': '0' }, body: '[]' };
+      if (String(path).includes('/releases/latest')) return { status: 404, headers: {}, body: '{}' };
+      return { status: 404, headers: {}, body: '{}' };
+    };
+    const { snapshot: next } = await runRefresh({
+      dryRun: false,
+      snapshotFile,
+      healthFile,
+      request,
+      now: NOW,
+      maxRetries: 1,
+      retryBaseMs: 0,
+      sleepFn: async () => {},
+      log: () => {},
+      warn: () => {},
+    });
+    assert.equal(next.allowed_repositories.length, 1);
+    assert.ok(!next.allowed_repositories.includes('https://github.com/cristian-cardona-dev/old-repo'));
+    assert.ok(!next.repositories.some((r) => r.id === 'cristian-cardona-dev/old-repo'));
+  });
+});
+
+test('runRefresh rejects when discovery fails', async () => {
+  await withTempDirAsync(async (dir) => {
+    const snapshotFile = writeSnapshot(dir, makeSnapshot());
+    const healthFile = join(dir, 'health.json');
+    const before = readFileSync(snapshotFile, 'utf8');
+    const request = async (path) => {
+      if (path.startsWith('/users/') && path.includes('/repos')) {
+        return { status: 500, headers: {}, body: '{}' };
+      }
+      return { status: 404, headers: {}, body: '{}' };
+    };
+    await assert.rejects(runRefresh({
+      dryRun: false,
+      snapshotFile,
+      healthFile,
+      request,
+      now: NOW,
+      maxRetries: 1,
+      retryBaseMs: 0,
+      sleepFn: async () => {},
+      log: () => {},
+      warn: () => {},
+    }));
+    const after = readFileSync(snapshotFile, 'utf8');
+    assert.equal(after, before);
+  });
+});
+
+test('runRefresh excludes a repo that 404s during refresh', async () => {
+  await withTempDirAsync(async (dir) => {
+    const snapshot = makeSnapshot(['https://github.com/cristian-cardona-dev/gone']);
+    const snapshotFile = writeSnapshot(dir, snapshot);
+    const healthFile = join(dir, 'health.json');
+    const request = async (path) => {
+      if (path.startsWith('/users/') && path.includes('/repos')) {
+        return { status: 200, headers: {}, body: JSON.stringify([
+          { full_name: 'cristian-cardona-dev/gone', private: false, owner: { login: 'cristian-cardona-dev' } },
+        ]) };
+      }
+      if (String(path).includes('/commits?')) return { status: 404, headers: {}, body: '{}' };
+      return { status: 404, headers: {}, body: '{}' };
+    };
+    const { snapshot: next } = await runRefresh({
+      dryRun: false,
+      snapshotFile,
+      healthFile,
+      request,
+      now: NOW,
+      maxRetries: 1,
+      retryBaseMs: 0,
+      sleepFn: async () => {},
+      log: () => {},
+      warn: () => {},
+    });
+    assert.equal(next.repositories.length, 0);
+    assert.equal(next.allowed_repositories.length, 1);
+  });
 });
