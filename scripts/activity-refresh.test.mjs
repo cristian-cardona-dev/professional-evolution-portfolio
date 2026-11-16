@@ -13,6 +13,8 @@ import {
   isStale,
   retry,
   fetchRepoActivity,
+  fetchCommits,
+  OWN_COMMIT_MESSAGES,
   buildSnapshot,
   loadHealth,
   saveHealth,
@@ -76,7 +78,7 @@ function makeCommit(sha, date, message, authorName) {
 }
 
 function commitsPath(owner, repo) {
-  return `/repos/${owner}/${repo}/commits?per_page=3`;
+  return `/repos/${owner}/${repo}/commits?per_page=10`;
 }
 
 function pullsPath(owner, repo) {
@@ -602,4 +604,95 @@ test('runRefresh appends step summary when path is provided', async () => {
     assert.match(summary, /## GitHub Activity Refresh/);
     assert.match(summary, /30-day health/);
   });
+});
+
+// --- F10: exclude the automation's own commits from the feed ---------------
+
+test('fetchCommits excludes the automation own commits (F10)', async () => {
+  const request = async () => ({
+    status: 200,
+    headers: { etag: '"e"' },
+    body: JSON.stringify([
+      makeCommit('own1', toIso(NOW), 'ai(portfolio): refresh public github activity', 'github-actions[bot]'),
+      makeCommit('own2', toIso(NOW), 'ai(portfolio): record activity refresh health', 'github-actions[bot]'),
+      makeCommit('h1', toIso(NOW), 'feat: one', 'Cristian'),
+      makeCommit('h2', toIso(NOW), 'feat: two', 'Cristian'),
+      makeCommit('h3', toIso(NOW), 'feat: three', 'Cristian'),
+    ]),
+  });
+  const { commits } = await fetchCommits(request, 'cristian-cardona-dev', 'demo', { commitsPerRepo: 3 });
+  assert.equal(commits.length, 3);
+  assert.deepEqual(commits.map((c) => c.title), ['feat: one', 'feat: two', 'feat: three']);
+  assert.ok(!commits.some((c) => OWN_COMMIT_MESSAGES.includes(c.title)));
+});
+
+test('fetchCommits over-fetch buffer prevents starvation (F10)', async () => {
+  const payload = [
+    makeCommit('own1', toIso(NOW), 'ai(portfolio): refresh public github activity', 'github-actions[bot]'),
+    makeCommit('own2', toIso(NOW), 'ai(portfolio): record activity refresh health', 'github-actions[bot]'),
+    makeCommit('h1', toIso(NOW), 'feat: one', 'Cristian'),
+    makeCommit('h2', toIso(NOW), 'feat: two', 'Cristian'),
+    makeCommit('h3', toIso(NOW), 'feat: three', 'Cristian'),
+  ];
+  const request = async (path) => {
+    const m = String(path).match(/per_page=(\d+)/);
+    const n = m ? Number(m[1]) : payload.length;
+    return { status: 200, headers: {}, body: JSON.stringify(payload.slice(0, n)) };
+  };
+  const { commits } = await fetchCommits(request, 'cristian-cardona-dev', 'demo', { commitsPerRepo: 3 });
+  assert.equal(commits.length, 3);
+  assert.deepEqual(commits.map((c) => c.title), ['feat: one', 'feat: two', 'feat: three']);
+});
+
+test('fetchRepoActivity loop-closure: own-commit-only run yields byte-identical record incl. etag (F10)', async () => {
+  const humans = [
+    makeCommit('h1', toIso(NOW), 'feat: one', 'Cristian'),
+    makeCommit('h2', toIso(NOW), 'feat: two', 'Cristian'),
+    makeCommit('h3', toIso(NOW), 'feat: three', 'Cristian'),
+  ];
+  const ownTitle = OWN_COMMIT_MESSAGES[0];
+  const payloadN = [
+    makeCommit('ownN', toIso(NOW), ownTitle, 'github-actions[bot]'),
+    ...humans,
+  ];
+  const payloadN1 = [
+    makeCommit('ownN1', toIso(NOW), ownTitle, 'github-actions[bot]'),
+    makeCommit('ownN', toIso(NOW), ownTitle, 'github-actions[bot]'),
+    ...humans,
+  ];
+
+  // Run N: no previous record; commits endpoint reports etag E1.
+  const reqN = makeRequest([
+    (path) => path === commitsPath('cristian-cardona-dev', 'demo')
+      ? { status: 200, headers: { etag: '"E1"' }, body: JSON.stringify(payloadN) } : null,
+    (path) => path === pullsPath('cristian-cardona-dev', 'demo')
+      ? { status: 200, headers: { 'x-total-count': '0' }, body: '[]' } : null,
+    (path) => path === releasePath('cristian-cardona-dev', 'demo')
+      ? { status: 404, headers: {}, body: '{}' } : null,
+  ]);
+  const resN = await fetchRepoActivity('cristian-cardona-dev', 'demo', { request: reqN, now: NOW });
+  assert.equal(resN.status, 'success');
+  const recordN = resN.record;
+
+  // Run N+1: previous record = recordN; commits endpoint moved (E2) because
+  // the refresh's own commit landed. Filtered commit list is unchanged.
+  const reqN1 = makeRequest([
+    (path) => path === commitsPath('cristian-cardona-dev', 'demo')
+      ? { status: 200, headers: { etag: '"E2"' }, body: JSON.stringify(payloadN1) } : null,
+    (path) => path === pullsPath('cristian-cardona-dev', 'demo')
+      ? { status: 200, headers: { 'x-total-count': '0' }, body: '[]' } : null,
+    (path) => path === releasePath('cristian-cardona-dev', 'demo')
+      ? { status: 404, headers: {}, body: '{}' } : null,
+  ]);
+  const resN1 = await fetchRepoActivity('cristian-cardona-dev', 'demo', { request: reqN1, previousRecord: recordN, now: NOW });
+  assert.equal(resN1.status, 'success');
+  const recordN1 = resN1.record;
+
+  // Full records (including etag and full commit objects) must be byte-identical.
+  assert.deepStrictEqual(recordN, recordN1);
+  // Explicit full-commit-object comparison (id, title, captured_at, url, bot).
+  assert.deepStrictEqual(recordN.commits, recordN1.commits);
+  for (const c of recordN.commits) {
+    assert.ok(c.id && c.title && c.captured_at && c.url);
+  }
 });

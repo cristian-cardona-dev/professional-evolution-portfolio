@@ -29,6 +29,15 @@ export const BOT_AUTHORS = [
   'github-actions[bot]',
 ];
 
+// Commit messages produced by this automation itself. They are build noise, not
+// project activity: feeding them back into the feed makes every run report
+// "changed" (the refresh's own commit enters the window) and churns commits
+// + deploys forever. Excluded from the feed in fetchCommits.
+export const OWN_COMMIT_MESSAGES = [
+  'ai(portfolio): refresh public github activity',
+  'ai(portfolio): record activity refresh health',
+];
+
 /** Sleep for `ms` milliseconds. */
 export function sleep(ms) {
   return new Promise((done) => setTimeout(done, ms));
@@ -194,7 +203,9 @@ export function isGone(error) {
 export async function fetchCommits(request, owner, repo, options = {}) {
   const commitsPerRepo = options.commitsPerRepo ?? DEFAULTS.commitsPerRepo;
   const etag = options.etag;
-  const res = await requestJson(request, `/repos/${owner}/${repo}/commits?per_page=${commitsPerRepo}`, { etag, rateLimitThreshold: options.rateLimitThreshold, rateLimitMaxSleepMs: options.rateLimitMaxSleepMs, sleepFn: options.sleepFn });
+  // Over-fetch a buffer (commitsPerRepo + 7) so filtering out the
+  // automation's own commits below cannot starve the window.
+  const res = await requestJson(request, `/repos/${owner}/${repo}/commits?per_page=${commitsPerRepo + 7}`, { etag, rateLimitThreshold: options.rateLimitThreshold, rateLimitMaxSleepMs: options.rateLimitMaxSleepMs, sleepFn: options.sleepFn });
   if (res.status === 304) return { unchanged: true };
   if (res.status === 404) {
     const err = new Error(`repository not found (404) for ${owner}/${repo}`);
@@ -202,6 +213,10 @@ export async function fetchCommits(request, owner, repo, options = {}) {
     throw err;
   }
   if (!Array.isArray(res.data)) throw new Error('unexpected commits payload');
+  // A refresh run's own commit is build noise, not project activity. If it
+  // stays in the feed, the next run sees "changed" and commits + deploys
+  // forever (self-churn). Drop entries whose title is one of the automation's
+  // own commit messages, then keep only the newest commitsPerRepo survivors.
   const commits = res.data.map((entry) => {
     const sha = String(entry.sha);
     const date = entry.commit?.author?.date || entry.commit?.committer?.date;
@@ -214,7 +229,7 @@ export async function fetchCommits(request, owner, repo, options = {}) {
     };
     if (isBotAuthor(authorName)) commit.bot = true;
     return commit;
-  });
+  }).filter((commit) => !OWN_COMMIT_MESSAGES.includes(commit.title)).slice(0, commitsPerRepo);
   return { commits, etag: res.headers.etag };
 }
 
@@ -289,7 +304,16 @@ export async function fetchRepoActivity(owner, repo, options = {}) {
       deployments: previousRecord?.deployments ?? [],
       open_pull_requests: openPullRequests,
     };
-    if (commitsResult.etag) record.etag = commitsResult.etag;
+    // Etag is transport metadata, not content: if the (already filtered) commit
+    // list matches the previous record, keep the previous etag so an
+    // own-commit-only run yields a byte-identical record — otherwise the stored
+    // etag churns every run (the commits endpoint state moves when we commit)
+    // and change detection commits + deploys forever.
+    const commitsUnchanged = Boolean(previousRecord?.commits)
+      && JSON.stringify(commitsResult.commits) === JSON.stringify(previousRecord.commits);
+    if (commitsResult.etag || previousRecord?.etag) {
+      record.etag = commitsUnchanged && previousRecord?.etag ? previousRecord.etag : (commitsResult.etag || previousRecord.etag);
+    }
     return { slug, status: 'success', durationMs: Date.now() - startedAt, record };
   } catch (error) {
     if (error && error.rateLimited) throw error;
