@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  deployments: read
 
 concurrency:
   group: site-health
@@ -49,6 +50,32 @@ jobs:
 
       - name: Probe the canonical origin
         run: node scripts/security-headers.mjs
+
+      - name: Deployed freshness (site must match main)
+        # The refresh's deploy dispatch is one-shot: if it fails, the next run sees
+        # changed=false and never retries, leaving the site stale while the repo is
+        # fresh (the weekly canary only checks repo age). Compare the latest
+        # github-pages deployment against main instead.
+        run: |
+          set -euo pipefail
+          MAIN_SHA=$(git rev-parse HEAD)
+          DEP_JSON=$(gh api "repos/${{ github.repository }}/deployments?environment=github-pages&per_page=1")
+          DEP_SHA=$(echo "$DEP_JSON" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const a=JSON.parse(d);console.log(a.length?a[0].sha:'')})")
+          DEP_ID=$(echo "$DEP_JSON" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const a=JSON.parse(d);console.log(a.length?a[0].id:'')})")
+          DEP_CREATED=$(echo "$DEP_JSON" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const a=JSON.parse(d);console.log(a.length?a[0].created_at:'')})")
+          if [ -z "$DEP_SHA" ]; then echo "::error::No github-pages deployment found."; exit 1; fi
+          if [ "$DEP_SHA" != "$MAIN_SHA" ]; then
+            echo "::error::Site is stale: deployed ${DEP_SHA:0:7} != main ${MAIN_SHA:0:7}. The deploy dispatch likely failed and was never retried."
+            exit 1
+          fi
+          STATE=$(gh api "repos/${{ github.repository }}/deployments/$DEP_ID/statuses" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const s=JSON.parse(d);console.log(s.length?s[0].state:'')})")
+          case "$STATE" in
+            success) echo "Deployed build $MAIN_SHA is live (status success).";;
+            queued|waiting|in_progress)
+              AGE_S=$(( $(date -u +%s) - $(date -u -d "$DEP_CREATED" +%s) ))
+              if [ "$AGE_S" -lt 900 ]; then echo "Deploy of $MAIN_SHA in flight (${AGE_S}s); not failing."; else echo "::error::Deployment for main stuck in $STATE for ${AGE_S}s."; exit 1; fi;;
+            *) echo "::error::Latest deployment for main ended in state '$STATE' (site not serving this commit)."; exit 1;;
+          esac
 
   lighthouse-deployed:
     runs-on: ubuntu-latest

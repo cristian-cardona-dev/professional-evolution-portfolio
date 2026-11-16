@@ -72,6 +72,10 @@ for (const repository of doc.repositories || []) {
   if (!repository || typeof repository !== "object" || Array.isArray(repository)) continue;
  for (const [kind, path] of Object.entries(objectKinds)) { if (!Array.isArray(repository[kind])) { fail(`${kind} must be an array`); continue; } for (const item of repository[kind]) { const objectKeys = kind === "commits" ? ["id", "url", "captured_at", "title", "bot"] : ["id", "url", "captured_at", "title"]; hasOnly(item, objectKeys, `${kind} object`); required(item, ["id", "url", "captured_at", "title"], `${kind} object`); if (item && "bot" in item && item.bot !== true) fail(`invalid bot flag in ${kind} object`); if (!item || typeof item.id !== "string" || !/^[A-Za-z0-9._-]{2,}$/.test(item.id) || objectIds.has(item.id) || !objectUrl(item.url) || !iso(item.captured_at) || typeof item.title !== "string" || item.title.length < 2 || item.title.length > 200) fail(`invalid ${kind} object`); if (item && objectUrl(item.url) && repoUrl(repository.url) && !item.url.startsWith(`${cleanRepoUrl(repository.url)}/${path}/`)) fail(`${kind} object URL is outside parent repository`); objectIds.add(item?.id); } }
 }
-if (/(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}|-----BEGIN .*PRIVATE KEY-----|(?:personal|private)\s+repository/i.test(raw)) fail("snapshot contains credential or private-data marker");
+// Commit titles are arbitrary public text: match secret SHAPES (token prefixes,
+// key blocks) and assignment-shaped markers (`private repository:` /
+// `private repository=`), never the bare phrase.
+if (/(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{16,}|-----BEGIN .*PRIVATE KEY-----/i.test(raw)) fail("snapshot contains credential material");
+if (/(?:personal|private)\s+repository\s*[:=]/i.test(raw)) fail("snapshot contains private-data marker");
 if (errors.length) { console.error(errors.join("\n")); process.exit(1); }
 console.log(`GitHub activity snapshot valid: ${file}`);

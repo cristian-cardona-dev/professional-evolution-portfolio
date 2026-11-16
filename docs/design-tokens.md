@@ -48,15 +48,16 @@ non-text UI**.
 | `--color-bg` | `#F2EFE6` | Page background (warm paper) | base |
 | `--color-surface` | `#FFFFFF` | Cards, panels | base |
 | `--color-surface-raised` | `#E8E5DC` | Hovered cards, chips | base |
-| `--color-text` | `#0A0A0A` | Primary body + headings | ~17.75:1 on `bg` ✅ AAA |
-| `--color-text-muted` | `#5A5650` | Secondary copy, metadata | ~7.18:1 on `bg` ✅ AA |
+| `--color-text` | `#0A0A0A` | Primary body + headings | ~17.22:1 on `bg` ✅ AAA |
+| `--color-text-muted` | `#5A5650` | Secondary copy, metadata | ~6.34:1 on `bg` ✅ AA |
 | `--color-border` | `#D0CDC4` | Hairlines, dividers | decorative; interactive borders use `accent-ink` |
-| `--color-accent` | `#C4009E` | Primary CTA buttons (darker magenta for light bg) | ~6.5:1 on `bg` ✅ AA |
+| `--color-accent` | `#C4009E` | Primary CTA buttons (darker magenta for light bg) | ~4.76:1 on `bg` ✅ AA |
 | `--color-accent-ink` | `#FFFFFF` | Text on accent-filled buttons (white on magenta) | 7.00:1 ✅ AA |
-| `--color-success` | `#2F855A` | Verified status | ~6.42:1 on `bg` ✅ AA |
-| `--color-warn` | `#B7791F` | Draft status | ~6.25:1 on `bg` ✅ AA |
+| `--color-success` | `#28724d` | Verified status | 5.07:1 on bg; ≥4.63:1 worst case (surface-raised) — AA body text |
+| `--color-warn` | `#8a5b17` | Draft status | 5.09:1 on bg; ≥4.64:1 worst case — AA body text |
+| `--color-danger` | `#ba3333` | Error/destructive status in light theme | 5.06:1 on bg; ≥4.62:1 worst case — AA body text |
 
-Verified with WCAG 2.1 relative-luminance formula, most recently on 2026-10-30 (re-synced to `web/src/styles/tokens.css` after the type-first redesign: palette shifted from navy/mint to deep-gray/warm-paper/magenta, `--color-accent` `#64FFDA` → `#F53FD6` dark / `#006557` → `#C4009E` light).
+Verified with WCAG 2.1 relative-luminance formula, most recently on 2026-11-16 (re-synced to `web/src/styles/tokens.css` after the type-first redesign: palette shifted from navy/mint to deep-gray/warm-paper/magenta, `--color-accent` `#64FFDA` → `#F53FD6` dark / `#006557` → `#C4009E` light).
 
 Rules:
 - Body copy never uses `text-muted` below 16px on `surface` without re-checking contrast.

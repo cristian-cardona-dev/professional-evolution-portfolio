@@ -97,7 +97,7 @@ else changed.
 
 ## Runbook — is the automation alive?
 
-Everything below is read-only and takes under two minutes.
+Commands 1–3 below are read-only; command 4 triggers a refresh (it commits and deploys). Everything takes under two minutes.
 
 ```bash
 # 1. Recent refresh runs (expect: a `schedule` run roughly every 6h,
@@ -129,8 +129,7 @@ Expected signals of a healthy pipeline:
 
 Known-by-design notes:
 
-- The 6 pre-commit guards run locally only; CI never installs `core.hooksPath`,
-  so bot commits rely on `github-activity/validate.mjs` as their gate.
+- This repository has no pre-commit hooks at all; the gate for every snapshot (bot or human) is `github-activity/validate.mjs`, run by the refresh workflow, `quality.yml` and `check:all`.
 - A total refresh failure still persists `health.json` first and only then turns
   the run red (the final `Fail the run if the refresh errored` step).
 
@@ -142,7 +141,7 @@ Known-by-design notes:
 - `schema_version`: fixed at `"1.0.0"`.
 - `snapshot_id`: stable identifier for this fixture.
 - `captured_at`: UTC ISO timestamp of the refresh.
-- `status`: object with `availability` (`available`, `empty`, or `unavailable`),
+- `status`: object with `availability` (`available`, `partial`, `empty`, or `unavailable`),
   `stale` (boolean), and a human-readable `message`.
 - `source`: always `provider: "github"`, `mode: "checked_in_fixture"` or
   `"build_snapshot"`, and `url: "https://github.com/"`.
@@ -150,6 +149,10 @@ Known-by-design notes:
 - `repositories`: array of records, each with `id`, `url`, `visibility`,
   `open_pull_requests`, and arrays of `pull_requests`, `commits`, `releases`,
   and `deployments`.
+- `repositories[].error`: optional non-empty string marking a failed refresh for that repository.
+- `repositories[].etag`: optional non-empty string used for conditional requests.
+- `repositories[].unavailable`: optional boolean, true when the repository could not be refreshed.
+- `commits[].bot`: optional boolean, true only for bot-authored commits.
 
 ### `deployments` is retained but always empty
 
@@ -192,6 +195,4 @@ If `node github-activity/validate.mjs --max-age-days=14` fails:
 2. Re-run the validator.
 3. Commit the updated `github-activity/snapshot.json`.
 
-If the snapshot is intentionally older than 14 days (for example, during a
-feature freeze), set `status.stale: true` and add a `stale_reason` explaining why
-the older data is still correct. Do not bypass the validator.
+If the snapshot is older than 14 days, the fix is to refresh it: gh workflow run activity-refresh.yml. The validator's --max-age-days gate and the stale flag are deliberately coupled (stale must match the 90-day policy), so stale cannot be used to waive the freshness gate.

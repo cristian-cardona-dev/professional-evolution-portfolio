@@ -121,3 +121,43 @@ test('partial availability with failed_repos is accepted', () => {
   const r = runValidator(snap, ['--max-age-days=14']);
   assert.equal(r.code, 0, `expected pass, got: ${r.stderr}`);
 });
+
+function addCommit(snap, title) {
+  snap.repositories[0].commits = [
+    {
+      id: 'abc123def456',
+      url: 'https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/abc123def456',
+      captured_at: toIso(Date.now()),
+      title,
+    },
+  ];
+  return snap;
+}
+
+test('prose commit title "private repository" does not fire the secret guard', () => {
+  const snap = addCommit(makeSnapshot(toIso(Date.now())), 'feat: private repository handling');
+  // second title to exercise the personal-repository phrase too
+  snap.repositories[0].commits.push({
+    id: 'def456abc789',
+    url: 'https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/def456abc789',
+    captured_at: toIso(Date.now()),
+    title: 'docs: personal repository policy',
+  });
+  const r = runValidator(snap, ['--max-age-days=14']);
+  assert.equal(r.code, 0, `expected pass, got: ${r.stderr}`);
+});
+
+test('credential-shaped commit title fires the secret guard', () => {
+  const token = 'ghp_' + 'a'.repeat(24);
+  const snap = addCommit(makeSnapshot(toIso(Date.now())), `leak: ${token}`);
+  const r = runValidator(snap, ['--max-age-days=14']);
+  assert.notEqual(r.code, 0, 'expected failure for credential shape');
+  assert.match(r.stderr, /credential material/);
+});
+
+test('assignment-shaped "private repository =" fires the secret guard', () => {
+  const snap = addCommit(makeSnapshot(toIso(Date.now())), 'rotate: private repository = rotated');
+  const r = runValidator(snap, ['--max-age-days=14']);
+  assert.notEqual(r.code, 0, 'expected failure for assignment marker');
+  assert.match(r.stderr, /private-data marker/);
+});
