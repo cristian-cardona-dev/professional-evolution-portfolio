@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-11-16T09:18:00Z",
+  "captured_at": "2026-11-16T09:28:25Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -26,6 +26,13 @@
       "pull_requests": [],
       "commits": [
         {
+          "id": "899290f0a30fd7ecd9b7ecfa2aad43b3051bb419",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/899290f0a30fd7ecd9b7ecfa2aad43b3051bb419",
+          "captured_at": "2026-11-16T09:18:03Z",
+          "title": "ai(portfolio): refresh public github activity",
+          "bot": true
+        },
+        {
           "id": "5655790f31b12ee1caba700ac9e87337f32fd25b",
           "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/5655790f31b12ee1caba700ac9e87337f32fd25b",
           "captured_at": "2026-11-16T09:02:30Z",
@@ -36,18 +43,12 @@
           "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/943060a67cebe903743f2afa319112a89890ea67",
           "captured_at": "2026-11-16T08:24:35Z",
           "title": "ai(a11y): deterministic axe gate, milestone coverage, true light tokens, weekly freshness canary"
-        },
-        {
-          "id": "b2a5ac624d87731bfaeb483d3014d95cdad27458",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/b2a5ac624d87731bfaeb483d3014d95cdad27458",
-          "captured_at": "2026-11-16T07:54:17Z",
-          "title": "ai(ci): harden activity refresh - push guard, health persist, dispatch verify, 6h cadence"
         }
       ],
       "releases": [],
       "deployments": [],
       "open_pull_requests": 0,
-      "etag": "\"49fad978ce72769f3aea3328519e34c2487e7448504590c95a2d0efdaeff21f9\""
+      "etag": "\"c8bf6c0d023416d2f717ad46b13c05126ce1df5811686cda9041b46b6635a1e2\""
     },
     {
       "id": "cristian-cardona-dev/cloud-dashboard",
@@ -77,7 +78,7 @@
       "releases": [],
       "deployments": [],
       "open_pull_requests": 0,
-      "etag": "\"6130e5ca5cfe201e0a093c545653fcd333cbfb2c629cf89d748971455f8e6c36\""
+      "etag": "\"045b6e476b6e6424973ce7fa4e7862ea13c80c918d5a7f8f802311bb41cca305\""
     },
     {
       "id": "cristian-cardona-dev/ai-chat-app",
@@ -107,7 +108,7 @@
       "releases": [],
       "deployments": [],
       "open_pull_requests": 0,
-      "etag": "\"47fbe0adac6c10d8c8d13ec28c46daa4cd0cbf756eefc068c5f21783e303139f\""
+      "etag": "\"7b3e3417a8ffb0c23af3dfbeda8050e9cfcd3885599bdfca87226e874fea6a74\""
     },
     {
       "id": "cristian-cardona-dev/ai-automation-workflow-lab",
@@ -137,7 +138,7 @@
       "releases": [],
       "deployments": [],
       "open_pull_requests": 0,
-      "etag": "\"4e1c655c570112ed6088adeda5e3b930c0eddfaa372e42c6fde406196d7494ef\""
+      "etag": "\"48607d720be6b0341847c1b8cec3a7e958255fb206f6a14079e77d219d859eb0\""
     }
   ]
 }
