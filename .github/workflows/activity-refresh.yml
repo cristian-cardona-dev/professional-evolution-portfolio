@@ -11,8 +11,11 @@ name: Refresh public GitHub activity
 
 on:
   schedule:
-    # Daily, 06:17 UTC — keeps the feed within 24h of reality.
-    - cron: '17 6 * * *'
+    # Every 6 hours (00:17, 06:17, 12:17, 18:17 UTC) — keeps the feed within
+    # ~6h of reality. Note: this repo's scheduled runs have historically been
+    # delayed 7-10h by the GitHub scheduler, so treat ~6h as the ideal, not
+    # the guarantee (plan ruling H=C).
+    - cron: '17 */6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -38,6 +41,11 @@ jobs:
           node-version: 22
 
       - name: Refresh snapshot
+        id: refresh
+        # Total failure exits 1 (by design) but health.json must still be
+        # committed below, so the error is allowed to pass to the end of the
+        # job and re-raised by the final step.
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/activity-refresh.mjs
@@ -88,14 +96,23 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add github-activity/snapshot.json github-activity/health.json
-          git commit -m "ai(portfolio): refresh public github activity"
+          if [ "${{ steps.change.outputs.changed }}" = "true" ]; then
+            git commit -m "ai(portfolio): refresh public github activity"
+          else
+            git commit -m "ai(portfolio): record activity refresh health"
+          fi
           # Retry push on conflict (another run may have pushed in between).
+          pushed=false
           for attempt in 1 2 3; do
-            git push && break
+            if git push; then pushed=true; break; fi
             echo "Push attempt $attempt failed; rebasing and retrying..."
             git pull --rebase origin main
             sleep 2
           done
+          if [ "$pushed" != "true" ]; then
+            echo "::error::Could not push the refreshed activity after 3 attempts."
+            exit 1
+          fi
 
       - name: Trigger static deploy (web)
         if: steps.change.outputs.changed == 'true'
@@ -103,18 +120,26 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh workflow run deploy-static.yml -f pipeline=web
-          # Verify the dispatch actually queued a run; fail loudly if not.
-          sleep 5
-          RUN_ID=$(gh run list --workflow=deploy-static.yml --limit=1 --json databaseId --jq '.[0].databaseId')
-          if [ -z "$RUN_ID" ]; then
-            echo "::error::Deploy dispatch did not queue a run. Snapshot committed but site not rebuilt."
+          # Verify a *workflow_dispatch* run for THIS dispatch queued within
+          # the last 5 minutes; a leftover push-triggered run must not count.
+          queued=""
+          for attempt in 1 2 3 4 5 6; do
+            sleep 5
+            RUN_ID=$(gh run list --workflow=deploy-static.yml --event workflow_dispatch \
+              --limit 1 --json databaseId,createdAt \
+              | jq -r --argjson cutoff "$(($(date +%s) - 300))" \
+                '.[0] | select(type == "object" and (.createdAt | fromdateiso8601) >= $cutoff) | .databaseId // empty')
+            if [ -n "$RUN_ID" ]; then queued="$RUN_ID"; break; fi
+          done
+          if [ -z "$queued" ]; then
+            echo "::error::Deploy dispatch did not queue a run within 30s. Snapshot committed but site not rebuilt."
             exit 1
           fi
-          echo "Deploy run queued: $RUN_ID"
+          echo "Deploy run queued: $queued"
 
       - name: No change
-        if: steps.change.outputs.changed != 'true'
-        run: echo "No upstream activity change; skipping commit and deploy."
+        if: steps.change.outputs.changed != 'true' && steps.change.outputs.health_changed != 'true'
+        run: echo "No snapshot content change and no health update; nothing to commit."
 
       - name: Chronic failure tracking (plan phase 7.3)
         # Reads the health.json this run just updated, surfaces it in the step
@@ -185,3 +210,11 @@ jobs:
               fi
             done < open-issues.tsv
           fi
+
+      - name: Fail the run if the refresh errored
+        # Runs last so the health commit and dispatch above have already
+        # happened; a failed refresh must still turn the whole run red.
+        if: steps.refresh.outcome == 'failure'
+        run: |
+          echo "::error::Activity refresh failed; see the 'Refresh snapshot' step."
+          exit 1
