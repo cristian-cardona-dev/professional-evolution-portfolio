@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-11-14T14:27:51Z",
+  "captured_at": "2026-11-16T09:18:00Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -26,27 +26,28 @@
       "pull_requests": [],
       "commits": [
         {
-          "id": "24fbd7c2c240fcac3a6f4e11ac4942585b84c324",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/24fbd7c2c240fcac3a6f4e11ac4942585b84c324",
-          "captured_at": "2026-11-14T13:37:30Z",
-          "title": "fix(i18n): repair double-encoded UTF-8 mojibake in copy.ts"
+          "id": "5655790f31b12ee1caba700ac9e87337f32fd25b",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/5655790f31b12ee1caba700ac9e87337f32fd25b",
+          "captured_at": "2026-11-16T09:02:30Z",
+          "title": "ai(docs): tell the truth about 6h cadence and add the activity automation runbook"
         },
         {
-          "id": "a27f59bf3a7653383a52b3a804190dc20bef3479",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/a27f59bf3a7653383a52b3a804190dc20bef3479",
-          "captured_at": "2026-11-13T18:55:38Z",
-          "title": "fix(web): hardcode chat worker url so production shows the widget"
+          "id": "943060a67cebe903743f2afa319112a89890ea67",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/943060a67cebe903743f2afa319112a89890ea67",
+          "captured_at": "2026-11-16T08:24:35Z",
+          "title": "ai(a11y): deterministic axe gate, milestone coverage, true light tokens, weekly freshness canary"
         },
         {
-          "id": "99f11287179496baa7c11feee02158b126d8093c",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/99f11287179496baa7c11feee02158b126d8093c",
-          "captured_at": "2026-11-13T18:49:10Z",
-          "title": "ci: pass PUBLIC_CHAT_WORKER_URL to production builds"
+          "id": "b2a5ac624d87731bfaeb483d3014d95cdad27458",
+          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/b2a5ac624d87731bfaeb483d3014d95cdad27458",
+          "captured_at": "2026-11-16T07:54:17Z",
+          "title": "ai(ci): harden activity refresh - push guard, health persist, dispatch verify, 6h cadence"
         }
       ],
       "releases": [],
       "deployments": [],
-      "open_pull_requests": 0
+      "open_pull_requests": 0,
+      "etag": "\"49fad978ce72769f3aea3328519e34c2487e7448504590c95a2d0efdaeff21f9\""
     },
     {
       "id": "cristian-cardona-dev/cloud-dashboard",
@@ -75,7 +76,8 @@
       ],
       "releases": [],
       "deployments": [],
-      "open_pull_requests": 0
+      "open_pull_requests": 0,
+      "etag": "\"6130e5ca5cfe201e0a093c545653fcd333cbfb2c629cf89d748971455f8e6c36\""
     },
     {
       "id": "cristian-cardona-dev/ai-chat-app",
@@ -104,7 +106,8 @@
       ],
       "releases": [],
       "deployments": [],
-      "open_pull_requests": 0
+      "open_pull_requests": 0,
+      "etag": "\"47fbe0adac6c10d8c8d13ec28c46daa4cd0cbf756eefc068c5f21783e303139f\""
     },
     {
       "id": "cristian-cardona-dev/ai-automation-workflow-lab",
@@ -133,7 +136,8 @@
       ],
       "releases": [],
       "deployments": [],
-      "open_pull_requests": 0
+      "open_pull_requests": 0,
+      "etag": "\"4e1c655c570112ed6088adeda5e3b930c0eddfaa372e42c6fde406196d7494ef\""
     }
   ]
 }
