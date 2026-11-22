@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-11-22T06:50:40Z",
+  "captured_at": "2026-11-22T19:42:15Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -158,7 +158,14 @@
           "title": "ai(web): marca Geos Digital (renombrado desde GEOS Iniciativas Digitales)"
         }
       ],
-      "releases": [],
+      "releases": [
+        {
+          "id": "454621991",
+          "url": "https://github.com/cristian-cardona-dev/iniciativa-digital/releases/tag/media-tanda1",
+          "captured_at": "2026-11-22T17:32:31Z",
+          "title": "Media tanda 1"
+        }
+      ],
       "deployments": [],
       "open_pull_requests": 0,
       "etag": "\"ba7b7f117893474ba6571fbc42f45a3ebef905b1cb86a692fb254fc5f99bcac7\""
