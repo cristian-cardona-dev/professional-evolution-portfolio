@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-11-21T19:17:15Z",
+  "captured_at": "2026-11-22T06:50:40Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -240,18 +240,12 @@
           "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/966a935e322da6761c1225d0c80d5a515894f019",
           "captured_at": "2026-11-16T14:16:55Z",
           "title": "ai(ci): validator shape-based secrets, runbook/token truth, deployed-freshness guard"
-        },
-        {
-          "id": "1b604c74907ebcfc6bb70fbbc1977ef58a6ce46c",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/1b604c74907ebcfc6bb70fbbc1977ef58a6ce46c",
-          "captured_at": "2026-11-16T10:03:52Z",
-          "title": "merge bot activity refresh commits (phase-V runs V.1/V.2 snapshot+health)"
         }
       ],
       "releases": [],
       "deployments": [],
       "open_pull_requests": 0,
-      "etag": "\"b6dcc68d85350c3d5d511d60ec4ae4a0d601490ad8202ca1d8aca918d09cfefb\""
+      "etag": "\"09f04327310b25bad933dafea8f925d69882c9739623611e8d226cabc23e6a40\""
     },
     {
       "id": "cristian-cardona-dev/S.I-MaternitySpa",
