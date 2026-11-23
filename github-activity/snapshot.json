@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-11-23T07:40:39Z",
+  "captured_at": "2026-11-23T23:54:49Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -235,18 +235,11 @@
       "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio",
       "visibility": "public",
       "pull_requests": [],
-      "commits": [
-        {
-          "id": "2628a039a72e956269d6c7548b1337d1e6d63280",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/2628a039a72e956269d6c7548b1337d1e6d63280",
-          "captured_at": "2026-11-16T14:52:07Z",
-          "title": "ai(portfolio): dynamic public-repo inventory - discover, sync, drop on private/deleted"
-        }
-      ],
+      "commits": [],
       "releases": [],
       "deployments": [],
       "open_pull_requests": 0,
-      "etag": "\"9fa70cd14d380eee075d09df840a7bbc6b470c88f58e02089c6fdb44bca5173f\""
+      "etag": "\"ac3a85855a3ceb0c33ae8329e5b7250c712580c732c9fd50e7d60f55e25a1ede\""
     },
     {
       "id": "cristian-cardona-dev/S.I-MaternitySpa",
