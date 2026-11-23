@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "snapshot_id": "public-github-activity-fixture-01",
-  "captured_at": "2026-11-22T19:42:15Z",
+  "captured_at": "2026-11-23T07:40:39Z",
   "status": {
     "availability": "available",
     "stale": false,
@@ -241,18 +241,12 @@
           "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/2628a039a72e956269d6c7548b1337d1e6d63280",
           "captured_at": "2026-11-16T14:52:07Z",
           "title": "ai(portfolio): dynamic public-repo inventory - discover, sync, drop on private/deleted"
-        },
-        {
-          "id": "966a935e322da6761c1225d0c80d5a515894f019",
-          "url": "https://github.com/cristian-cardona-dev/professional-evolution-portfolio/commit/966a935e322da6761c1225d0c80d5a515894f019",
-          "captured_at": "2026-11-16T14:16:55Z",
-          "title": "ai(ci): validator shape-based secrets, runbook/token truth, deployed-freshness guard"
         }
       ],
       "releases": [],
       "deployments": [],
       "open_pull_requests": 0,
-      "etag": "\"09f04327310b25bad933dafea8f925d69882c9739623611e8d226cabc23e6a40\""
+      "etag": "\"9fa70cd14d380eee075d09df840a7bbc6b470c88f58e02089c6fdb44bca5173f\""
     },
     {
       "id": "cristian-cardona-dev/S.I-MaternitySpa",
